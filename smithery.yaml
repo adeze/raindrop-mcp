@@ -1,0 +1,19 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - raindropAccessToken
+    properties:
+      raindropAccessToken:
+        type: string
+        description: Raindrop.io API Access Token
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({ command: 'node', args: ['build/cli.js'], env: { RAINDROP_ACCESS_TOKEN: config.raindropAccessToken } })
+  exampleConfig:
+    raindropAccessToken: YOUR_RAINDROP_ACCESS_TOKEN
