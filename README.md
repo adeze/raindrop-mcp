@@ -5,6 +5,7 @@
 This project provides a Model Context Protocol (MCP) server for interacting with the [Raindrop.io](https://raindrop.io/) bookmarking service. It allows Language Models (LLMs) and other AI agents to access and manage your Raindrop.io data through the MCP standard.
 
 [![npm version](https://badge.fury.io/js/%40adeze%2Fraindrop-mcp.svg)](https://www.npmjs.com/package/@adeze/raindrop-mcp)
+[![smithery badge](https://smithery.ai/badge/@adeze/raindrop-mcp)](https://smithery.ai/server/@adeze/raindrop-mcp)
 
 ## Features
 
@@ -31,6 +32,14 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - A Raindrop.io API Access Token (create one in your [Raindrop.io settings](https://app.raindrop.io/settings/integrations))
 
 ## Installation and Usage
+
+### Installing via Smithery
+
+To install Raindrop.io Bookmark Manager for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@adeze/raindrop-mcp):
+
+```bash
+npx -y @smithery/cli install @adeze/raindrop-mcp --client claude
+```
 
 ### Using NPX (Recommended)
 
