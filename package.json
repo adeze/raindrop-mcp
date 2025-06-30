@@ -6,12 +6,11 @@
     "module": "src/index.ts",
     "type": "module",
     "bin": {
-        "raindrop-mcp": "./build/cli.js"
+        "raindrop-mcp": "./build/src/cli.js"
     },
     "files": [
         "dist",
-        "build",
-        "cli.js"
+        "build"
     ],
     "private": false,
     "scripts": {
@@ -31,7 +30,7 @@
         "test:server": "bun run tests/test-server.ts",
         "test:comparison": "bun run tests/test-comparison.ts",
         "test:demo": "bun run tests/optimization-demo.ts",
-        "run build": "bun run build/index.js",
+        "run build": "bun run build/src/index.js",
         "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts ./src/cli.ts ./src/http-server.ts ./src/http-server-optimized.ts ./tests/test-client.ts",
         "start": "bun run src/index.ts",
         "start:http": "bun run src/http-server-optimized.ts",
