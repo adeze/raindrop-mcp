@@ -6,6 +6,8 @@
   "author": {
     "name": "Adam E"
   },
+  "support": "https://github.com/adeze/raindrop-mcp/issues",
+  "icon": "icon_128.png",
   "server": {
     "type": "node",
     "entry_point": "build/src/index.js",
