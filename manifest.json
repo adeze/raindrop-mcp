@@ -8,14 +8,14 @@
   },
   "server": {
     "type": "node",
-    "entry_point": "index.js",
+    "entry_point": "build/src/index.js",
     "mcp_config": {
       "command": "node",
       "args": [
-        "${__dirname}/index.js"
+        "${__dirname}/build/src/index.js"
       ],
       "env": {
-        "RAINDROP_ACCESS_TOKEN": "${RAINDROP_ACCESS_TOKEN}"
+        "RAINDROP_ACCESS_TOKEN": "${user_config.RAINDROP_ACCESS_TOKEN}"
       }
     },
     "tools": [
@@ -32,16 +32,20 @@
     "user_config": {
       "RAINDROP_ACCESS_TOKEN": {
         "type": "string",
-        "title": "RAINDROP_ACCESS_TOKEN",
+        "title": "Raindrop Access Token",
         "description": "see the readme.md file",
         "required": true,
-        "sensitive": true
+        "sensitive": true,
+        "default": [
+          "${RAINDROP_ACCESS_TOKEN}"
+        ]
       }
     },
     "keywords": [
       "raindrop.io",
       "raindrop",
-      "bookmarks"
+      "bookmarks",
+      "productivity"
     ],
     "license": "MIT",
     "repository": {

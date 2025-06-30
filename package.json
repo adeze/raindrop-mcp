@@ -52,7 +52,7 @@
         "bump:minor": "npm version minor",
         "bump:major": "npm version major",
         "bun:update": "bun update",
-        "dxt:pack": "dxt pack"
+        "dxt:pack": "npx @anthropic-ai/dxt pack"
     },
     "repository": {
         "type": "git",
