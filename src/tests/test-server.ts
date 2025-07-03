@@ -49,7 +49,7 @@ async function testServer() {
     }
 }
 
-if (import.meta.main) {
+if (require.main === module) {
     testServer();
 }
 
