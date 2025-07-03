@@ -2,6 +2,8 @@ import { McpServer, ResourceTemplate  } from "@modelcontextprotocol/sdk/server/m
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
+import StreamingTools from './streaming-tools.service.js';
+import StreamingResources from './streaming-resources.service.js';
 import { type Collection, type Bookmark,  type Highlight,type SearchParams } from '../types/raindrop.js';
 import {
   CallToolRequestSchema,
@@ -34,11 +36,31 @@ type ToolInput = z.infer<typeof ToolInputSchema>;
  * This service implements the Model Context Protocol (MCP) for the Raindrop.io bookmarking service.
  * It provides both resources and tools for working with Raindrop.io data.
  * 
+ * ## Streaming Support
+ * This service includes enhanced streaming capabilities for large/long-running operations:
+ * 
+ * ### Streaming Tools:
+ * - streamSearchBookmarks: Search with chunked results for large datasets
+ * - streamHighlights: Stream highlights with pagination
+ * - streamExportBookmarks: Export with progress updates
+ * - streamImportStatus: Monitor import progress
+ * 
+ * ### Streaming Resources:
+ * - highlights://stream/all - All highlights with chunked loading
+ * - search://stream/{query} - Search results with streaming
+ * - highlights://stream/collection/{id} - Collection highlights with streaming
+ * - highlights://stream/raindrop/{id} - Raindrop highlights with streaming
+ * 
+ * ### Transport Support:
+ * - HTTP: Full streaming support via SSE and chunked transfer encoding
+ * - STDIO: Streaming message format with progress notifications
+ * 
  * Resources follow URI patterns like:
  * - collections://all - All collections
  * - collections://{parentId}/children - Child collections
  * - tags://all - All tags
- * - highlights://all - All highlights
+ * - highlights://all - All highlights (standard)
+ * - highlights://stream/all - All highlights (streaming)
  * - user://info - User information
  * - user://stats - User statistics
  * 
@@ -47,6 +69,8 @@ type ToolInput = z.infer<typeof ToolInputSchema>;
  */
 export class RaindropMCPService {
   private server: McpServer;
+  private streamingTools: StreamingTools;
+  private streamingResources: StreamingResources;
 
   private subsUpdateInterval: NodeJS.Timeout | undefined;
   private logsUpdateInterval: NodeJS.Timeout | undefined;
@@ -57,12 +81,16 @@ export class RaindropMCPService {
   constructor() {
     this.server = new McpServer({
         name: 'raindrop-mcp',
-        version: '1.1.0',
-        description: 'MCP Server for Raindrop.io bookmarking service',
+        version: '1.2.0',
+        description: 'MCP Server for Raindrop.io bookmarking service with streaming support',
         capabilities: {
             logging: false // Keep logging off for STDIO compatibility
         }
     });
+
+    // Initialize streaming services
+    this.streamingTools = new StreamingTools(this.server);
+    this.streamingResources = new StreamingResources(this.server);
 
     // Initialize subscriptions and notifications
     //this.setupSubscriptions();
@@ -71,6 +99,9 @@ export class RaindropMCPService {
     // Initialize resources and tools
     this.initializeResources();
     this.initializeTools();
+    
+    // Initialize streaming capabilities
+    this.initializeStreamingCapabilities();
   }
 
   // private setupSubscriptions() {
@@ -1526,6 +1557,58 @@ this.server.resource(
         } catch (error) {
           throw new Error(`Failed to start export: ${(error as Error).message}`);
         }
+      }
+    );
+  }
+
+  /**
+   * Initialize streaming capabilities for large/long-running operations
+   */
+  private initializeStreamingCapabilities() {
+    // Initialize streaming tools
+    this.streamingTools.initializeStreamingTools();
+    
+    // Initialize streaming resources
+    this.streamingResources.initializeStreamingResources();
+    
+    // Add streaming capabilities info tool
+    this.server.tool(
+      'getStreamingCapabilities',
+      'Get information about streaming capabilities and supported operations',
+      {},
+      async () => {
+        const toolCapabilities = this.streamingTools.getStreamingCapabilities();
+        const resourceCapabilities = this.streamingResources.getStreamingResourceInfo();
+        
+        return {
+          content: [{
+            type: "text",
+            text: "Raindrop MCP Server - Streaming Capabilities",
+            metadata: {
+              streamingSupport: {
+                description: "This server supports streaming for large datasets and long-running operations",
+                version: "1.2.0",
+                ...toolCapabilities,
+                ...resourceCapabilities,
+                documentation: {
+                  "HTTP Transport": "Supports SSE streams and chunked transfer encoding",
+                  "STDIO Transport": "Supports streaming message format with progress notifications",
+                  "When to use streaming": [
+                    "Search operations with large result sets",
+                    "Fetching all highlights (potentially thousands)",
+                    "Export/import operations (long-running)",
+                    "Large collection operations"
+                  ],
+                  "Tool naming": {
+                    "Regular tools": "Standard tools for small/medium datasets",
+                    "Streaming tools": "Tools prefixed with 'stream' for large datasets",
+                    "Streaming resources": "Resources with '://stream/' in URI for chunked loading"
+                  }
+                }
+              }
+            }
+          }]
+        };
       }
     );
   }

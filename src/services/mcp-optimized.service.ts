@@ -326,8 +326,8 @@ export class OptimizedRaindropMCPService {
         this.server.tool(
             'prompts/list',
             'List available prompts for the Raindrop MCP extension. Returns an array of prompt definitions (empty if none are defined).',
-            z.object({}),
-            async ({}) => {
+            {},
+            async () => {
                 try {
                     return {
                         content: [] // No prompts defined yet
