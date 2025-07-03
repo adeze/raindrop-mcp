@@ -30,6 +30,8 @@
         "test:server": "bun run tests/test-server.ts",
         "test:comparison": "bun run tests/test-comparison.ts",
         "test:demo": "bun run tests/optimization-demo.ts",
+        "test:stdio": "npx tsx tests/test-stdio.ts",
+        "test:stdio:errors": "npx tsx tests/test-stdio-errors.ts",
         "run build": "bun run build/src/index.js",
         "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts",
         "start": "bun run src/index.ts",
