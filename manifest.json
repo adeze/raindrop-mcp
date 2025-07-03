@@ -2,7 +2,7 @@
   "dxt_version": "0.1",
   "name": "@adeze/raindrop-mcp",
   "version": "1.1.4",
-  "description": "MCP Server for Raindrop.io",
+  "description": "MCP Server for Raindrop.io with comprehensive output validation and schema documentation",
   "author": {
     "name": "Adam E"
   },
@@ -19,6 +19,31 @@
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${user_config.api_key}"
       }
+    },
+    "features": {
+      "output_validation": {
+        "enabled": true,
+        "description": "All tools provide validated output with zod schemas",
+        "schemas": {
+          "collections": "CollectionResponseSchema",
+          "bookmarks": "BookmarkResponseSchema", 
+          "tags": "TagResponseSchema",
+          "highlights": "HighlightResponseSchema",
+          "user": "UserResponseSchema",
+          "stats": "StatsResponseSchema",
+          "import_export": "ImportExportResponseSchema",
+          "operations": "OperationResultResponseSchema"
+        }
+      },
+      "streaming": {
+        "supported": true,
+        "description": "Selected tools support streaming output with proper schemas",
+        "schema": "StreamingResponseSchema"
+      },
+      "metadata": {
+        "enabled": true,
+        "description": "All tools include comprehensive metadata with category information"
+      }
     }
   },
   "user_config": {
@@ -34,7 +59,10 @@
     "raindrop.io",
     "raindrop",
     "bookmarks",
-    "productivity"
+    "productivity",
+    "output-validation",
+    "zod-schemas",
+    "streaming"
   ],
   "license": "MIT",
   "repository": {

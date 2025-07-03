@@ -24,6 +24,27 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { 
+  CollectionResponseSchema, 
+  CollectionListResponseSchema,
+  BookmarkResponseSchema,
+  BookmarkListResponseSchema,
+  TagResponseSchema,
+  HighlightResponseSchema,
+  UserResponseSchema,
+  StatsResponseSchema,
+  ImportExportResponseSchema,
+  OperationResultResponseSchema,
+  type CollectionResponse,
+  type BookmarkResponse,
+  type TagResponse
+} from '../schemas/output.js';
+import { 
+  validateToolOutput, 
+  createToolMetadata, 
+  createValidatedToolHandler,
+  createToolResponse
+} from '../schemas/validation.js';
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -431,52 +452,54 @@ this.server.resource(
       {
         id: z.number().describe('Collection ID')
       },
-      async ({ id }) => {
+      createValidatedToolHandler(async ({ id }) => {
         try {
           const collection = await raindropService.getCollection(id);
-          return {
-            content: [{
-              type: "text",
-              text: collection.title,
-              metadata: {
-                id: collection._id,
-                count: collection.count,
-                public: collection.public,
-                created: collection.created,
-                lastUpdate: collection.lastUpdate
-              }
-            }]
-          };
+          return createToolResponse([{
+            type: "text",
+            text: collection.title,
+            metadata: {
+              id: collection._id,
+              title: collection.title,
+              count: collection.count,
+              public: collection.public,
+              created: collection.created,
+              lastUpdate: collection.lastUpdate,
+              category: 'collection' as const
+            }
+          }], undefined, CollectionResponseSchema);
         } catch (error) {
           throw new Error(`Failed to get collection: ${(error as Error).message}`);
         }
-      }
+      }, CollectionResponseSchema),
+      createToolMetadata(CollectionResponseSchema, 'collections')
     );
 
     this.server.tool(
       'getCollections',
       'Get all collections',
       {},
-      async () => {
+      createValidatedToolHandler(async () => {
         try {
           const collections = await raindropService.getCollections();
-          return {
-            content: collections.map(collection => ({
-              type: "text",
-              text: collection.title,
-              metadata: {
-                id: collection._id,
-                count: collection.count,
-                public: collection.public,
-                created: collection.created,
-                lastUpdate: collection.lastUpdate
-              }
-            }))
-          };
+          return createToolResponse(collections.map(collection => ({
+            type: "text",
+            text: collection.title,
+            metadata: {
+              id: collection._id,
+              title: collection.title,
+              count: collection.count,
+              public: collection.public,
+              created: collection.created,
+              lastUpdate: collection.lastUpdate,
+              category: 'collection' as const
+            }
+          })), undefined, CollectionListResponseSchema);
         } catch (error) {
           throw new Error(`Failed to get collections: ${(error as Error).message}`);
         }
-      }
+      }, CollectionListResponseSchema),
+      createToolMetadata(CollectionListResponseSchema, 'collections')
     );
 
    
@@ -488,24 +511,27 @@ this.server.resource(
         title: z.string().describe('Collection title'),
         isPublic: z.boolean().optional().describe('Whether the collection is public')
       },
-      async ({ title, isPublic }) => {
+      createValidatedToolHandler(async ({ title, isPublic }) => {
         try {
           const collection = await raindropService.createCollection(title, isPublic);
-          return {
-            content: [{
-              type: "text",
-              text: collection.title,
-              metadata: {
-                id: collection._id,
-                count: collection.count,
-                public: collection.public
-              }
-            }]
-          };
+          return createToolResponse([{
+            type: "text",
+            text: collection.title,
+            metadata: {
+              id: collection._id,
+              title: collection.title,
+              count: collection.count,
+              public: collection.public,
+              created: collection.created,
+              lastUpdate: collection.lastUpdate,
+              category: 'collection' as const
+            }
+          }], undefined, CollectionResponseSchema);
         } catch (error) {
           throw new Error(`Failed to create collection: ${(error as Error).message}`);
         }
-      }
+      }, CollectionResponseSchema),
+      createToolMetadata(CollectionResponseSchema, 'collections')
     );
 
     this.server.tool(
@@ -746,36 +772,38 @@ this.server.resource(
         perPage: z.number().optional().describe('Items per page (max 50)'),
         sort: z.string().optional().describe('Sort order (e.g., "title", "-created")')
       },
-      async (params) => {
+      createValidatedToolHandler(async (params) => {
         try {
           const result = await raindropService.searchRaindrops(params);
-          return {
-            content: result.items.map(bookmark => ({
-              type: "resource",
-              resource: {
-                text: bookmark.title || "Untitled Bookmark",
-                uri: bookmark.link,
-                metadata: {
-                  id: bookmark._id,
-                  excerpt: bookmark.excerpt,
-                  tags: bookmark.tags,
-                  collectionId: bookmark.collection?.$id,
-                  created: bookmark.created,
-                  lastUpdate: bookmark.lastUpdate,
-                  type: bookmark.type,
-                  important: bookmark.important
-                }
+          return createToolResponse(result.items.map(bookmark => ({
+            type: "resource" as const,
+            resource: {
+              text: bookmark.title || "Untitled Bookmark",
+              uri: bookmark.link,
+              metadata: {
+                id: bookmark._id,
+                title: bookmark.title,
+                link: bookmark.link,
+                excerpt: bookmark.excerpt,
+                tags: bookmark.tags,
+                collectionId: bookmark.collection?.$id,
+                created: bookmark.created,
+                lastUpdate: bookmark.lastUpdate,
+                type: bookmark.type,
+                important: bookmark.important,
+                domain: bookmark.domain,
+                category: 'bookmark' as const
               }
-            })),
-            metadata: {
-              total: result.count,
-              page: params.page || 0
             }
-          };
+          })), {
+            total: result.count,
+            page: params.page || 0
+          }, BookmarkListResponseSchema);
         } catch (error) {
           throw new Error(`Failed to search bookmarks: ${(error as Error).message}`);
         }
-      }
+      }, BookmarkListResponseSchema),
+      createToolMetadata(BookmarkListResponseSchema, 'bookmarks')
     );
 
     this.server.tool(

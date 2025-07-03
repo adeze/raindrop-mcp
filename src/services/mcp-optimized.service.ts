@@ -4,6 +4,27 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
+import { 
+  CollectionResponseSchema, 
+  CollectionListResponseSchema,
+  BookmarkResponseSchema,
+  BookmarkListResponseSchema,
+  TagResponseSchema,
+  HighlightResponseSchema,
+  UserResponseSchema,
+  StatsResponseSchema,
+  ImportExportResponseSchema,
+  OperationResultResponseSchema,
+  type CollectionResponse,
+  type BookmarkResponse,
+  type TagResponse
+} from '../schemas/output.js';
+import { 
+  validateToolOutput, 
+  createToolMetadata, 
+  createValidatedToolHandler,
+  createToolResponse
+} from '../schemas/validation.js';
 
 /**
  * Optimized Raindrop.io MCP Service
@@ -427,31 +448,30 @@ export class OptimizedRaindropMCPService {
             {
                 parentId: z.number().optional().describe('Parent collection ID to list children. Omit to list root collections.')
             },
-            async ({ parentId }) => {
+            createValidatedToolHandler(async ({ parentId }) => {
                 try {
                     const collections = parentId
                         ? await raindropService.getChildCollections(parentId)
                         : await raindropService.getCollections();
 
-                    return {
-                        content: collections.map(collection => ({
-                            type: "text",
-                            text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                count: collection.count,
-                                public: collection.public,
-                                created: collection.created,
-                                lastUpdate: collection.lastUpdate,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }))
-                    };
+                    return createToolResponse(collections.map(collection => ({
+                        type: "text",
+                        text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)`,
+                        metadata: {
+                            id: collection._id,
+                            title: collection.title,
+                            count: collection.count,
+                            public: collection.public,
+                            created: collection.created,
+                            lastUpdate: collection.lastUpdate,
+                            category: 'collection' as const
+                        }
+                    })), undefined, CollectionListResponseSchema);
                 } catch (error) {
                     throw new Error(`Failed to list collections: ${(error as Error).message}`);
                 }
-            }
+            }, CollectionListResponseSchema),
+            createToolMetadata(CollectionListResponseSchema, 'collections')
         );
 
         this.server.tool(
@@ -460,28 +480,27 @@ export class OptimizedRaindropMCPService {
             {
                 id: z.number().describe('Collection ID (e.g., 12345)')
             },
-            async ({ id }) => {
+            createValidatedToolHandler(async ({ id }) => {
                 try {
                     const collection = await raindropService.getCollection(id);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Collection: ${collection.title}`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                count: collection.count,
-                                public: collection.public,
-                                created: collection.created,
-                                lastUpdate: collection.lastUpdate,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }]
-                    };
+                    return createToolResponse([{
+                        type: "text",
+                        text: `Collection: ${collection.title}`,
+                        metadata: {
+                            id: collection._id,
+                            title: collection.title,
+                            count: collection.count,
+                            public: collection.public,
+                            created: collection.created,
+                            lastUpdate: collection.lastUpdate,
+                            category: 'collection' as const
+                        }
+                    }], undefined, CollectionResponseSchema);
                 } catch (error) {
                     throw new Error(`Failed to get collection: ${(error as Error).message}`);
                 }
-            }
+            }, CollectionResponseSchema),
+            createToolMetadata(CollectionResponseSchema, 'collections')
         );
 
         this.server.tool(
@@ -674,41 +693,40 @@ export class OptimizedRaindropMCPService {
                 perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)'),
                 sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional().default('-created').describe('Sort order (prefix with - for descending)')
             },
-            async (params) => {
+            createValidatedToolHandler(async (params) => {
                 try {
                     const result = await raindropService.searchRaindrops(params);
-                    return {
-                        content: result.items.map(bookmark => ({
-                            type: "resource",
-                            resource: {
-                                text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
-                                uri: bookmark.link,
-                                metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    created: bookmark.created,
-                                    lastUpdate: bookmark.lastUpdate,
-                                    type: bookmark.type,
-                                    important: bookmark.important,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
+                    return createToolResponse(result.items.map(bookmark => ({
+                        type: "resource" as const,
+                        resource: {
+                            text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
+                            uri: bookmark.link,
+                            metadata: {
+                                id: bookmark._id,
+                                title: bookmark.title,
+                                link: bookmark.link,
+                                excerpt: bookmark.excerpt,
+                                tags: bookmark.tags,
+                                collectionId: bookmark.collection?.$id,
+                                created: bookmark.created,
+                                lastUpdate: bookmark.lastUpdate,
+                                type: bookmark.type,
+                                important: bookmark.important,
+                                domain: bookmark.domain,
+                                category: 'bookmark' as const
                             }
-                        })),
-                        metadata: {
-                            total: result.count,
-                            page: params.page || 0,
-                            perPage: params.perPage || 25,
-                            hasMore: (params.page || 0) * (params.perPage || 25) + result.items.length < result.count
                         }
-                    };
+                    })), {
+                        total: result.count,
+                        page: params.page || 0,
+                        perPage: params.perPage || 25,
+                        hasMore: (params.page || 0) * (params.perPage || 25) + result.items.length < result.count
+                    }, BookmarkListResponseSchema);
                 } catch (error) {
                     throw new Error(`Failed to search bookmarks: ${(error as Error).message}`);
                 }
-            }
+            }, BookmarkListResponseSchema),
+            createToolMetadata(BookmarkListResponseSchema, 'bookmarks', true) // Enable streaming for large results
         );
 
         this.server.tool(
