@@ -49,7 +49,7 @@ async function testServer() {
     }
 }
 
-if (import.meta.main) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     testServer();
 }
 
