@@ -4,13 +4,11 @@
 .specstory/
 .vscode/
 tests/
-.env
-.gitignore
-CLAUDE.md
-**.md
+.env*
+#CLAUDE.md
 raindrop.yaml
-tsconfig.json
-vitest.config.ts
+# tsconfig.json
+# vitest.config.ts
 
 
 

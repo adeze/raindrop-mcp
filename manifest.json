@@ -1,7 +1,7 @@
 {
   "dxt_version": "0.1",
   "name": "@adeze/raindrop-mcp",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "MCP Server for Raindrop.io",
   "author": {
     "name": "Adam E"
@@ -10,49 +10,35 @@
   "icon": "icon_128.png",
   "server": {
     "type": "node",
-    "entry_point": "build/src/index.js",
+    "entry_point": "build/index.js",
     "mcp_config": {
       "command": "node",
       "args": [
-        "${__dirname}/build/src/index.js"
+        "${__dirname}/build/index.js"
       ],
       "env": {
-        "RAINDROP_ACCESS_TOKEN": "${user_config.RAINDROP_ACCESS_TOKEN}"
+        "RAINDROP_ACCESS_TOKEN": "${user_config.api_key}"
       }
-    },
-    "tools": [
-      {
-        "name": "create_bookmarks"
-      },
-      {
-        "name": "get_collections"
-      },
-      {
-        "name": "search_bookmarks"
-      }
-    ],
-    "user_config": {
-      "RAINDROP_ACCESS_TOKEN": {
-        "type": "string",
-        "title": "Raindrop Access Token",
-        "description": "see the readme.md file",
-        "required": true,
-        "sensitive": true,
-        "default": [
-          "${RAINDROP_ACCESS_TOKEN}"
-        ]
-      }
-    },
-    "keywords": [
-      "raindrop.io",
-      "raindrop",
-      "bookmarks",
-      "productivity"
-    ],
-    "license": "MIT",
-    "repository": {
-      "type": "git",
-      "url": "git+https://github.com/adeze/raindrop-mcp.git"
     }
+  },
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "Raindrop Access Token",
+      "description": "see the readme.md file",
+      "required": true,
+      "sensitive": true
+    }
+  },
+  "keywords": [
+    "raindrop.io",
+    "raindrop",
+    "bookmarks",
+    "productivity"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adeze/raindrop-mcp.git"
   }
 }

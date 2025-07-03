@@ -106,7 +106,7 @@ To use the Raindrop MCP server with your AI assistant or MCP-compatible client, 
 "raindrop": {
   "command": "npx",
   "args": [
-    "@adeze/raindrop-mcp"
+    "@adeze/raindrop-mcp@latest"
   ],
   "env": {
     "RAINDROP_ACCESS_TOKEN": "YOUR_RAINDROP_API_TOKEN"
