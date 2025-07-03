@@ -4,20 +4,20 @@
     "": {
       "name": "raindrop-mcp",
       "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.13.2",
+        "@modelcontextprotocol/sdk": "^1.13.3",
         "axios": "^1.10.0",
         "dotenv": "^16.6.1",
         "esm": "^3.2.25",
         "express": "^5.1.0",
         "rate-limiter-flexible": "^7.1.1",
-        "zod": "^3.25.67",
+        "zod": "^3.25.70",
         "zod-to-json-schema": "^3.24.6",
       },
       "devDependencies": {
         "@modelcontextprotocol/inspector": "^0.14.3",
         "@types/bun": "^1.2.17",
         "@types/express": "^5.0.3",
-        "@types/node": "^24.0.7",
+        "@types/node": "^24.0.10",
         "@vitest/coverage-v8": "^3.2.4",
         "typescript": "^5.8.3",
         "vitest": "^3.2.4",
@@ -669,7 +669,7 @@
 
     "yn": ["yn@3.1.1", "", {}, "sha512-Ux4ygGWsu2c7isFWe8Yu1YluJmqVhxqK2cLXNQA5AcC3QfbGNpM7fu0Y8b/z16pXLnFxZYvWhd3fhBY9DLmC6Q=="],
 
-    "zod": ["zod@3.25.70", "", {}, "sha512-2WWzL2X2GpPU6as2xK1HFb6U5BZdJMdpB5Qtlan4a1KLYcZ6Gvox+mqZpxOd66sfe5AP3pEWpd2BC3f0yLH/nQ=="],
+    "zod": ["zod@3.25.71", "", {}, "sha512-BsBc/NPk7h8WsUWYWYL+BajcJPY8YhjelaWu2NMLuzgraKAz4Lb4/6K11g9jpuDetjMiqhZ6YaexFLOC0Ogi3Q=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.24.6", "", { "peerDependencies": { "zod": "^3.24.1" } }, "sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg=="],
 
@@ -696,6 +696,8 @@
     "@modelcontextprotocol/inspector-server/@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.13.0", "", { "dependencies": { "ajv": "^6.12.6", "content-type": "^1.0.5", "cors": "^2.8.5", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "express": "^5.0.1", "express-rate-limit": "^7.5.0", "pkce-challenge": "^5.0.0", "raw-body": "^3.0.0", "zod": "^3.23.8", "zod-to-json-schema": "^3.24.1" } }, "sha512-P5FZsXU0kY881F6Hbk9GhsYx02/KgWK1DYf7/tyE/1lcFKhDYPQR9iYjhQXJn+Sg6hQleMo3DB7h7+p4wgp2Lw=="],
 
     "@modelcontextprotocol/inspector-server/zod": ["zod@3.25.67", "", {}, "sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw=="],
+
+    "@modelcontextprotocol/sdk/zod": ["zod@3.25.70", "", {}, "sha512-2WWzL2X2GpPU6as2xK1HFb6U5BZdJMdpB5Qtlan4a1KLYcZ6Gvox+mqZpxOd66sfe5AP3pEWpd2BC3f0yLH/nQ=="],
 
     "@types/body-parser/@types/node": ["@types/node@22.13.10", "", { "dependencies": { "undici-types": "~6.20.0" } }, ""],
 

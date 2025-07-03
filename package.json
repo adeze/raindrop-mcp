@@ -31,7 +31,7 @@
         "test:comparison": "bun run tests/test-comparison.ts",
         "test:demo": "bun run tests/optimization-demo.ts",
         "run build": "bun run build/src/index.js",
-        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts ./src/cli.ts ./src/http-server.ts ./src/http-server-optimized.ts ",
+        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts",
         "start": "bun run src/index.ts",
         "start:http": "bun run src/http-server-optimized.ts",
         "start:original": "bun run src/http-server.ts",
@@ -81,7 +81,7 @@
         "esm": "^3.2.25",
         "express": "^5.1.0",
         "rate-limiter-flexible": "^7.1.1",
-        "zod": "^3.25.70",
+        "zod": "^3.25.71",
         "zod-to-json-schema": "^3.24.6"
     },
     "devDependencies": {

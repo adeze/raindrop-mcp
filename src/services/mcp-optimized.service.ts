@@ -1,11 +1,9 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+    type LoggingLevel
+} from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
-import { type Collection, type Bookmark, type Highlight, type SearchParams } from '../types/raindrop.js';
-import {
-    type LoggingLevel,
-    type Tool
-} from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * Optimized Raindrop.io MCP Service
@@ -310,12 +308,35 @@ export class OptimizedRaindropMCPService {
      * Initialize optimized tools with enhanced descriptions and AI-friendly organization
      */
     private initializeTools() {
+        this.initializePromptsTool();
         this.initializeCollectionTools();
         this.initializeBookmarkTools();
         this.initializeTagTools();
         this.initializeHighlightTools();
         this.initializeUserTools();
         this.initializeImportExportTools();
+    }
+
+    /**
+     * Prompts Management Tool
+     * Use this tool to list and manage prompts for the MCP extension
+     */
+    private initializePromptsTool() {
+        // Implements the MCP prompts/list method for DXT compatibility
+        this.server.tool(
+            'prompts/list',
+            'List available prompts for the Raindrop MCP extension. Returns an array of prompt definitions (empty if none are defined).',
+            z.object({}),
+            async ({}) => {
+                try {
+                    return {
+                        content: [] // No prompts defined yet
+                    };
+                } catch (error) {
+                    throw new Error(`Failed to list prompts: ${(error as Error).message}`);
+                }
+            }
+        );
     }
 
     /**
