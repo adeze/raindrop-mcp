@@ -2,11 +2,13 @@ import express from "express";
 import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
+import { createLogger } from './utils/logger.js';
 import { config } from 'dotenv';
 
 config(); // Load .env file
 
 const PORT = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 3002;
+const logger = createLogger('http-optimized');
 
 /**
  * HTTP Server with Optimized Raindrop MCP Service
@@ -129,10 +131,10 @@ app.all('/mcp', async (req, res) => {
         if (sessionId && transports[sessionId]) {
             // Reuse existing transport
             transport = transports[sessionId];
-            console.log(`♻️  Reusing optimized session: ${sessionId}`);
+            logger.debug(`Reusing optimized session: ${sessionId}`);
         } else if (!sessionId && req.method === 'POST' && isInitializeRequest(req.body)) {
             // New initialization request
-            console.log('🆕 Creating new optimized Streamable HTTP session');
+            logger.info('Creating new optimized Streamable HTTP session');
             const { server, cleanup } = createOptimizedRaindropServer();
 
             transport = new StreamableHTTPServerTransport({
@@ -144,7 +146,7 @@ app.all('/mcp', async (req, res) => {
                         created: new Date().toISOString(),
                         uptime: 0
                     });
-                    console.log(`✅ New optimized Streamable HTTP session initialized: ${sessionId}`);
+                    logger.info(`New optimized Streamable HTTP session initialized: ${sessionId}`);
                 }
             });
 
@@ -153,7 +155,7 @@ app.all('/mcp', async (req, res) => {
                 if (transport.sessionId) {
                     delete transports[transport.sessionId];
                     sessionMetadata.delete(transport.sessionId);
-                    console.log(`🧹 Optimized Streamable HTTP session cleaned up: ${transport.sessionId}`);
+                    logger.info(`Optimized Streamable HTTP session cleaned up: ${transport.sessionId}`);
                 }
                 // Cleanup is handled per session, not globally
             };
@@ -162,7 +164,7 @@ app.all('/mcp', async (req, res) => {
             await server.connect(transport);
         } else {
             // Invalid request
-            console.warn('⚠️  Invalid optimized MCP request: missing session ID or invalid initialization');
+            logger.warn('Invalid optimized MCP request: missing session ID or invalid initialization');
             res.status(400).json({
                 jsonrpc: '2.0',
                 error: {
@@ -177,7 +179,7 @@ app.all('/mcp', async (req, res) => {
         // Handle the request through transport
         await transport.handleRequest(req, res, req.body);
     } catch (error) {
-        console.error('❌ Error handling optimized Streamable HTTP request:', error);
+        logger.error('Error handling optimized Streamable HTTP request:', error);
         if (!res.headersSent) {
             res.status(500).json({
                 jsonrpc: '2.0',
@@ -193,26 +195,26 @@ app.all('/mcp', async (req, res) => {
 
 // Start server
 const serverInstance = app.listen(PORT, () => {
-    console.log(`🚀 Optimized Raindrop MCP HTTP Server running on port ${PORT}`);
-    console.log(`🔗 MCP Inspector: npx @modelcontextprotocol/inspector http://localhost:${PORT}/mcp`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
-    console.log(`📚 Documentation: http://localhost:${PORT}/`);
-    console.log(`⚡ Optimizations: 24 tools (vs 37 original), enhanced AI-friendly interface`);
+    logger.info(`Optimized Raindrop MCP HTTP Server running on port ${PORT}`);
+    logger.info(`MCP Inspector: npx @modelcontextprotocol/inspector http://localhost:${PORT}/mcp`);
+    logger.info(`Health check: http://localhost:${PORT}/health`);
+    logger.info(`Documentation: http://localhost:${PORT}/`);
+    logger.info(`Optimizations: 24 tools (vs 37 original), enhanced AI-friendly interface`);
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-    console.log('\n🛑 Shutting down optimized HTTP server...');
+    logger.info('Shutting down optimized HTTP server...');
 
     // Close all active sessions
-    console.log(`💤 Closing ${Object.keys(transports).length} active optimized sessions`);
+    logger.info(`Closing ${Object.keys(transports).length} active optimized sessions`);
 
     // Clean up all transports
     Object.values(transports).forEach(transport => {
         try {
             transport.close();
         } catch (error) {
-            console.error('Error closing transport:', error);
+            logger.error('Error closing transport:', error);
         }
     });
 
@@ -220,7 +222,7 @@ process.on('SIGINT', async () => {
 
     // Close server
     serverInstance.close(() => {
-        console.log('✅ Optimized HTTP server stopped');
+        logger.info('Optimized HTTP server stopped');
         process.exit(0);
     });
 });

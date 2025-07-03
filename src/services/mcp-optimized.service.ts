@@ -309,6 +309,7 @@ export class OptimizedRaindropMCPService {
      */
     private initializeTools() {
         this.initializePromptsTool();
+        this.initializeDiagnosticsTool();
         this.initializeCollectionTools();
         this.initializeBookmarkTools();
         this.initializeTagTools();
@@ -334,6 +335,82 @@ export class OptimizedRaindropMCPService {
                     };
                 } catch (error) {
                     throw new Error(`Failed to list prompts: ${(error as Error).message}`);
+                }
+            }
+        );
+    }
+
+    /**
+     * Diagnostics Tool
+     * Use this tool to get diagnostic information about the MCP server and connection
+     */
+    private initializeDiagnosticsTool() {
+        this.server.tool(
+            'diagnostics',
+            'Get diagnostic information about the MCP server, including version, capabilities, logging status, and environment information. Helpful for debugging and support.',
+            {
+                includeEnvironment: z.boolean().optional().default(false).describe('Include environment variables (sensitive info masked)')
+            },
+            async ({ includeEnvironment }) => {
+                try {
+                    const diagnostics = {
+                        server: {
+                            name: 'raindrop-mcp-optimized',
+                            version: '2.0.0',
+                            description: 'Optimized MCP Server for Raindrop.io',
+                            uptime: process.uptime(),
+                            pid: process.pid,
+                            nodeVersion: process.version,
+                            platform: process.platform,
+                            arch: process.arch
+                        },
+                        capabilities: {
+                            logging: false, // MCP logging disabled for STDIO compatibility
+                            resources: true,
+                            tools: true,
+                            prompts: true
+                        },
+                        logging: {
+                            level: this.logLevel,
+                            stdioSafe: true, // Uses stderr for logs, safe for STDIO transport
+                            description: 'All logs use stderr to avoid polluting STDIO MCP protocol'
+                        },
+                        tools: {
+                            categories: Object.values(OptimizedRaindropMCPService.CATEGORIES),
+                            description: 'Available tool categories for bookmark management'
+                        },
+                        memory: {
+                            rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
+                            heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+                            heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+                        },
+                        transport: {
+                            type: 'STDIO or HTTP',
+                            description: 'Server supports both STDIO (CLI) and HTTP transports'
+                        }
+                    };
+
+                    if (includeEnvironment) {
+                        diagnostics.environment = {
+                            hasRaindropToken: !!process.env.RAINDROP_ACCESS_TOKEN,
+                            logLevel: process.env.LOG_LEVEL || 'info (default)',
+                            nodeEnv: process.env.NODE_ENV || 'not set'
+                        };
+                    }
+
+                    return {
+                        content: [{
+                            type: "text",
+                            text: "MCP Server Diagnostics",
+                            metadata: {
+                                ...diagnostics,
+                                timestamp: new Date().toISOString(),
+                                category: 'Diagnostics'
+                            }
+                        }]
+                    };
+                } catch (error) {
+                    throw new Error(`Failed to get diagnostics: ${(error as Error).message}`);
                 }
             }
         );
