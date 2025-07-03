@@ -8,12 +8,23 @@ import { z } from "zod";
  * automatic validation of tool outputs.
  */
 
-// Base MCP Content Schema
-export const MCPContentSchema = z.object({
+// Base MCP Content Schema - supports both text and resource types
+export const MCPTextContentSchema = z.object({
   type: z.literal("text"),
   text: z.string(),
   metadata: z.record(z.any()).optional()
 });
+
+export const MCPResourceContentSchema = z.object({
+  type: z.literal("resource"),
+  resource: z.object({
+    text: z.string(),
+    uri: z.string(),
+    metadata: z.record(z.any()).optional()
+  })
+});
+
+export const MCPContentSchema = z.union([MCPTextContentSchema, MCPResourceContentSchema]);
 
 // Base MCP Response Schema
 export const MCPResponseSchema = z.object({
@@ -72,11 +83,21 @@ export const BookmarkContentMetadataSchema = z.object({
 });
 
 export const BookmarkResponseSchema = z.object({
-  content: z.array(z.object({
-    type: z.literal("text"),
-    text: z.string(),
-    metadata: BookmarkContentMetadataSchema
-  })),
+  content: z.array(z.union([
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+      metadata: BookmarkContentMetadataSchema
+    }),
+    z.object({
+      type: z.literal("resource"),
+      resource: z.object({
+        text: z.string(),
+        uri: z.string(),
+        metadata: BookmarkContentMetadataSchema
+      })
+    })
+  ])),
   metadata: z.object({
     total: z.number().optional(),
     page: z.number().optional(),
@@ -85,11 +106,21 @@ export const BookmarkResponseSchema = z.object({
 });
 
 export const BookmarkListResponseSchema = z.object({
-  content: z.array(z.object({
-    type: z.literal("text"),
-    text: z.string(),
-    metadata: BookmarkContentMetadataSchema
-  }))
+  content: z.array(z.union([
+    z.object({
+      type: z.literal("text"),
+      text: z.string(),
+      metadata: BookmarkContentMetadataSchema
+    }),
+    z.object({
+      type: z.literal("resource"),
+      resource: z.object({
+        text: z.string(),
+        uri: z.string(),
+        metadata: BookmarkContentMetadataSchema
+      })
+    })
+  ]))
 });
 
 // Tag-specific schemas

@@ -772,36 +772,38 @@ this.server.resource(
         perPage: z.number().optional().describe('Items per page (max 50)'),
         sort: z.string().optional().describe('Sort order (e.g., "title", "-created")')
       },
-      async (params) => {
+      createValidatedToolHandler(async (params) => {
         try {
           const result = await raindropService.searchRaindrops(params);
-          return {
-            content: result.items.map(bookmark => ({
-              type: "resource",
-              resource: {
-                text: bookmark.title || "Untitled Bookmark",
-                uri: bookmark.link,
-                metadata: {
-                  id: bookmark._id,
-                  excerpt: bookmark.excerpt,
-                  tags: bookmark.tags,
-                  collectionId: bookmark.collection?.$id,
-                  created: bookmark.created,
-                  lastUpdate: bookmark.lastUpdate,
-                  type: bookmark.type,
-                  important: bookmark.important
-                }
+          return createToolResponse(result.items.map(bookmark => ({
+            type: "resource" as const,
+            resource: {
+              text: bookmark.title || "Untitled Bookmark",
+              uri: bookmark.link,
+              metadata: {
+                id: bookmark._id,
+                title: bookmark.title,
+                link: bookmark.link,
+                excerpt: bookmark.excerpt,
+                tags: bookmark.tags,
+                collectionId: bookmark.collection?.$id,
+                created: bookmark.created,
+                lastUpdate: bookmark.lastUpdate,
+                type: bookmark.type,
+                important: bookmark.important,
+                domain: bookmark.domain,
+                category: 'bookmark' as const
               }
-            })),
-            metadata: {
-              total: result.count,
-              page: params.page || 0
             }
-          };
+          })), {
+            total: result.count,
+            page: params.page || 0
+          }, BookmarkListResponseSchema);
         } catch (error) {
           throw new Error(`Failed to search bookmarks: ${(error as Error).message}`);
         }
-      }
+      }, BookmarkListResponseSchema),
+      createToolMetadata(BookmarkListResponseSchema, 'bookmarks')
     );
 
     this.server.tool(

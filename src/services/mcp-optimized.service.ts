@@ -616,41 +616,40 @@ export class OptimizedRaindropMCPService {
                 perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)'),
                 sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional().default('-created').describe('Sort order (prefix with - for descending)')
             },
-            async (params) => {
+            createValidatedToolHandler(async (params) => {
                 try {
                     const result = await raindropService.searchRaindrops(params);
-                    return {
-                        content: result.items.map(bookmark => ({
-                            type: "resource",
-                            resource: {
-                                text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
-                                uri: bookmark.link,
-                                metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    created: bookmark.created,
-                                    lastUpdate: bookmark.lastUpdate,
-                                    type: bookmark.type,
-                                    important: bookmark.important,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
+                    return createToolResponse(result.items.map(bookmark => ({
+                        type: "resource" as const,
+                        resource: {
+                            text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
+                            uri: bookmark.link,
+                            metadata: {
+                                id: bookmark._id,
+                                title: bookmark.title,
+                                link: bookmark.link,
+                                excerpt: bookmark.excerpt,
+                                tags: bookmark.tags,
+                                collectionId: bookmark.collection?.$id,
+                                created: bookmark.created,
+                                lastUpdate: bookmark.lastUpdate,
+                                type: bookmark.type,
+                                important: bookmark.important,
+                                domain: bookmark.domain,
+                                category: 'bookmark' as const
                             }
-                        })),
-                        metadata: {
-                            total: result.count,
-                            page: params.page || 0,
-                            perPage: params.perPage || 25,
-                            hasMore: (params.page || 0) * (params.perPage || 25) + result.items.length < result.count
                         }
-                    };
+                    })), {
+                        total: result.count,
+                        page: params.page || 0,
+                        perPage: params.perPage || 25,
+                        hasMore: (params.page || 0) * (params.perPage || 25) + result.items.length < result.count
+                    }, BookmarkListResponseSchema);
                 } catch (error) {
                     throw new Error(`Failed to search bookmarks: ${(error as Error).message}`);
                 }
-            }
+            }, BookmarkListResponseSchema),
+            createToolMetadata(BookmarkListResponseSchema, 'bookmarks', true) // Enable streaming for large results
         );
 
         this.server.tool(

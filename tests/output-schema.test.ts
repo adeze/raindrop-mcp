@@ -112,6 +112,42 @@ describe('MCP Output Schema Validation', () => {
         expect(validated.metadata?.total).toBe(1);
     });
 
+    it('should validate a bookmark resource response', () => {
+        const validResponse = {
+            content: [{
+                type: "resource",
+                resource: {
+                    text: "My Bookmark",
+                    uri: "https://example.com",
+                    metadata: {
+                        id: 54321,
+                        title: "My Bookmark",
+                        link: "https://example.com",
+                        excerpt: "A sample bookmark",
+                        tags: ["tag1", "tag2"],
+                        created: "2024-01-01T00:00:00Z",
+                        lastUpdate: "2024-01-02T00:00:00Z",
+                        type: "link",
+                        important: false,
+                        category: "bookmark"
+                    }
+                }
+            }],
+            metadata: {
+                total: 1,
+                page: 0
+            }
+        };
+
+        expect(() => validateOutput(validResponse, BookmarkResponseSchema)).not.toThrow();
+        const validated = validateOutput(validResponse, BookmarkResponseSchema);
+        expect(validated.content[0].type).toBe("resource");
+        if (validated.content[0].type === "resource") {
+            expect(validated.content[0].resource.metadata.id).toBe(54321);
+        }
+        expect(validated.metadata?.total).toBe(1);
+    });
+
     it('should reject invalid response structure', () => {
         const invalidResponse = {
             content: [{

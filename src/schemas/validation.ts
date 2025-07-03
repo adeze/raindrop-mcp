@@ -120,7 +120,7 @@ export function createValidatedToolHandler<T extends Record<string, any>, R>(
 
 /**
  * Utility to safely create tool response with validation
- * @param content - The content array
+ * @param content - The content array (supports both text and resource types)
  * @param metadata - Optional metadata
  * @param schema - Optional schema to validate against
  * @returns Validated tool response
@@ -130,6 +130,13 @@ export function createToolResponse<T>(
     type: "text";
     text: string;
     metadata?: Record<string, any>;
+  } | {
+    type: "resource";
+    resource: {
+      text: string;
+      uri: string;
+      metadata?: Record<string, any>;
+    };
   }>,
   metadata?: Record<string, any>,
   schema?: z.ZodSchema<T>
