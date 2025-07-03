@@ -30,6 +30,8 @@
         "test:server": "bun run tests/test-server.ts",
         "test:comparison": "bun run tests/test-comparison.ts",
         "test:demo": "bun run tests/optimization-demo.ts",
+        "test:stdio": "npx tsx tests/test-stdio.ts",
+        "test:stdio:errors": "npx tsx tests/test-stdio-errors.ts",
         "run build": "bun run build/src/index.js",
         "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts",
         "start": "bun run src/index.ts",
@@ -90,6 +92,7 @@
         "@types/express": "^5.0.3",
         "@types/node": "^24.0.10",
         "@vitest/coverage-v8": "^3.2.4",
+        "tsx": "^4.20.3",
         "typescript": "^5.8.3",
         "vitest": "^3.2.4"
     },

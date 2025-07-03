@@ -19,6 +19,7 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - **Trash Management**: Empty the trash.
 - **MCP Compliance**: Exposes Raindrop.io functionalities as MCP resources and tools.
 - **Streaming Support**: Provides real-time SSE (Server-Sent Events) endpoints for streaming bookmark updates.
+- **Production-Ready STDIO Transport**: Clean protocol compliance with graceful shutdown and error handling.
 - **Built with TypeScript**: Strong typing for better maintainability.
 - **Uses Axios**: For making requests to the Raindrop.io API.
 - **Uses Zod**: For robust schema validation of API parameters and responses.
@@ -78,7 +79,16 @@ npx @adeze/raindrop-mcp
     bun start
     ```
 
-The server uses standard input/output (stdio) for communication by default, listening for requests on stdin and sending responses to stdout.
+The server uses standard input/output (stdio) for communication by default, listening for requests on stdin and sending responses to stdout. 
+
+### STDIO Transport Features
+
+- **Clean Protocol Compliance**: Only MCP protocol messages on stdout, all logging to stderr
+- **Graceful Shutdown**: Handles SIGINT, SIGTERM, and uncaught exceptions
+- **Proper Error Handling**: All errors logged to stderr with descriptive messages
+- **Resource Cleanup**: Automatic cleanup on shutdown to prevent resource leaks
+
+For detailed information about the STDIO transport implementation, see [STDIO_TRANSPORT.md](STDIO_TRANSPORT.md).
 
 ## Usage with MCP Clients
 
@@ -119,6 +129,8 @@ For Claude Code or other MCP-compatible clients, this will register the Raindrop
 ## Development
 
 - **Testing:** `bun test`
+- **STDIO Testing:** `npm run test:stdio` (test STDIO transport compliance)
+- **Error Testing:** `npm run test:stdio:errors` (test error handling and shutdown)
 - **Type checking:** `bun run type-check`
 - **Build:** `bun run build`
 - **Development:** `bun run dev`
@@ -135,5 +147,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📋 Recent Enhancements
 
+- **[STDIO Transport Improvements](https://github.com/adeze/raindrop-mcp/issues/6)**: Clean protocol compliance, graceful shutdown, proper error handling
 - **[Tool Optimization](https://github.com/adeze/raindrop-mcp/issues/2)**: 37→24 tools with enhanced AI-friendly descriptions
 - **[VS Code Configuration](https://github.com/adeze/raindrop-mcp/issues/3)**: Enterprise-grade testing & debugging support
