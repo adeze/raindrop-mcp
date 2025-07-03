@@ -1,9 +1,10 @@
-import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from 'dotenv';
+import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 config(); // Load .env file
-// 
 
+// Only the optimized MCP server and STDIO transport are used in this entrypoint.
+// No HTTP or SSE endpoints are exposed here.
 
 export async function main() {
   const transport = new StdioServerTransport();

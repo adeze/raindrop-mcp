@@ -1,10 +1,10 @@
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js"; // @deprecated See below
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { config } from 'dotenv';
 import express from "express";
 import { randomUUID } from "node:crypto";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createRaindropServer } from './services/mcp.service.js';
-import { config } from 'dotenv';
 
 config(); // Load .env file
 
@@ -49,6 +49,10 @@ app.use((req, res, next) => {
 // Store transports for each session type
 const transports = {
     streamable: {} as Record<string, StreamableHTTPServerTransport>,
+    /**
+     * @deprecated The SSE transport is deprecated in MCP. Use Streamable HTTP instead.
+     * This property is retained for legacy client compatibility only.
+     */
     sse: {} as Record<string, SSEServerTransport>
 };
 
@@ -119,6 +123,10 @@ app.all('/mcp', async (req, res) => {
 });
 
 // Legacy SSE endpoint for backwards compatibility
+/**
+ * @deprecated The SSE transport is deprecated in MCP. Use Streamable HTTP instead.
+ * This endpoint is retained for legacy client compatibility only.
+ */
 app.get('/sse', async (req, res) => {
     try {
         console.log("📡 Establishing SSE connection (legacy mode)");
@@ -154,6 +162,10 @@ app.get('/sse', async (req, res) => {
 });
 
 // Legacy message endpoint for older SSE clients
+/**
+ * @deprecated The SSE transport is deprecated in MCP. Use Streamable HTTP instead.
+ * This endpoint is retained for legacy client compatibility only.
+ */
 app.post('/messages', async (req, res) => {
     try {
         const sessionId = req.query.sessionId as string || req.headers['x-session-id'] as string;
@@ -246,7 +258,11 @@ app.get('/', (req, res) => {
                     connect: '/sse',
                     messages: '/messages'
                 },
-                description: 'Legacy SSE transport for backwards compatibility'
+                description: 'Legacy SSE transport for backwards compatibility (deprecated)'
+            },
+            'http-optimized': {
+                endpoint: '/mcp',
+                description: 'Optimized HTTP transport (see src/http-server-optimized.ts)'
             }
         },
         documentation: 'https://github.com/adeze/raindrop-mcp',
