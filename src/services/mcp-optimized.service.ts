@@ -4,6 +4,27 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import raindropService from './raindrop.service.js';
+import { 
+  CollectionResponseSchema, 
+  CollectionListResponseSchema,
+  BookmarkResponseSchema,
+  BookmarkListResponseSchema,
+  TagResponseSchema,
+  HighlightResponseSchema,
+  UserResponseSchema,
+  StatsResponseSchema,
+  ImportExportResponseSchema,
+  OperationResultResponseSchema,
+  type CollectionResponse,
+  type BookmarkResponse,
+  type TagResponse
+} from '../schemas/output.js';
+import { 
+  validateToolOutput, 
+  createToolMetadata, 
+  createValidatedToolHandler,
+  createToolResponse
+} from '../schemas/validation.js';
 
 /**
  * Optimized Raindrop.io MCP Service
@@ -350,31 +371,30 @@ export class OptimizedRaindropMCPService {
             {
                 parentId: z.number().optional().describe('Parent collection ID to list children. Omit to list root collections.')
             },
-            async ({ parentId }) => {
+            createValidatedToolHandler(async ({ parentId }) => {
                 try {
                     const collections = parentId
                         ? await raindropService.getChildCollections(parentId)
                         : await raindropService.getCollections();
 
-                    return {
-                        content: collections.map(collection => ({
-                            type: "text",
-                            text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                count: collection.count,
-                                public: collection.public,
-                                created: collection.created,
-                                lastUpdate: collection.lastUpdate,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }))
-                    };
+                    return createToolResponse(collections.map(collection => ({
+                        type: "text",
+                        text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)`,
+                        metadata: {
+                            id: collection._id,
+                            title: collection.title,
+                            count: collection.count,
+                            public: collection.public,
+                            created: collection.created,
+                            lastUpdate: collection.lastUpdate,
+                            category: 'collection' as const
+                        }
+                    })), undefined, CollectionListResponseSchema);
                 } catch (error) {
                     throw new Error(`Failed to list collections: ${(error as Error).message}`);
                 }
-            }
+            }, CollectionListResponseSchema),
+            createToolMetadata(CollectionListResponseSchema, 'collections')
         );
 
         this.server.tool(
@@ -383,28 +403,27 @@ export class OptimizedRaindropMCPService {
             {
                 id: z.number().describe('Collection ID (e.g., 12345)')
             },
-            async ({ id }) => {
+            createValidatedToolHandler(async ({ id }) => {
                 try {
                     const collection = await raindropService.getCollection(id);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Collection: ${collection.title}`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                count: collection.count,
-                                public: collection.public,
-                                created: collection.created,
-                                lastUpdate: collection.lastUpdate,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }]
-                    };
+                    return createToolResponse([{
+                        type: "text",
+                        text: `Collection: ${collection.title}`,
+                        metadata: {
+                            id: collection._id,
+                            title: collection.title,
+                            count: collection.count,
+                            public: collection.public,
+                            created: collection.created,
+                            lastUpdate: collection.lastUpdate,
+                            category: 'collection' as const
+                        }
+                    }], undefined, CollectionResponseSchema);
                 } catch (error) {
                     throw new Error(`Failed to get collection: ${(error as Error).message}`);
                 }
-            }
+            }, CollectionResponseSchema),
+            createToolMetadata(CollectionResponseSchema, 'collections')
         );
 
         this.server.tool(
