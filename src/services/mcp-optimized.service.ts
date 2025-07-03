@@ -3,6 +3,7 @@ import {
     type LoggingLevel
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { defaultLogger } from '../utils/log.js';
 import raindropService from './raindrop.service.js';
 
 /**
@@ -31,6 +32,7 @@ import raindropService from './raindrop.service.js';
 export class OptimizedRaindropMCPService {
     private server: McpServer;
     private logLevel: LoggingLevel = "debug";
+    private logger = defaultLogger;
 
     // Tool category constants for organization
     private static readonly CATEGORIES = {
@@ -52,14 +54,59 @@ export class OptimizedRaindropMCPService {
             }
         });
 
+        // Logging/diagnostics: All logs go to stderr via logger, never stdout. MCP protocol messages only on stdout.
+        // Use diagnostics tool for runtime health/debug info.
         this.setupLogging();
         this.initializeResources();
         this.initializeTools();
+        this.initializeDiagnosticsTool();
     }
 
     private setupLogging() {
-        // Basic logging setup - same as original but condensed
-        // Implementation details unchanged from original
+        // All logs routed to stderr using logger utility
+        this.logger.info('Logging initialized (stderr only, never stdout)');
+    }
+
+    /**
+     * Diagnostics Tool
+     * Returns server health, config, and environment info for debugging
+     */
+    private initializeDiagnosticsTool() {
+        this.server.tool(
+            'diagnostics/status',
+            'Get diagnostics and health status for the MCP server. Use this for debugging and support.',
+            z.object({}),
+            async () => {
+                try {
+                    const memory = process.memoryUsage();
+                    const uptime = process.uptime();
+                    const env = {
+                        NODE_ENV: process.env.NODE_ENV,
+                        MCP_SERVER: process.env.MCP_SERVER,
+                        PLATFORM: process.platform,
+                        ARCH: process.arch
+                    };
+                    const status = {
+                        version: '2.0.0',
+                        uptime,
+                        memory,
+                        env,
+                        timestamp: new Date().toISOString()
+                    };
+                    this.logger.debug('Diagnostics tool called', status);
+                    return {
+                        content: [{
+                            type: 'text',
+                            text: 'MCP server diagnostics/status',
+                            metadata: status
+                        }]
+                    };
+                } catch (error) {
+                    this.logger.error('Diagnostics tool error', error);
+                    throw new Error(`Failed to get diagnostics: ${(error as Error).message}`);
+                }
+            }
+        );
     }
 
     /**

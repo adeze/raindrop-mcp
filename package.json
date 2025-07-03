@@ -31,7 +31,7 @@
         "test:comparison": "bun run tests/test-comparison.ts",
         "test:demo": "bun run tests/optimization-demo.ts",
         "run build": "bun run build/src/index.js",
-        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts",
+        "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts ./src/cli.ts",
         "start": "bun run src/index.ts",
         "start:http": "bun run src/http-server-optimized.ts",
         "start:original": "bun run src/http-server.ts",
