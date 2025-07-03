@@ -2,7 +2,7 @@
   "dxt_version": "0.1",
   "name": "@adeze/raindrop-mcp",
   "version": "1.1.4",
-  "description": "MCP Server for Raindrop.io",
+  "description": "MCP Server for Raindrop.io with streaming/chunked tool results support",
   "author": {
     "name": "Adam E"
   },
@@ -19,6 +19,45 @@
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${user_config.api_key}"
       }
+    },
+    "capabilities": {
+      "streaming": {
+        "supported": true,
+        "description": "Supports streaming/chunked results for large datasets and long-running operations",
+        "transport": {
+          "stdio": {
+            "progress_notifications": true,
+            "description": "Uses MCP progress notifications for STDIO transport"
+          },
+          "http": {
+            "server_sent_events": true,
+            "chunked_responses": true,
+            "description": "Uses SSE and chunked responses for HTTP transport"
+          }
+        },
+        "tools": {
+          "bookmark_search": {
+            "streaming_parameter": "streamResults",
+            "description": "Supports chunked search results with progress tracking"
+          },
+          "highlight_list": {
+            "streaming_parameter": "streamResults",
+            "description": "Supports chunked highlight retrieval with progress tracking"
+          },
+          "bookmark_batch_operations": {
+            "streaming_parameter": "enableProgress",
+            "description": "Supports progress notifications for batch operations"
+          },
+          "export_bookmarks": {
+            "streaming_parameter": "monitorProgress",
+            "description": "Supports progress monitoring for export operations"
+          },
+          "export_status": {
+            "streaming_parameter": "trackProgress",
+            "description": "Supports continuous progress tracking for export status"
+          }
+        }
+      }
     }
   },
   "user_config": {
@@ -34,7 +73,9 @@
     "raindrop.io",
     "raindrop",
     "bookmarks",
-    "productivity"
+    "productivity",
+    "streaming",
+    "progress-notifications"
   ],
   "license": "MIT",
   "repository": {

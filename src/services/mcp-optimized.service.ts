@@ -326,8 +326,8 @@ export class OptimizedRaindropMCPService {
         this.server.tool(
             'prompts/list',
             'List available prompts for the Raindrop MCP extension. Returns an array of prompt definitions (empty if none are defined).',
-            z.object({}),
-            async ({}) => {
+            {},
+            async () => {
                 try {
                     return {
                         content: [] // No prompts defined yet
@@ -584,7 +584,7 @@ export class OptimizedRaindropMCPService {
     private initializeBookmarkTools() {
         this.server.tool(
             'bookmark_search',
-            'Search bookmarks with advanced filtering. This is the primary tool for finding bookmarks. Supports full-text search, tag filtering, date ranges, and collection scoping.',
+            'Search bookmarks with advanced filtering. This is the primary tool for finding bookmarks. Supports full-text search, tag filtering, date ranges, and collection scoping. Supports streaming for large result sets.',
             {
                 query: z.string().optional().describe('Search query (searches title, description, content, and URL)'),
                 collection: z.number().optional().describe('Limit search to specific collection ID'),
@@ -595,14 +595,23 @@ export class OptimizedRaindropMCPService {
                 media: z.enum(['image', 'video', 'document', 'audio']).optional().describe('Filter by media type'),
                 page: z.number().optional().default(0).describe('Page number for pagination (starts at 0)'),
                 perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)'),
-                sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional().default('-created').describe('Sort order (prefix with - for descending)')
+                sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional().default('-created').describe('Sort order (prefix with - for descending)'),
+                streamResults: z.boolean().optional().default(false).describe('Enable streaming/chunked results for large datasets (experimental)')
             },
-            async (params) => {
+            async (params, extra) => {
                 try {
+                    // Check if streaming is requested and we have a progress token
+                    const enableStreaming = params.streamResults && extra;
+                    
+                    if (enableStreaming) {
+                        return await this.streamBookmarkSearch(params, extra);
+                    }
+                    
+                    // Default non-streaming behavior
                     const result = await raindropService.searchRaindrops(params);
                     return {
                         content: result.items.map(bookmark => ({
-                            type: "resource",
+                            type: "resource" as const,
                             resource: {
                                 text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
                                 uri: bookmark.link,
@@ -617,7 +626,8 @@ export class OptimizedRaindropMCPService {
                                     lastUpdate: bookmark.lastUpdate,
                                     type: bookmark.type,
                                     important: bookmark.important,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS,
+                                    streamingSupported: true
                                 }
                             }
                         })),
@@ -625,7 +635,8 @@ export class OptimizedRaindropMCPService {
                             total: result.count,
                             page: params.page || 0,
                             perPage: params.perPage || 25,
-                            hasMore: (params.page || 0) * (params.perPage || 25) + result.items.length < result.count
+                            hasMore: (params.page || 0) * (params.perPage || 25) + result.items.length < result.count,
+                            streamingSupported: true
                         }
                     };
                 } catch (error) {
@@ -766,7 +777,7 @@ export class OptimizedRaindropMCPService {
 
         this.server.tool(
             'bookmark_batch_operations',
-            'Perform operations on multiple bookmarks at once. Efficient for bulk updates, moves, tagging, or deletions.',
+            'Perform operations on multiple bookmarks at once. Efficient for bulk updates, moves, tagging, or deletions. Supports progress notifications for large batch operations.',
             {
                 operation: z.enum(['update', 'move', 'tag_add', 'tag_remove', 'delete', 'delete_permanent']).describe('Batch operation type'),
                 bookmarkIds: z.array(z.number()).min(1).describe('List of bookmark IDs to operate on'),
@@ -776,10 +787,23 @@ export class OptimizedRaindropMCPService {
                 important: z.boolean().optional().describe('Set important status (for update operations)'),
 
                 // Tagging parameters
-                tags: z.array(z.string()).optional().describe('Tags to add/remove (for tag operations)')
+                tags: z.array(z.string()).optional().describe('Tags to add/remove (for tag operations)'),
+                
+                // Progress tracking
+                enableProgress: z.boolean().optional().default(false).describe('Enable progress notifications for large batch operations')
             },
-            async ({ operation, bookmarkIds, collectionId, important, tags }) => {
+            async (params, extra) => {
                 try {
+                    const { operation, bookmarkIds, collectionId, important, tags, enableProgress } = params;
+                    
+                    // Check if progress notifications are requested and supported
+                    const useProgress = enableProgress && extra && bookmarkIds.length > 5;
+                    
+                    if (useProgress) {
+                        return await this.performBatchOperationWithProgress(params, extra);
+                    }
+                    
+                    // Default behavior without progress notifications
                     let result: string;
 
                     switch (operation) {
@@ -826,12 +850,13 @@ export class OptimizedRaindropMCPService {
 
                     return {
                         content: [{
-                            type: "text",
+                            type: "text" as const,
                             text: result,
                             metadata: {
                                 operation,
                                 affectedBookmarks: bookmarkIds.length,
-                                category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                                category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS,
+                                progressSupported: bookmarkIds.length > 5
                             }
                         }]
                     };
@@ -1001,16 +1026,27 @@ export class OptimizedRaindropMCPService {
     private initializeHighlightTools() {
         this.server.tool(
             'highlight_list',
-            'List highlights from all bookmarks, a specific bookmark, or a collection. Use this to find and review saved text highlights.',
+            'List highlights from all bookmarks, a specific bookmark, or a collection. Use this to find and review saved text highlights. Supports streaming for large datasets.',
             {
                 scope: z.enum(['all', 'bookmark', 'collection']).describe('Scope of highlights to retrieve'),
                 bookmarkId: z.number().optional().describe('Bookmark ID (required when scope=bookmark)'),
                 collectionId: z.number().optional().describe('Collection ID (required when scope=collection)'),
                 page: z.number().optional().default(0).describe('Page number for pagination (starts at 0)'),
-                perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)')
+                perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)'),
+                streamResults: z.boolean().optional().default(false).describe('Enable streaming/chunked results for large datasets (experimental)')
             },
-            async ({ scope, bookmarkId, collectionId, page, perPage }) => {
+            async (params, extra) => {
                 try {
+                    const { scope, bookmarkId, collectionId, page, perPage, streamResults } = params;
+                    
+                    // Check if streaming is requested and we have notification capability
+                    const enableStreaming = streamResults && extra && scope === 'all';
+                    
+                    if (enableStreaming) {
+                        return await this.streamHighlights(params, extra);
+                    }
+                    
+                    // Default non-streaming behavior
                     let highlights;
 
                     switch (scope) {
@@ -1031,7 +1067,7 @@ export class OptimizedRaindropMCPService {
 
                     return {
                         content: highlights.map(highlight => ({
-                            type: "text",
+                            type: "text" as const,
                             text: highlight.text.substring(0, 200) + (highlight.text.length > 200 ? '...' : ''),
                             metadata: {
                                 id: highlight._id,
@@ -1044,7 +1080,8 @@ export class OptimizedRaindropMCPService {
                                 created: highlight.created,
                                 lastUpdate: highlight.lastUpdate,
                                 tags: highlight.tags,
-                                category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
+                                category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS,
+                                streamingSupported: scope === 'all'
                             }
                         })),
                         metadata: {
@@ -1053,7 +1090,8 @@ export class OptimizedRaindropMCPService {
                             collectionId,
                             page: page || 0,
                             perPage: perPage || 25,
-                            total: highlights.length
+                            total: highlights.length,
+                            streamingSupported: scope === 'all'
                         }
                     };
                 } catch (error) {
@@ -1250,15 +1288,17 @@ export class OptimizedRaindropMCPService {
 
         this.server.tool(
             'export_bookmarks',
-            'Export bookmarks in various formats for backup or migration. Supports CSV, HTML, and PDF formats with filtering options.',
+            'Export bookmarks in various formats for backup or migration. Supports CSV, HTML, and PDF formats with filtering options. Supports progress monitoring for long-running exports.',
             {
                 format: z.enum(['csv', 'html', 'pdf']).describe('Export format: csv (spreadsheet), html (browser bookmarks), pdf (document)'),
                 collectionId: z.number().optional().describe('Export specific collection only (omit for all bookmarks)'),
                 includeBroken: z.boolean().optional().default(false).describe('Include bookmarks with broken/dead links'),
-                includeDuplicates: z.boolean().optional().default(false).describe('Include duplicate bookmarks')
+                includeDuplicates: z.boolean().optional().default(false).describe('Include duplicate bookmarks'),
+                monitorProgress: z.boolean().optional().default(false).describe('Monitor export progress with periodic status updates (experimental)')
             },
-            async ({ format, collectionId, includeBroken, includeDuplicates }) => {
+            async (params, extra) => {
                 try {
+                    const { format, collectionId, includeBroken, includeDuplicates, monitorProgress } = params;
                     const options = {
                         format,
                         collectionId,
@@ -1267,16 +1307,26 @@ export class OptimizedRaindropMCPService {
                     };
 
                     const result = await raindropService.exportBookmarks(options);
+                    
+                    // If progress monitoring is enabled and we have notification capability
+                    if (monitorProgress && extra) {
+                        // Start monitoring export progress in the background
+                        this.monitorExportProgress(extra).catch(error => {
+                            console.warn('Export progress monitoring failed:', error);
+                        });
+                    }
+                    
                     return {
                         content: [{
-                            type: "text",
-                            text: `Export started successfully in ${format.toUpperCase()} format. Check export status for download link.`,
+                            type: "text" as const,
+                            text: `Export started successfully in ${format.toUpperCase()} format. ${monitorProgress ? 'Progress monitoring enabled.' : 'Check export status for download link.'}`,
                             metadata: {
                                 format,
                                 collectionId,
                                 includeBroken,
                                 includeDuplicates,
                                 statusUrl: result.url,
+                                progressMonitoring: monitorProgress,
                                 category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
                             }
                         }]
@@ -1289,19 +1339,29 @@ export class OptimizedRaindropMCPService {
 
         this.server.tool(
             'export_status',
-            'Check the status of an ongoing export operation and get download link when ready.',
-            {},
-            async () => {
+            'Check the status of an ongoing export operation and get download link when ready. Supports streaming status updates.',
+            {
+                trackProgress: z.boolean().optional().default(false).describe('Enable continuous progress tracking until completion (experimental)')
+            },
+            async (params, extra) => {
                 try {
+                    const { trackProgress } = params;
+                    
+                    if (trackProgress && extra) {
+                        return await this.trackExportStatusWithProgress(extra);
+                    }
+                    
+                    // Default single status check
                     const status = await raindropService.getExportStatus();
                     const message = `Export Status: ${status.status}${status.url ? ` - Download: ${status.url}` : ''}`;
 
                     return {
                         content: [{
-                            type: "text",
+                            type: "text" as const,
                             text: message,
                             metadata: {
                                 ...status,
+                                progressTrackingAvailable: true,
                                 category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
                             }
                         }]
@@ -1311,6 +1371,608 @@ export class OptimizedRaindropMCPService {
                 }
             }
         );
+    }
+
+    /**
+     * Stream bookmark search results with progress notifications
+     * This method fetches bookmarks in chunks and sends progress updates
+     */
+    private async streamBookmarkSearch(params: any, extra: any) {
+        const chunkSize = Math.min(params.perPage || 25, 10); // Smaller chunks for streaming
+        const maxResults = params.perPage || 25;
+        let processedCount = 0;
+        const allBookmarks: any[] = [];
+        
+        try {
+            // Send initial progress notification
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: 0,
+                        message: "Starting bookmark search..."
+                    }
+                });
+            }
+
+            // First, get total count for progress calculation
+            const initialResult = await raindropService.searchRaindrops({
+                ...params,
+                page: 0,
+                perPage: 1 // Just get the count
+            });
+
+            const totalCount = Math.min(initialResult.count, maxResults);
+            
+            // Calculate number of chunks needed
+            const chunksNeeded = Math.ceil(maxResults / chunkSize);
+            
+            for (let chunk = 0; chunk < chunksNeeded && processedCount < maxResults; chunk++) {
+                const currentPage = Math.floor((processedCount + (params.page || 0) * (params.perPage || 25)) / chunkSize);
+                
+                // Fetch current chunk
+                const chunkResult = await raindropService.searchRaindrops({
+                    ...params,
+                    page: currentPage,
+                    perPage: Math.min(chunkSize, maxResults - processedCount)
+                });
+
+                // Add bookmarks from this chunk
+                allBookmarks.push(...chunkResult.items.slice(0, maxResults - processedCount));
+                processedCount += chunkResult.items.length;
+
+                // Send progress update
+                if (extra.sendNotification) {
+                    const progress = Math.min(100, Math.round((processedCount / totalCount) * 100));
+                    await extra.sendNotification({
+                        method: "notifications/progress",
+                        params: {
+                            progressToken: extra.progressToken,
+                            progress: processedCount,
+                            total: totalCount,
+                            message: `Processed ${processedCount} of ${totalCount} bookmarks...`
+                        }
+                    });
+                }
+
+                // Small delay to make streaming visible and prevent API rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Break if we've reached the requested number of results
+                if (processedCount >= maxResults) break;
+            }
+
+            // Send final progress notification
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: processedCount,
+                        total: totalCount,
+                        message: `Completed! Processed ${processedCount} bookmarks.`
+                    }
+                });
+            }
+
+            // Return final results
+            return {
+                content: allBookmarks.map(bookmark => ({
+                    type: "resource" as const,
+                    resource: {
+                        text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
+                        uri: bookmark.link,
+                        metadata: {
+                            id: bookmark._id,
+                            title: bookmark.title,
+                            link: bookmark.link,
+                            excerpt: bookmark.excerpt,
+                            tags: bookmark.tags,
+                            collectionId: bookmark.collection?.$id,
+                            created: bookmark.created,
+                            lastUpdate: bookmark.lastUpdate,
+                            type: bookmark.type,
+                            important: bookmark.important,
+                            category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS,
+                            streamingSupported: true,
+                            streamedResult: true
+                        }
+                    }
+                })),
+                metadata: {
+                    total: initialResult.count,
+                    processed: processedCount,
+                    page: params.page || 0,
+                    perPage: params.perPage || 25,
+                    hasMore: processedCount < initialResult.count,
+                    streamingEnabled: true,
+                    chunksProcessed: Math.ceil(processedCount / chunkSize)
+                }
+            };
+        } catch (error) {
+            // Send error notification if streaming was enabled
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: processedCount,
+                        message: `Error during streaming: ${(error as Error).message}`
+                    }
+                });
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Stream highlights with progress notifications
+     * This method fetches highlights in chunks and sends progress updates
+     */
+    private async streamHighlights(params: any, extra: any) {
+        const chunkSize = Math.min(params.perPage || 25, 10); // Smaller chunks for streaming
+        const maxResults = params.perPage || 25;
+        let processedCount = 0;
+        const allHighlights: any[] = [];
+        
+        try {
+            // Send initial progress notification
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: 0,
+                        message: "Starting highlights retrieval..."
+                    }
+                });
+            }
+
+            // Calculate number of chunks needed
+            const chunksNeeded = Math.ceil(maxResults / chunkSize);
+            
+            for (let chunk = 0; chunk < chunksNeeded && processedCount < maxResults; chunk++) {
+                const currentPage = (params.page || 0) + chunk;
+                const currentChunkSize = Math.min(chunkSize, maxResults - processedCount);
+                
+                // Fetch current chunk
+                const highlights = await raindropService.getAllHighlightsByPage(currentPage, currentChunkSize);
+
+                // Add highlights from this chunk
+                allHighlights.push(...highlights.slice(0, maxResults - processedCount));
+                processedCount += highlights.length;
+
+                // Send progress update
+                if (extra.sendNotification) {
+                    await extra.sendNotification({
+                        method: "notifications/progress",
+                        params: {
+                            progressToken: extra.progressToken,
+                            progress: processedCount,
+                            total: maxResults,
+                            message: `Processed ${processedCount} highlights...`
+                        }
+                    });
+                }
+
+                // Small delay to make streaming visible
+                await new Promise(resolve => setTimeout(resolve, 150));
+
+                // Break if we've reached the requested number of results or no more highlights
+                if (processedCount >= maxResults || highlights.length < currentChunkSize) break;
+            }
+
+            // Send final progress notification
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: processedCount,
+                        total: processedCount,
+                        message: `Completed! Retrieved ${processedCount} highlights.`
+                    }
+                });
+            }
+
+            // Return final results
+            return {
+                content: allHighlights.map(highlight => ({
+                    type: "text" as const,
+                    text: highlight.text.substring(0, 200) + (highlight.text.length > 200 ? '...' : ''),
+                    metadata: {
+                        id: highlight._id,
+                        fullText: highlight.text,
+                        raindropId: highlight.raindrop?._id,
+                        raindropTitle: highlight.raindrop?.title,
+                        raindropLink: highlight.raindrop?.link,
+                        note: highlight.note,
+                        color: highlight.color,
+                        created: highlight.created,
+                        lastUpdate: highlight.lastUpdate,
+                        tags: highlight.tags,
+                        category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS,
+                        streamingSupported: true,
+                        streamedResult: true
+                    }
+                })),
+                metadata: {
+                    scope: params.scope,
+                    processed: processedCount,
+                    page: params.page || 0,
+                    perPage: params.perPage || 25,
+                    total: processedCount,
+                    streamingEnabled: true,
+                    chunksProcessed: Math.ceil(processedCount / chunkSize)
+                }
+            };
+        } catch (error) {
+            // Send error notification if streaming was enabled
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: processedCount,
+                        message: `Error during streaming: ${(error as Error).message}`
+                    }
+                });
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Perform batch operations with progress notifications
+     * This method processes bookmarks one by one and sends progress updates
+     */
+    private async performBatchOperationWithProgress(params: any, extra: any) {
+        const { operation, bookmarkIds, collectionId, important, tags } = params;
+        const totalCount = bookmarkIds.length;
+        let processedCount = 0;
+        const results: any[] = [];
+        
+        try {
+            // Send initial progress notification
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: 0,
+                        total: totalCount,
+                        message: `Starting batch ${operation} operation on ${totalCount} bookmarks...`
+                    }
+                });
+            }
+
+            // Process bookmarks individually to provide granular progress updates
+            for (const bookmarkId of bookmarkIds) {
+                try {
+                    switch (operation) {
+                        case 'update':
+                        case 'move':
+                            const updateData: Record<string, any> = {};
+                            if (collectionId !== undefined) updateData.collection = collectionId;
+                            if (important !== undefined) updateData.important = important;
+                            
+                            await raindropService.updateBookmark(bookmarkId, updateData);
+                            results.push({ id: bookmarkId, status: 'success' });
+                            break;
+
+                        case 'tag_add':
+                        case 'tag_remove':
+                            if (!tags?.length) throw new Error('Tags required for tag operations');
+                            
+                            const bookmark = await raindropService.getBookmark(bookmarkId);
+                            const existingTags = bookmark.tags || [];
+                            const newTags = operation === 'tag_add'
+                                ? [...new Set([...existingTags, ...tags])]
+                                : existingTags.filter(tag => !tags.includes(tag));
+                            
+                            await raindropService.updateBookmark(bookmarkId, { tags: newTags });
+                            results.push({ id: bookmarkId, status: 'success', tagsModified: newTags.length - existingTags.length });
+                            break;
+
+                        case 'delete':
+                        case 'delete_permanent':
+                            if (operation === 'delete_permanent') {
+                                await raindropService.permanentDeleteBookmark(bookmarkId);
+                            } else {
+                                await raindropService.deleteBookmark(bookmarkId);
+                            }
+                            results.push({ id: bookmarkId, status: 'deleted' });
+                            break;
+
+                        default:
+                            throw new Error(`Unknown operation: ${operation}`);
+                    }
+                } catch (error) {
+                    results.push({ id: bookmarkId, status: 'error', error: (error as Error).message });
+                }
+
+                processedCount++;
+
+                // Send progress update
+                if (extra.sendNotification) {
+                    await extra.sendNotification({
+                        method: "notifications/progress",
+                        params: {
+                            progressToken: extra.progressToken,
+                            progress: processedCount,
+                            total: totalCount,
+                            message: `Processed ${processedCount} of ${totalCount} bookmarks...`
+                        }
+                    });
+                }
+
+                // Small delay to make progress visible and prevent API rate limiting
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            // Send final progress notification
+            if (extra.sendNotification) {
+                const successCount = results.filter(r => r.status === 'success' || r.status === 'deleted').length;
+                const errorCount = results.filter(r => r.status === 'error').length;
+                
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: totalCount,
+                        total: totalCount,
+                        message: `Completed! ${successCount} successful, ${errorCount} errors.`
+                    }
+                });
+            }
+
+            // Calculate final result message
+            const successCount = results.filter(r => r.status === 'success' || r.status === 'deleted').length;
+            const errorCount = results.filter(r => r.status === 'error').length;
+            
+            let resultMessage = `Batch ${operation} completed: ${successCount} successful`;
+            if (errorCount > 0) {
+                resultMessage += `, ${errorCount} errors`;
+            }
+
+            return {
+                content: [{
+                    type: "text" as const,
+                    text: resultMessage,
+                    metadata: {
+                        operation,
+                        totalBookmarks: totalCount,
+                        successful: successCount,
+                        errors: errorCount,
+                        results: results,
+                        category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS,
+                        progressEnabled: true
+                    }
+                }]
+            };
+        } catch (error) {
+            // Send error notification if progress was enabled
+            if (extra.sendNotification) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: processedCount,
+                        total: totalCount,
+                        message: `Error during batch operation: ${(error as Error).message}`
+                    }
+                });
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Monitor export progress in the background
+     */
+    private async monitorExportProgress(extra: any) {
+        if (!extra?.sendNotification) return;
+        
+        let attempts = 0;
+        const maxAttempts = 30; // Max 5 minutes of monitoring (10 second intervals)
+        
+        try {
+            await extra.sendNotification({
+                method: "notifications/progress",
+                params: {
+                    progressToken: extra.progressToken,
+                    progress: 0,
+                    message: "Export started. Monitoring progress..."
+                }
+            });
+            
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+                attempts++;
+                
+                try {
+                    const status = await raindropService.getExportStatus();
+                    
+                    if (status.status === 'ready') {
+                        await extra.sendNotification({
+                            method: "notifications/progress",
+                            params: {
+                                progressToken: extra.progressToken,
+                                progress: 100,
+                                total: 100,
+                                message: `Export completed! Download: ${status.url}`
+                            }
+                        });
+                        break;
+                    } else if (status.status === 'error') {
+                        await extra.sendNotification({
+                            method: "notifications/progress",
+                            params: {
+                                progressToken: extra.progressToken,
+                                progress: attempts,
+                                total: maxAttempts,
+                                message: `Export failed: ${status.error}`
+                            }
+                        });
+                        break;
+                    } else {
+                        // In progress
+                        const progressPercent = status.progress || Math.min(90, (attempts / maxAttempts) * 100);
+                        await extra.sendNotification({
+                            method: "notifications/progress",
+                            params: {
+                                progressToken: extra.progressToken,
+                                progress: Math.round(progressPercent),
+                                total: 100,
+                                message: `Export in progress... (${Math.round(progressPercent)}%)`
+                            }
+                        });
+                    }
+                } catch (statusError) {
+                    // Continue monitoring even if status check fails
+                    await extra.sendNotification({
+                        method: "notifications/progress",
+                        params: {
+                            progressToken: extra.progressToken,
+                            progress: attempts,
+                            total: maxAttempts,
+                            message: `Monitoring export... (attempt ${attempts})`
+                        }
+                    });
+                }
+            }
+            
+            if (attempts >= maxAttempts) {
+                await extra.sendNotification({
+                    method: "notifications/progress",
+                    params: {
+                        progressToken: extra.progressToken,
+                        progress: maxAttempts,
+                        total: maxAttempts,
+                        message: "Export monitoring timeout. Check export_status manually."
+                    }
+                });
+            }
+        } catch (error) {
+            await extra.sendNotification({
+                method: "notifications/progress",
+                params: {
+                    progressToken: extra.progressToken,
+                    progress: attempts,
+                    total: maxAttempts,
+                    message: `Export monitoring error: ${(error as Error).message}`
+                }
+            });
+        }
+    }
+
+    /**
+     * Track export status with continuous progress updates
+     */
+    private async trackExportStatusWithProgress(extra: any) {
+        if (!extra?.sendNotification) {
+            // Fallback to single status check
+            const status = await raindropService.getExportStatus();
+            return {
+                content: [{
+                    type: "text" as const,
+                    text: `Export Status: ${status.status}${status.url ? ` - Download: ${status.url}` : ''}`,
+                    metadata: {
+                        ...status,
+                        category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
+                    }
+                }]
+            };
+        }
+        
+        let attempts = 0;
+        const maxAttempts = 10; // Max 10 status checks
+        let finalStatus: any = null;
+        
+        try {
+            await extra.sendNotification({
+                method: "notifications/progress",
+                params: {
+                    progressToken: extra.progressToken,
+                    progress: 0,
+                    total: maxAttempts,
+                    message: "Starting export status tracking..."
+                }
+            });
+            
+            while (attempts < maxAttempts) {
+                const status = await raindropService.getExportStatus();
+                finalStatus = status;
+                attempts++;
+                
+                if (status.status === 'ready') {
+                    await extra.sendNotification({
+                        method: "notifications/progress",
+                        params: {
+                            progressToken: extra.progressToken,
+                            progress: maxAttempts,
+                            total: maxAttempts,
+                            message: `Export ready! Download: ${status.url}`
+                        }
+                    });
+                    break;
+                } else if (status.status === 'error') {
+                    await extra.sendNotification({
+                        method: "notifications/progress",
+                        params: {
+                            progressToken: extra.progressToken,
+                            progress: attempts,
+                            total: maxAttempts,
+                            message: `Export failed: ${status.error}`
+                        }
+                    });
+                    break;
+                } else {
+                    // In progress
+                    await extra.sendNotification({
+                        method: "notifications/progress",
+                        params: {
+                            progressToken: extra.progressToken,
+                            progress: attempts,
+                            total: maxAttempts,
+                            message: `Export status: ${status.status} (${status.progress || 'unknown'}%)`
+                        }
+                    });
+                    
+                    // Wait before next check (shorter intervals for tracking)
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+            }
+            
+            const message = finalStatus ? 
+                `Export Status: ${finalStatus.status}${finalStatus.url ? ` - Download: ${finalStatus.url}` : ''}` :
+                'Export status tracking completed';
+            
+            return {
+                content: [{
+                    type: "text" as const,
+                    text: message,
+                    metadata: {
+                        ...finalStatus,
+                        trackingCompleted: true,
+                        attemptsUsed: attempts,
+                        category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
+                    }
+                }]
+            };
+        } catch (error) {
+            await extra.sendNotification({
+                method: "notifications/progress",
+                params: {
+                    progressToken: extra.progressToken,
+                    progress: attempts,
+                    total: maxAttempts,
+                    message: `Tracking error: ${(error as Error).message}`
+                }
+            });
+            throw error;
+        }
     }
 
     /**
