@@ -2,7 +2,7 @@
   "dxt_version": "0.1",
   "name": "@adeze/raindrop-mcp",
   "version": "1.1.4",
-  "description": "MCP Server for Raindrop.io",
+  "description": "MCP Server for Raindrop.io - Manage bookmarks, collections, tags, and highlights with advanced search and organization features",
   "author": {
     "name": "Adam E"
   },
@@ -21,11 +21,950 @@
       }
     }
   },
+  "tools": [
+    {
+      "id": "collection_list",
+      "name": "collection_list",
+      "description": "List all collections or child collections of a parent. Use this to understand the user's collection structure before performing other operations.",
+      "category": "Collections",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "number",
+            "description": "Parent collection ID to list children. Omit to list root collections."
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "title": { "type": "string" },
+                    "count": { "type": "number" },
+                    "public": { "type": "boolean" },
+                    "created": { "type": "string" },
+                    "lastUpdate": { "type": "string" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "collection_get",
+      "name": "collection_get", 
+      "description": "Get detailed information about a specific collection by ID. Use this when you need full details about a collection.",
+      "category": "Collections",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Collection ID (e.g., 12345)"
+          }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "title": { "type": "string" },
+                    "count": { "type": "number" },
+                    "public": { "type": "boolean" },
+                    "created": { "type": "string" },
+                    "lastUpdate": { "type": "string" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "collection_create",
+      "name": "collection_create",
+      "description": "Create a new collection (folder) for organizing bookmarks. Collections help organize bookmarks by topic, project, or any categorization system.",
+      "category": "Collections",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Collection name (e.g., \"Web Development Resources\", \"Research Papers\")"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "default": false,
+            "description": "Make collection publicly viewable (default: false)"
+          }
+        },
+        "required": ["title"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "title": { "type": "string" },
+                    "public": { "type": "boolean" },
+                    "created": { "type": "string" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "collection_update",
+      "name": "collection_update",
+      "description": "Update collection properties like title, visibility, or view settings. Use this to rename collections or change their configuration.",
+      "category": "Collections",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "Collection ID to update" },
+          "title": { "type": "string", "description": "New collection name" },
+          "isPublic": { "type": "boolean", "description": "Change visibility" },
+          "view": { "type": "string", "enum": ["list", "simple", "grid", "masonry"], "description": "Display view" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "collection_delete",
+      "name": "collection_delete",
+      "description": "Delete a collection permanently. WARNING: This action cannot be undone. Bookmarks in the collection will be moved to Unsorted.",
+      "category": "Collections",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "Collection ID to delete" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "collection_share",
+      "name": "collection_share",
+      "description": "Share a collection with specific users or generate a public sharing link. Useful for collaboration or sharing curated bookmark lists.",
+      "category": "Collections",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "Collection ID to share" },
+          "email": { "type": "string", "description": "Email address to share with" },
+          "role": { "type": "string", "enum": ["viewer", "editor"], "description": "Access level" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "collection_maintenance",
+      "name": "collection_maintenance",
+      "description": "Perform maintenance operations on collections. Use this to clean up your collection structure.",
+      "category": "Collections",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["merge", "remove_empty", "empty_trash"],
+            "description": "Maintenance operation to perform"
+          },
+          "sourceId": { "type": "number", "description": "Source collection ID (for merge)" },
+          "targetId": { "type": "number", "description": "Target collection ID (for merge)" }
+        },
+        "required": ["operation"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bookmark_search",
+      "name": "bookmark_search",
+      "description": "Search bookmarks with advanced filtering. This is the primary tool for finding bookmarks. Supports full-text search, tag filtering, date ranges, and collection scoping.",
+      "category": "Bookmarks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "search": { "type": "string", "description": "Search query" },
+          "collection": { "type": "number", "description": "Collection ID" },
+          "tags": { "type": "array", "items": { "type": "string" }, "description": "Filter by tags" },
+          "createdStart": { "type": "string", "description": "Created after date (ISO format)" },
+          "createdEnd": { "type": "string", "description": "Created before date (ISO format)" },
+          "important": { "type": "boolean", "description": "Only important bookmarks" },
+          "media": { "type": "string", "enum": ["image", "video", "document", "audio"], "description": "Media type filter" },
+          "page": { "type": "number", "description": "Page number" },
+          "perPage": { "type": "number", "description": "Items per page" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "title": { "type": "string" },
+                    "link": { "type": "string" },
+                    "domain": { "type": "string" },
+                    "tags": { "type": "array", "items": { "type": "string" } },
+                    "important": { "type": "boolean" },
+                    "created": { "type": "string" },
+                    "collection": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bookmark_get",
+      "name": "bookmark_get",
+      "description": "Get detailed information about a specific bookmark by ID. Use this when you need full bookmark details.",
+      "category": "Bookmarks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "Bookmark ID" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "title": { "type": "string" },
+                    "link": { "type": "string" },
+                    "excerpt": { "type": "string" },
+                    "domain": { "type": "string" },
+                    "tags": { "type": "array", "items": { "type": "string" } },
+                    "important": { "type": "boolean" },
+                    "created": { "type": "string" },
+                    "collection": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bookmark_create",
+      "name": "bookmark_create",
+      "description": "Add a new bookmark to a collection. The system will automatically extract title, description, and other metadata from the URL.",
+      "category": "Bookmarks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "link": { "type": "string", "description": "URL to bookmark" },
+          "title": { "type": "string", "description": "Custom title (optional)" },
+          "description": { "type": "string", "description": "Custom description/notes" },
+          "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags to add" },
+          "collectionId": { "type": "number", "description": "Collection to add to" },
+          "important": { "type": "boolean", "description": "Mark as important/starred" }
+        },
+        "required": ["link"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "title": { "type": "string" },
+                    "link": { "type": "string" },
+                    "created": { "type": "string" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bookmark_update",
+      "name": "bookmark_update",
+      "description": "Update bookmark properties like title, description, tags, or move to different collection. Use this to modify existing bookmarks.",
+      "category": "Bookmarks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "Bookmark ID to update" },
+          "title": { "type": "string", "description": "New title" },
+          "description": { "type": "string", "description": "New description or notes" },
+          "tags": { "type": "array", "items": { "type": "string" }, "description": "New tags (replaces existing tags)" },
+          "collectionId": { "type": "number", "description": "Move to different collection" },
+          "important": { "type": "boolean", "description": "Change important/starred status" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bookmark_batch_operations",
+      "name": "bookmark_batch_operations",
+      "description": "Perform operations on multiple bookmarks at once. Efficient for bulk updates, moves, tagging, or deletions.",
+      "category": "Bookmarks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["update", "move", "tag", "untag", "delete"],
+            "description": "Batch operation to perform"
+          },
+          "bookmarkIds": {
+            "type": "array",
+            "items": { "type": "number" },
+            "description": "Array of bookmark IDs to process"
+          },
+          "collectionId": { "type": "number", "description": "Target collection ID (for move)" },
+          "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags to add/remove" },
+          "important": { "type": "boolean", "description": "Mark as important (for update)" }
+        },
+        "required": ["operation", "bookmarkIds"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bookmark_reminders",
+      "name": "bookmark_reminders",
+      "description": "Manage reminders for bookmarks. Set or remove reminder notifications for important bookmarks you want to revisit.",
+      "category": "Bookmarks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["set", "remove"],
+            "description": "Action to perform on reminder"
+          },
+          "bookmarkId": { "type": "number", "description": "Bookmark ID" },
+          "date": { "type": "string", "description": "Reminder date (ISO format, required for set)" }
+        },
+        "required": ["action", "bookmarkId"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "tag_list",
+      "name": "tag_list",
+      "description": "List all tags or tags from a specific collection. Use this to understand the current tag structure before performing tag operations.",
+      "category": "Tags",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "collectionId": { "type": "number", "description": "Collection ID to scope tags. Omit for all tags." }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "tag": { "type": "string" },
+                    "count": { "type": "number" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "tag_manage",
+      "name": "tag_manage",
+      "description": "Perform tag management operations like renaming, merging, or deleting tags. Use this to maintain a clean tag structure.",
+      "category": "Tags",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": ["rename", "merge", "delete", "delete_multiple"],
+            "description": "Tag management operation"
+          },
+          "collectionId": { "type": "number", "description": "Collection ID to scope operation (omit for all collections)" },
+          "oldName": { "type": "string", "description": "Current tag name (required for rename)" },
+          "newName": { "type": "string", "description": "New tag name (required for rename)" },
+          "sourceTags": { "type": "array", "items": { "type": "string" }, "description": "Source tags (for merge/delete multiple)" },
+          "targetTag": { "type": "string", "description": "Target tag (for merge)" }
+        },
+        "required": ["operation"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "highlight_list",
+      "name": "highlight_list",
+      "description": "List highlights from all bookmarks, a specific bookmark, or a collection. Use this to find and review saved text highlights.",
+      "category": "Highlights",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": ["all", "bookmark", "collection"],
+            "description": "Scope of highlights to retrieve"
+          },
+          "bookmarkId": { "type": "number", "description": "Bookmark ID (required for bookmark scope)" },
+          "collectionId": { "type": "number", "description": "Collection ID (required for collection scope)" },
+          "page": { "type": "number", "description": "Page number" },
+          "perPage": { "type": "number", "description": "Items per page" }
+        },
+        "required": ["scope"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "text": { "type": "string" },
+                    "note": { "type": "string" },
+                    "color": { "type": "string" },
+                    "created": { "type": "string" },
+                    "raindrop": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "highlight_create",
+      "name": "highlight_create",
+      "description": "Create a new text highlight for a bookmark. Use this to save important text passages from articles or documents.",
+      "category": "Highlights",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "raindropId": { "type": "number", "description": "Bookmark ID" },
+          "text": { "type": "string", "description": "Text to highlight" },
+          "note": { "type": "string", "description": "Optional note about the highlight" },
+          "color": { "type": "string", "enum": ["yellow", "red", "green", "blue"], "description": "Highlight color" }
+        },
+        "required": ["raindropId", "text"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "text": { "type": "string" },
+                    "note": { "type": "string" },
+                    "color": { "type": "string" },
+                    "created": { "type": "string" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "highlight_update",
+      "name": "highlight_update",
+      "description": "Update an existing highlight's text, note, or color. Use this to modify saved highlights.",
+      "category": "Highlights",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "Highlight ID" },
+          "text": { "type": "string", "description": "New highlight text" },
+          "note": { "type": "string", "description": "New note" },
+          "color": { "type": "string", "enum": ["yellow", "red", "green", "blue"], "description": "New highlight color" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "highlight_delete",
+      "name": "highlight_delete",
+      "description": "Delete a highlight permanently. This action cannot be undone.",
+      "category": "Highlights",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "Highlight ID to delete" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "user_profile",
+      "name": "user_profile",
+      "description": "Get user account information including name, email, subscription status, and registration date.",
+      "category": "User",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "number" },
+                    "email": { "type": "string" },
+                    "fullName": { "type": "string" },
+                    "pro": { "type": "boolean" },
+                    "registered": { "type": "string" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "user_statistics",
+      "name": "user_statistics",
+      "description": "Get user account statistics or statistics for a specific collection. Includes bookmark counts, collection counts, and other usage metrics.",
+      "category": "User",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "collectionId": { "type": "number", "description": "Collection ID for specific collection stats. Omit for user stats." }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "bookmarks": { "type": "number" },
+                    "collections": { "type": "number" },
+                    "tags": { "type": "number" },
+                    "highlights": { "type": "number" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "import_status",
+      "name": "import_status",
+      "description": "Check the status of an ongoing import operation. Use this to monitor import progress.",
+      "category": "Import/Export",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "progress": { "type": "number" },
+                    "imported": { "type": "number" },
+                    "duplicates": { "type": "number" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "export_bookmarks",
+      "name": "export_bookmarks",
+      "description": "Export bookmarks in various formats for backup or migration. Supports CSV, HTML, and PDF formats with filtering options.",
+      "category": "Import/Export",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": ["csv", "html", "pdf"],
+            "description": "Export format"
+          },
+          "collection": { "type": "number", "description": "Collection ID to export. Omit for all bookmarks." },
+          "broken": { "type": "boolean", "description": "Include broken bookmarks" },
+          "duplicates": { "type": "boolean", "description": "Include duplicate bookmarks" }
+        },
+        "required": ["format"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "progress": { "type": "number" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "export_status",
+      "name": "export_status",
+      "description": "Check the status of an ongoing export operation and get download link when ready.",
+      "category": "Import/Export",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "progress": { "type": "number" },
+                    "url": { "type": "string" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "prompts/list",
+      "name": "prompts/list",
+      "description": "List available prompts for the Raindrop MCP extension. Returns an array of prompt definitions (empty if none are defined).",
+      "category": "General",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string" },
+                "text": { "type": "string" },
+                "metadata": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "tools_generated": true,
   "user_config": {
     "api_key": {
       "type": "string",
       "title": "Raindrop Access Token",
-      "description": "see the readme.md file",
+      "description": "Your Raindrop.io API access token. Get this from: https://app.raindrop.io/settings/integrations",
       "required": true,
       "sensitive": true
     }
@@ -34,9 +973,23 @@
     "raindrop.io",
     "raindrop",
     "bookmarks",
-    "productivity"
+    "productivity",
+    "mcp",
+    "modelcontextprotocol",
+    "mcp-server",
+    "collections",
+    "tags",
+    "highlights",
+    "organization"
   ],
   "license": "MIT",
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=16.0.0"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/adeze/raindrop-mcp.git"
