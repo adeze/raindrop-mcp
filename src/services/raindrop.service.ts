@@ -468,7 +468,7 @@ class RaindropService {
       delete queryParams.createdEnd;
     }
     
-    const { data } = await this.api.get('/raindrops', { 
+    const { data } = await this.api.get('/raindrops/0', { 
       params: queryParams 
     });
     
