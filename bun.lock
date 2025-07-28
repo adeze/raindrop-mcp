@@ -513,7 +513,7 @@
 
     "range-parser": ["range-parser@1.2.1", "", {}, ""],
 
-    "rate-limiter-flexible": ["rate-limiter-flexible@7.1.1", "", {}, "sha512-lsYRcqRSJrKBNt6pMzBJTiCJP5KnwsGWdObMZxd19JFUJRntM+yuHs4/2bs6NZweSLgpsDcykvzyQaumoslWQg=="],
+    "rate-limiter-flexible": ["rate-limiter-flexible@7.2.0", "", {}, "sha512-hrf0vIS/WOBegnHg+uPXxsXhuQYlNGfZiCmK5Wgudb12xlZUhpv9yD23yp/EW6BKQosshqnIQRQV+r3jyfIGQg=="],
 
     "raw-body": ["raw-body@3.0.0", "", { "dependencies": { "bytes": "3.1.2", "http-errors": "2.0.0", "iconv-lite": "0.6.3", "unpipe": "1.0.0" } }, ""],
 
