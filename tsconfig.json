@@ -1,35 +1,39 @@
 {
-    "compilerOptions": {
-      // Environment setup & latest features
-      "lib": ["esnext"],
-      "forceConsistentCasingInFileNames": true,
-      "target": "ES2022",
-      "module": "NodeNext",
-      "moduleDetection": "force",
-      "esModuleInterop": true,
-      "resolveJsonModule": true,
-      "jsx": "react-jsx",
-      "allowJs": true,
-      "outDir": "build",
-      "rootDir": "./src",
-      // Bundler mode
-      "moduleResolution": "NodeNext",
-      "allowImportingTsExtensions": false,
-      "verbatimModuleSyntax": true,
-      "noEmit": true,
-  
-      // Best practices
-      "strict": true, // Disable all strict checks
-      "skipLibCheck": true, 
-      "declaration": true,
-      "sourceMap": true,
-     
-      // Vitest support
-      "types": ["vitest/globals", "node"]
-    },
-    "include": ["src/**/*", "src/cli.ts"],
-    "exclude": [
-      "node_modules",
-      "**/*.test.ts"
-    ]
-  }
+  "compilerOptions": {
+    // Environment setup & latest features
+    "lib": ["esnext"],
+    "forceConsistentCasingInFileNames": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleDetection": "force",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "outDir": "build",
+    "rootDir": "./src",
+    // Bundler mode
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+
+    // Best practices
+    "strict": true, // Disable all strict checks
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": true,
+
+    // Vitest support
+    "types": ["vitest/globals", "node"]
+  },
+  "include": [
+    "src/**/*",
+    "src/cli.ts",
+    "tests/optimization-demo.ts",
+    "tests/test-client.ts",
+    "tests/test-comparison.ts",
+    "tests/test-server.ts"
+  ],
+  "exclude": ["node_modules", "**/*.test.ts"]
+}

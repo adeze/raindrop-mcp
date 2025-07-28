@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(bun publish:*)",
-      "Bash(bun run build)"
+      "Bash(bun run build)",
+      "Bash(bun run:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

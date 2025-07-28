@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import RaindropMCPService, { createRaindropServer } from '../services/mcp.service.js';
-import raindropService from '../services/raindrop.service.js';
-import type { Collection, Bookmark } from '../types/raindrop.js';
+import RaindropMCPService, { createRaindropServer } from '../src/services/mcp.service.js';
+import raindropService from '../src/services/raindrop.service.js';
+import type { Collection, Bookmark } from '../src/types/raindrop.js';
 import { config } from 'dotenv';
 config(); // Load .env file
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import RaindropService from '../services/raindrop.service.js';
+import RaindropService from '../src/services/raindrop.service.js';
 // At the entry point of your application
 import { config } from 'dotenv';
 config(); // Load .env file

@@ -5,7 +5,6 @@
  */
 
 import { createOptimizedRaindropServer } from '../src/services/mcp-optimized.service.js';
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 async function testServer() {
     console.log('🧪 Testing Optimized Raindrop MCP Server');
@@ -49,7 +48,7 @@ async function testServer() {
     }
 }
 
-if (import.meta.main) {
+if (require.main === module) {
     testServer();
 }
 

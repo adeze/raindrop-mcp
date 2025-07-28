@@ -75,7 +75,7 @@ export class OptimizedRaindropMCPService {
         this.server.tool(
             'diagnostics/status',
             'Get diagnostics and health status for the MCP server. Use this for debugging and support.',
-            z.object({}),
+            {},
             async () => {
                 try {
                     const memory = process.memoryUsage();
@@ -373,7 +373,7 @@ export class OptimizedRaindropMCPService {
         this.server.tool(
             'prompts/list',
             'List available prompts for the Raindrop MCP extension. Returns an array of prompt definitions (empty if none are defined).',
-            z.object({}),
+            {},
             async ({}) => {
                 try {
                     return {
