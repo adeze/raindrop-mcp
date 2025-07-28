@@ -11,7 +11,7 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "outDir": "build",
-    "rootDir": "./src",
+    "rootDir": ".",
     // Bundler mode
     "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": false,
@@ -27,13 +27,6 @@
     // Vitest support
     "types": ["vitest/globals", "node"]
   },
-  "include": [
-    "src/**/*",
-    "src/cli.ts",
-    "tests/optimization-demo.ts",
-    "tests/test-client.ts",
-    "tests/test-comparison.ts",
-    "tests/test-server.ts"
-  ],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "include": ["src/**/*", "src/cli.ts"],
+  "exclude": ["node_modules", "tests", "**/*.test.ts"]
 }
