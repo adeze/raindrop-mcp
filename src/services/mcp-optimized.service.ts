@@ -55,11 +55,10 @@ export class OptimizedRaindropMCPService {
         });
 
         // Logging/diagnostics: All logs go to stderr via logger, never stdout. MCP protocol messages only on stdout.
-        // Use diagnostics tool for runtime health/debug info.
+        // Use system info tool for runtime health/debug info.
         this.setupLogging();
         this.initializeResources();
         this.initializeTools();
-        this.initializeDiagnosticsTool();
     }
 
     private setupLogging() {
@@ -67,47 +66,6 @@ export class OptimizedRaindropMCPService {
         this.logger.info('Logging initialized (stderr only, never stdout)');
     }
 
-    /**
-     * Diagnostics Tool
-     * Returns server health, config, and environment info for debugging
-     */
-    private initializeDiagnosticsTool() {
-        this.server.tool(
-            'diagnostics/status',
-            'Get diagnostics and health status for the MCP server. Use this for debugging and support.',
-            {},
-            async () => {
-                try {
-                    const memory = process.memoryUsage();
-                    const uptime = process.uptime();
-                    const env = {
-                        NODE_ENV: process.env.NODE_ENV,
-                        MCP_SERVER: process.env.MCP_SERVER,
-                        PLATFORM: process.platform,
-                        ARCH: process.arch
-                    };
-                    const status = {
-                        version: '2.0.0',
-                        uptime,
-                        memory,
-                        env,
-                        timestamp: new Date().toISOString()
-                    };
-                    this.logger.debug('Diagnostics tool called', status);
-                    return {
-                        content: [{
-                            type: 'text',
-                            text: 'MCP server diagnostics/status',
-                            metadata: status
-                        }]
-                    };
-                } catch (error) {
-                    this.logger.error('Diagnostics tool error', error);
-                    throw new Error(`Failed to get diagnostics: ${(error as Error).message}`);
-                }
-            }
-        );
-    }
 
     /**
      * Initialize standardized resources with consistent URI patterns
@@ -355,7 +313,7 @@ export class OptimizedRaindropMCPService {
      * Initialize optimized tools with enhanced descriptions and AI-friendly organization
      */
     private initializeTools() {
-        this.initializePromptsTool();
+        this.initializeSystemTools();
         this.initializeCollectionTools();
         this.initializeBookmarkTools();
         this.initializeTagTools();
@@ -365,22 +323,57 @@ export class OptimizedRaindropMCPService {
     }
 
     /**
-     * Prompts Management Tool
-     * Use this tool to list and manage prompts for the MCP extension
+     * System Management Tools
      */
-    private initializePromptsTool() {
-        // Implements the MCP prompts/list method for DXT compatibility
+    private initializeSystemTools() {
         this.server.tool(
-            'prompts/list',
-            'List available prompts for the Raindrop MCP extension. Returns an array of prompt definitions (empty if none are defined).',
-            {},
-            async ({}) => {
+            'system_info',
+            'Get system information including server diagnostics, health status, and available prompts. Use this for debugging and support.',
+            {
+                type: z.enum(['diagnostics', 'prompts']).describe('Type of system information to retrieve')
+            },
+            async ({ type }) => {
                 try {
-                    return {
-                        content: [] // No prompts defined yet
-                    };
+                    switch (type) {
+                        case 'diagnostics': {
+                            const memory = process.memoryUsage();
+                            const uptime = process.uptime();
+                            const env = {
+                                NODE_ENV: process.env.NODE_ENV,
+                                MCP_SERVER: process.env.MCP_SERVER,
+                                PLATFORM: process.platform,
+                                ARCH: process.arch
+                            };
+                            const status = {
+                                version: '2.0.0',
+                                uptime,
+                                memory,
+                                env,
+                                timestamp: new Date().toISOString()
+                            };
+                            this.logger.debug('Diagnostics requested', status);
+                            return {
+                                content: [{
+                                    type: 'text',
+                                    text: 'MCP server diagnostics and health status',
+                                    metadata: status
+                                }]
+                            };
+                        }
+
+                        case 'prompts': {
+                            // Implements the MCP prompts/list method for DXT compatibility
+                            return {
+                                content: [] // No prompts defined yet
+                            };
+                        }
+
+                        default:
+                            throw new Error(`Unknown system info type: ${type}`);
+                    }
                 } catch (error) {
-                    throw new Error(`Failed to list prompts: ${(error as Error).message}`);
+                    this.logger.error('System info error', error);
+                    throw new Error(`Failed to get system info: ${(error as Error).message}`);
                 }
             }
         );
@@ -392,233 +385,206 @@ export class OptimizedRaindropMCPService {
      */
     private initializeCollectionTools() {
         this.server.tool(
-            'collection_list',
-            'List all collections or child collections of a parent. Use this to understand the user\'s collection structure before performing other operations.',
+            'collection_manage',
+            'Comprehensive collection management tool for all CRUD operations. Use this for listing, getting, creating, updating, and deleting collections.',
             {
-                parentId: z.number().optional().describe('Parent collection ID to list children. Omit to list root collections.')
-            },
-            async ({ parentId }) => {
-                try {
-                    const collections = parentId
-                        ? await raindropService.getChildCollections(parentId)
-                        : await raindropService.getCollections();
-
-                    return {
-                        content: collections.map(collection => ({
-                            type: "text",
-                            text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                count: collection.count,
-                                public: collection.public,
-                                created: collection.created,
-                                lastUpdate: collection.lastUpdate,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }))
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to list collections: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'collection_get',
-            'Get detailed information about a specific collection by ID. Use this when you need full details about a collection.',
-            {
-                id: z.number().describe('Collection ID (e.g., 12345)')
-            },
-            async ({ id }) => {
-                try {
-                    const collection = await raindropService.getCollection(id);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Collection: ${collection.title}`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                count: collection.count,
-                                public: collection.public,
-                                created: collection.created,
-                                lastUpdate: collection.lastUpdate,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to get collection: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'collection_create',
-            'Create a new collection (folder) for organizing bookmarks. Collections help organize bookmarks by topic, project, or any categorization system.',
-            {
-                title: z.string().min(1).describe('Collection name (e.g., "Web Development Resources", "Research Papers")'),
-                isPublic: z.boolean().optional().default(false).describe('Make collection publicly viewable (default: false)')
-            },
-            async ({ title, isPublic }) => {
-                try {
-                    const collection = await raindropService.createCollection(title, isPublic);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Created collection: ${collection.title}`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                public: collection.public,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to create collection: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'collection_update',
-            'Update collection properties like title, visibility, or view settings. Use this to rename collections or change their configuration.',
-            {
-                id: z.number().describe('Collection ID to update'),
-                title: z.string().optional().describe('New collection title'),
-                isPublic: z.boolean().optional().describe('Change public visibility'),
+                operation: z.enum(['list', 'get', 'create', 'update', 'delete']).describe('Collection operation to perform'),
+                
+                // List parameters
+                parentId: z.number().optional().describe('Parent collection ID to list children (for list operation)'),
+                
+                // Get/Update/Delete parameters
+                id: z.number().optional().describe('Collection ID (required for get, update, delete operations)'),
+                
+                // Create/Update parameters
+                title: z.string().optional().describe('Collection name (required for create, optional for update)'),
+                isPublic: z.boolean().optional().describe('Make collection publicly viewable'),
                 view: z.enum(['list', 'simple', 'grid', 'masonry']).optional().describe('Collection view type in Raindrop.io interface'),
                 sort: z.enum(['title', '-created']).optional().describe('Default sort order (-created = newest first)')
             },
-            async ({ id, isPublic, ...updates }) => {
+            async ({ operation, parentId, id, title, isPublic, view, sort }) => {
                 try {
-                    const apiUpdates: Record<string, any> = { ...updates };
-                    if (isPublic !== undefined) {
-                        apiUpdates.public = isPublic;
+                    switch (operation) {
+                        case 'list': {
+                            const collections = parentId
+                                ? await raindropService.getChildCollections(parentId)
+                                : await raindropService.getCollections();
+
+                            return {
+                                content: collections.map(collection => ({
+                                    type: "text",
+                                    text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)`,
+                                    metadata: {
+                                        id: collection._id,
+                                        title: collection.title,
+                                        count: collection.count,
+                                        public: collection.public,
+                                        created: collection.created,
+                                        lastUpdate: collection.lastUpdate,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                                    }
+                                }))
+                            };
+                        }
+
+                        case 'get': {
+                            if (!id) throw new Error('Collection ID required for get operation');
+                            const collection = await raindropService.getCollection(id);
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: `Collection: ${collection.title}`,
+                                    metadata: {
+                                        id: collection._id,
+                                        title: collection.title,
+                                        count: collection.count,
+                                        public: collection.public,
+                                        created: collection.created,
+                                        lastUpdate: collection.lastUpdate,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                                    }
+                                }]
+                            };
+                        }
+
+                        case 'create': {
+                            if (!title) throw new Error('Title required for create operation');
+                            const collection = await raindropService.createCollection(title, isPublic);
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: `Created collection: ${collection.title}`,
+                                    metadata: {
+                                        id: collection._id,
+                                        title: collection.title,
+                                        public: collection.public,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                                    }
+                                }]
+                            };
+                        }
+
+                        case 'update': {
+                            if (!id) throw new Error('Collection ID required for update operation');
+                            const apiUpdates: Record<string, any> = {};
+                            if (title !== undefined) apiUpdates.title = title;
+                            if (isPublic !== undefined) apiUpdates.public = isPublic;
+                            if (view !== undefined) apiUpdates.view = view;
+                            if (sort !== undefined) apiUpdates.sort = sort;
+
+                            const collection = await raindropService.updateCollection(id, apiUpdates);
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: `Updated collection: ${collection.title}`,
+                                    metadata: {
+                                        id: collection._id,
+                                        title: collection.title,
+                                        public: collection.public,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                                    }
+                                }]
+                            };
+                        }
+
+                        case 'delete': {
+                            if (!id) throw new Error('Collection ID required for delete operation');
+                            await raindropService.deleteCollection(id);
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: `Collection ${id} successfully deleted. Bookmarks moved to Unsorted.`,
+                                    metadata: {
+                                        deletedCollectionId: id,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                                    }
+                                }]
+                            };
+                        }
+
+                        default:
+                            throw new Error(`Unknown operation: ${operation}`);
                     }
-
-                    const collection = await raindropService.updateCollection(id, apiUpdates);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Updated collection: ${collection.title}`,
-                            metadata: {
-                                id: collection._id,
-                                title: collection.title,
-                                public: collection.public,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }]
-                    };
                 } catch (error) {
-                    throw new Error(`Failed to update collection: ${(error as Error).message}`);
+                    throw new Error(`Failed to ${operation} collection: ${(error as Error).message}`);
                 }
             }
         );
 
         this.server.tool(
-            'collection_delete',
-            'Delete a collection permanently. WARNING: This action cannot be undone. Bookmarks in the collection will be moved to Unsorted.',
+            'collection_advanced',
+            'Advanced collection operations including sharing and maintenance. Use this for collaboration features and collection cleanup.',
             {
-                id: z.number().describe('Collection ID to delete')
-            },
-            async ({ id }) => {
-                try {
-                    await raindropService.deleteCollection(id);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Collection ${id} successfully deleted. Bookmarks moved to Unsorted.`,
-                            metadata: {
-                                deletedCollectionId: id,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to delete collection: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'collection_share',
-            'Share a collection with specific users or generate a public sharing link. Useful for collaboration or sharing curated bookmark lists.',
-            {
-                id: z.number().describe('Collection ID to share'),
-                level: z.enum(['view', 'edit', 'remove']).describe('Access level: view (read-only), edit (add/modify), remove (full access)'),
-                emails: z.array(z.string().email()).optional().describe('Email addresses to share with (for specific user sharing)')
-            },
-            async ({ id, level, emails }) => {
-                try {
-                    const result = await raindropService.shareCollection(id, level, emails);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Collection shared successfully. Public link: ${result.link}`,
-                            metadata: {
-                                collectionId: id,
-                                shareLink: result.link,
-                                accessLevel: level,
-                                sharedWith: emails?.length || 0,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to share collection: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'collection_maintenance',
-            'Perform maintenance operations on collections. Use this to clean up your collection structure.',
-            {
-                operation: z.enum(['merge', 'remove_empty', 'empty_trash']).describe('Maintenance operation to perform'),
+                operation: z.enum(['share', 'merge', 'remove_empty', 'empty_trash']).describe('Advanced operation to perform'),
+                
+                // Share parameters
+                id: z.number().optional().describe('Collection ID (required for share operation)'),
+                level: z.enum(['view', 'edit', 'remove']).optional().describe('Access level for sharing: view (read-only), edit (add/modify), remove (full access)'),
+                emails: z.array(z.string().email()).optional().describe('Email addresses to share with'),
+                
+                // Merge parameters
                 targetId: z.number().optional().describe('Target collection ID (required for merge operation)'),
                 sourceIds: z.array(z.number()).optional().describe('Source collection IDs to merge (required for merge operation)')
             },
-            async ({ operation, targetId, sourceIds }) => {
+            async ({ operation, id, level, emails, targetId, sourceIds }) => {
                 try {
                     let result: string;
+                    let metadata: Record<string, any> = {
+                        operation,
+                        category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
+                    };
 
                     switch (operation) {
-                        case 'merge':
+                        case 'share': {
+                            if (!id || !level) throw new Error('Collection ID and access level required for share operation');
+                            const shareResult = await raindropService.shareCollection(id, level, emails);
+                            result = `Collection shared successfully. Public link: ${shareResult.link}`;
+                            metadata = {
+                                ...metadata,
+                                collectionId: id,
+                                shareLink: shareResult.link,
+                                accessLevel: level,
+                                sharedWith: emails?.length || 0
+                            };
+                            break;
+                        }
+
+                        case 'merge': {
                             if (!targetId || !sourceIds?.length) {
-                                throw new Error('Merge operation requires targetId and sourceIds');
+                                throw new Error('Target ID and source IDs required for merge operation');
                             }
                             await raindropService.mergeCollections(targetId, sourceIds);
                             result = `Successfully merged ${sourceIds.length} collections into collection ${targetId}`;
+                            metadata = { ...metadata, targetId, sourceIds };
                             break;
+                        }
 
-                        case 'remove_empty':
+                        case 'remove_empty': {
                             const removeResult = await raindropService.removeEmptyCollections();
                             result = `Removed ${removeResult.count} empty collections`;
+                            metadata = { ...metadata, removedCount: removeResult.count };
                             break;
+                        }
 
-                        case 'empty_trash':
+                        case 'empty_trash': {
                             await raindropService.emptyTrash();
                             result = 'Trash emptied successfully';
                             break;
+                        }
+
+                        default:
+                            throw new Error(`Unknown operation: ${operation}`);
                     }
 
                     return {
                         content: [{
                             type: "text",
                             text: result,
-                            metadata: {
-                                operation,
-                                targetId,
-                                sourceIds,
-                                category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                            }
+                            metadata
                         }]
                     };
                 } catch (error) {
-                    throw new Error(`Failed to perform maintenance operation: ${(error as Error).message}`);
+                    throw new Error(`Failed to perform ${operation} operation: ${(error as Error).message}`);
                 }
             }
         );
@@ -630,192 +596,176 @@ export class OptimizedRaindropMCPService {
      */
     private initializeBookmarkTools() {
         this.server.tool(
-            'bookmark_search',
-            'Search bookmarks with advanced filtering. This is the primary tool for finding bookmarks. Supports full-text search, tag filtering, date ranges, and collection scoping.',
+            'bookmark_manage',
+            'Comprehensive bookmark management tool for core CRUD operations. Use this for searching, getting, creating, and updating bookmarks.',
             {
+                operation: z.enum(['search', 'get', 'create', 'update']).describe('Bookmark operation to perform'),
+                
+                // Search parameters
                 query: z.string().optional().describe('Search query (searches title, description, content, and URL)'),
                 collection: z.number().optional().describe('Limit search to specific collection ID'),
                 tags: z.array(z.string()).optional().describe('Filter by tags (e.g., ["javascript", "tutorial"])'),
                 createdStart: z.string().optional().describe('Created after date (ISO format: YYYY-MM-DD)'),
                 createdEnd: z.string().optional().describe('Created before date (ISO format: YYYY-MM-DD)'),
-                important: z.boolean().optional().describe('Only show important/starred bookmarks'),
+                important: z.boolean().optional().describe('Only show important/starred bookmarks (search) or set importance (create/update)'),
                 media: z.enum(['image', 'video', 'document', 'audio']).optional().describe('Filter by media type'),
                 page: z.number().optional().default(0).describe('Page number for pagination (starts at 0)'),
                 perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)'),
-                sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional().default('-created').describe('Sort order (prefix with - for descending)')
+                sort: z.enum(['title', '-title', 'domain', '-domain', 'created', '-created', 'lastUpdate', '-lastUpdate']).optional().default('-created').describe('Sort order (prefix with - for descending)'),
+                
+                // Get/Update parameters
+                id: z.number().optional().describe('Bookmark ID (required for get and update operations)'),
+                
+                // Create parameters
+                url: z.string().optional().describe('URL to bookmark (required for create operation)'),
+                collectionId: z.number().optional().describe('Collection ID where bookmark will be saved (create) or moved to (update)'),
+                
+                // Create/Update parameters
+                title: z.string().optional().describe('Bookmark title'),
+                description: z.string().optional().describe('Description or notes')
             },
-            async (params) => {
+            async ({ operation, query, collection, tags, createdStart, createdEnd, important, media, page, perPage, sort, id, url, collectionId, title, description }) => {
                 try {
-                    const result = await raindropService.searchRaindrops(params);
-                    return {
-                        content: result.items.map(bookmark => ({
-                            type: "resource",
-                            resource: {
-                                text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
-                                uri: bookmark.link,
+                    switch (operation) {
+                        case 'search': {
+                            const searchParams = {
+                                query, collection, tags, createdStart, createdEnd, important, media, page, perPage, sort
+                            };
+                            const result = await raindropService.searchRaindrops(searchParams);
+                            return {
+                                content: result.items.map(bookmark => ({
+                                    type: "resource",
+                                    resource: {
+                                        text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
+                                        uri: bookmark.link,
+                                        metadata: {
+                                            id: bookmark._id,
+                                            title: bookmark.title,
+                                            link: bookmark.link,
+                                            excerpt: bookmark.excerpt,
+                                            tags: bookmark.tags,
+                                            collectionId: bookmark.collection?.$id,
+                                            created: bookmark.created,
+                                            lastUpdate: bookmark.lastUpdate,
+                                            type: bookmark.type,
+                                            important: bookmark.important,
+                                            category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                                        }
+                                    }
+                                })),
                                 metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    created: bookmark.created,
-                                    lastUpdate: bookmark.lastUpdate,
-                                    type: bookmark.type,
-                                    important: bookmark.important,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                                    total: result.count,
+                                    page: page || 0,
+                                    perPage: perPage || 25,
+                                    hasMore: (page || 0) * (perPage || 25) + result.items.length < result.count
                                 }
-                            }
-                        })),
-                        metadata: {
-                            total: result.count,
-                            page: params.page || 0,
-                            perPage: params.perPage || 25,
-                            hasMore: (params.page || 0) * (params.perPage || 25) + result.items.length < result.count
+                            };
                         }
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to search bookmarks: ${(error as Error).message}`);
-                }
-            }
-        );
 
-        this.server.tool(
-            'bookmark_get',
-            'Get detailed information about a specific bookmark by ID. Use this when you need full bookmark details.',
-            {
-                id: z.number().describe('Bookmark ID')
-            },
-            async ({ id }) => {
-                try {
-                    const bookmark = await raindropService.getBookmark(id);
-                    return {
-                        content: [{
-                            type: "resource",
-                            resource: {
-                                text: bookmark.title || 'Untitled Bookmark',
-                                uri: bookmark.link,
-                                metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    created: bookmark.created,
-                                    lastUpdate: bookmark.lastUpdate,
-                                    type: bookmark.type,
-                                    important: bookmark.important,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to get bookmark: ${(error as Error).message}`);
-                }
-            }
-        );
+                        case 'get': {
+                            if (!id) throw new Error('Bookmark ID required for get operation');
+                            const bookmark = await raindropService.getBookmark(id);
+                            return {
+                                content: [{
+                                    type: "resource",
+                                    resource: {
+                                        text: bookmark.title || 'Untitled Bookmark',
+                                        uri: bookmark.link,
+                                        metadata: {
+                                            id: bookmark._id,
+                                            title: bookmark.title,
+                                            link: bookmark.link,
+                                            excerpt: bookmark.excerpt,
+                                            tags: bookmark.tags,
+                                            collectionId: bookmark.collection?.$id,
+                                            created: bookmark.created,
+                                            lastUpdate: bookmark.lastUpdate,
+                                            type: bookmark.type,
+                                            important: bookmark.important,
+                                            category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                                        }
+                                    }
+                                }]
+                            };
+                        }
 
-        this.server.tool(
-            'bookmark_create',
-            'Add a new bookmark to a collection. The system will automatically extract title, description, and other metadata from the URL.',
-            {
-                url: z.string().url().describe('URL to bookmark (e.g., "https://example.com/article")'),
-                collectionId: z.number().describe('Collection ID where bookmark will be saved'),
-                title: z.string().optional().describe('Custom title (if not provided, will be extracted from URL)'),
-                description: z.string().optional().describe('Custom description or notes'),
-                tags: z.array(z.string()).optional().describe('Tags for organization (e.g., ["javascript", "tutorial"])'),
-                important: z.boolean().optional().default(false).describe('Mark as important/starred')
-            },
-            async ({ url, collectionId, description, ...data }) => {
-                try {
-                    const bookmarkData = {
-                        link: url,
-                        excerpt: description,
-                        ...data
-                    };
+                        case 'create': {
+                            if (!url || !collectionId) throw new Error('URL and collection ID required for create operation');
+                            const bookmarkData = {
+                                link: url,
+                                title,
+                                excerpt: description,
+                                tags,
+                                important
+                            };
 
-                    const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
-                    return {
-                        content: [{
-                            type: "resource",
-                            resource: {
-                                text: bookmark.title || 'Untitled Bookmark',
-                                uri: bookmark.link,
-                                metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    created: bookmark.created,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to create bookmark: ${(error as Error).message}`);
-                }
-            }
-        );
+                            const bookmark = await raindropService.createBookmark(collectionId, bookmarkData);
+                            return {
+                                content: [{
+                                    type: "resource",
+                                    resource: {
+                                        text: bookmark.title || 'Untitled Bookmark',
+                                        uri: bookmark.link,
+                                        metadata: {
+                                            id: bookmark._id,
+                                            title: bookmark.title,
+                                            link: bookmark.link,
+                                            excerpt: bookmark.excerpt,
+                                            tags: bookmark.tags,
+                                            collectionId: bookmark.collection?.$id,
+                                            created: bookmark.created,
+                                            category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                                        }
+                                    }
+                                }]
+                            };
+                        }
 
-        this.server.tool(
-            'bookmark_update',
-            'Update bookmark properties like title, description, tags, or move to different collection. Use this to modify existing bookmarks.',
-            {
-                id: z.number().describe('Bookmark ID to update'),
-                title: z.string().optional().describe('New title'),
-                description: z.string().optional().describe('New description or notes'),
-                tags: z.array(z.string()).optional().describe('New tags (replaces existing tags)'),
-                collectionId: z.number().optional().describe('Move to different collection'),
-                important: z.boolean().optional().describe('Change important/starred status')
-            },
-            async ({ id, collectionId, description, ...updates }) => {
-                try {
-                    const apiUpdates: Record<string, any> = {
-                        excerpt: description,
-                        ...updates
-                    };
+                        case 'update': {
+                            if (!id) throw new Error('Bookmark ID required for update operation');
+                            const apiUpdates: Record<string, any> = {};
+                            if (title !== undefined) apiUpdates.title = title;
+                            if (description !== undefined) apiUpdates.excerpt = description;
+                            if (tags !== undefined) apiUpdates.tags = tags;
+                            if (important !== undefined) apiUpdates.important = important;
+                            if (collectionId !== undefined) apiUpdates.collection = { $id: collectionId };
 
-                    if (collectionId !== undefined) {
-                        apiUpdates.collection = { $id: collectionId };
+                            const bookmark = await raindropService.updateBookmark(id, apiUpdates);
+                            return {
+                                content: [{
+                                    type: "resource",
+                                    resource: {
+                                        text: bookmark.title || 'Untitled Bookmark',
+                                        uri: bookmark.link,
+                                        metadata: {
+                                            id: bookmark._id,
+                                            title: bookmark.title,
+                                            link: bookmark.link,
+                                            excerpt: bookmark.excerpt,
+                                            tags: bookmark.tags,
+                                            collectionId: bookmark.collection?.$id,
+                                            lastUpdate: bookmark.lastUpdate,
+                                            category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                                        }
+                                    }
+                                }]
+                            };
+                        }
+
+                        default:
+                            throw new Error(`Unknown operation: ${operation}`);
                     }
-
-                    const bookmark = await raindropService.updateBookmark(id, apiUpdates);
-                    return {
-                        content: [{
-                            type: "resource",
-                            resource: {
-                                text: bookmark.title || 'Untitled Bookmark',
-                                uri: bookmark.link,
-                                metadata: {
-                                    id: bookmark._id,
-                                    title: bookmark.title,
-                                    link: bookmark.link,
-                                    excerpt: bookmark.excerpt,
-                                    tags: bookmark.tags,
-                                    collectionId: bookmark.collection?.$id,
-                                    lastUpdate: bookmark.lastUpdate,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
-                            }
-                        }]
-                    };
                 } catch (error) {
-                    throw new Error(`Failed to update bookmark: ${(error as Error).message}`);
+                    throw new Error(`Failed to ${operation} bookmark: ${(error as Error).message}`);
                 }
             }
         );
 
         this.server.tool(
-            'bookmark_batch_operations',
-            'Perform operations on multiple bookmarks at once. Efficient for bulk updates, moves, tagging, or deletions.',
+            'bookmark_batch',
+            'Perform operations on multiple bookmarks at once, including batch updates, tagging, deletions, and reminder management. Efficient for bulk operations.',
             {
-                operation: z.enum(['update', 'move', 'tag_add', 'tag_remove', 'delete', 'delete_permanent']).describe('Batch operation type'),
+                operation: z.enum(['update', 'move', 'tag_add', 'tag_remove', 'delete', 'delete_permanent', 'set_reminder', 'remove_reminder']).describe('Batch operation type'),
                 bookmarkIds: z.array(z.number()).min(1).describe('List of bookmark IDs to operate on'),
 
                 // Update/move parameters
@@ -823,25 +773,35 @@ export class OptimizedRaindropMCPService {
                 important: z.boolean().optional().describe('Set important status (for update operations)'),
 
                 // Tagging parameters
-                tags: z.array(z.string()).optional().describe('Tags to add/remove (for tag operations)')
+                tags: z.array(z.string()).optional().describe('Tags to add/remove (for tag operations)'),
+                
+                // Reminder parameters (applies to single bookmark only)
+                date: z.string().optional().describe('Reminder date in ISO format (required for set_reminder operation)'),
+                note: z.string().optional().describe('Optional reminder note')
             },
-            async ({ operation, bookmarkIds, collectionId, important, tags }) => {
+            async ({ operation, bookmarkIds, collectionId, important, tags, date, note }) => {
                 try {
                     let result: string;
+                    let metadata: Record<string, any> = {
+                        operation,
+                        category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
+                    };
 
                     switch (operation) {
                         case 'update':
-                        case 'move':
+                        case 'move': {
                             const updateData: Record<string, any> = {};
                             if (collectionId !== undefined) updateData.collection = collectionId;
                             if (important !== undefined) updateData.important = important;
 
                             await raindropService.batchUpdateBookmarks(bookmarkIds, updateData);
                             result = `Successfully ${operation === 'move' ? 'moved' : 'updated'} ${bookmarkIds.length} bookmarks`;
+                            metadata.affectedBookmarks = bookmarkIds.length;
                             break;
+                        }
 
                         case 'tag_add':
-                        case 'tag_remove':
+                        case 'tag_remove': {
                             if (!tags?.length) throw new Error('Tags required for tag operations');
 
                             const bookmarks = await Promise.all(bookmarkIds.map(id => raindropService.getBookmark(id)));
@@ -854,10 +814,12 @@ export class OptimizedRaindropMCPService {
                             }));
 
                             result = `Successfully ${operation === 'tag_add' ? 'added' : 'removed'} tags [${tags.join(', ')}] ${operation === 'tag_add' ? 'to' : 'from'} ${bookmarkIds.length} bookmarks`;
+                            metadata = { ...metadata, affectedBookmarks: bookmarkIds.length, tags };
                             break;
+                        }
 
                         case 'delete':
-                        case 'delete_permanent':
+                        case 'delete_permanent': {
                             await Promise.all(bookmarkIds.map(id =>
                                 operation === 'delete_permanent'
                                     ? raindropService.permanentDeleteBookmark(id)
@@ -865,7 +827,33 @@ export class OptimizedRaindropMCPService {
                             ));
 
                             result = `Successfully ${operation === 'delete_permanent' ? 'permanently ' : ''}deleted ${bookmarkIds.length} bookmarks`;
+                            metadata.affectedBookmarks = bookmarkIds.length;
                             break;
+                        }
+
+                        case 'set_reminder': {
+                            if (bookmarkIds.length > 1) throw new Error('Reminder operations support only single bookmark');
+                            if (!date) throw new Error('Date required for setting reminder');
+
+                            const bookmark = await raindropService.setReminder(bookmarkIds[0], { date, note });
+                            result = `Reminder set for "${bookmark.title || 'Untitled'}" on ${date}`;
+                            metadata = {
+                                ...metadata,
+                                bookmarkId: bookmark._id,
+                                reminderDate: date,
+                                reminderNote: note
+                            };
+                            break;
+                        }
+
+                        case 'remove_reminder': {
+                            if (bookmarkIds.length > 1) throw new Error('Reminder operations support only single bookmark');
+                            
+                            await raindropService.deleteReminder(bookmarkIds[0]);
+                            result = `Reminder removed from bookmark ${bookmarkIds[0]}`;
+                            metadata.bookmarkId = bookmarkIds[0];
+                            break;
+                        }
 
                         default:
                             throw new Error(`Unknown operation: ${operation}`);
@@ -875,61 +863,11 @@ export class OptimizedRaindropMCPService {
                         content: [{
                             type: "text",
                             text: result,
-                            metadata: {
-                                operation,
-                                affectedBookmarks: bookmarkIds.length,
-                                category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                            }
+                            metadata
                         }]
                     };
                 } catch (error) {
                     throw new Error(`Failed to perform batch operation: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'bookmark_reminders',
-            'Manage reminders for bookmarks. Set or remove reminder notifications for important bookmarks you want to revisit.',
-            {
-                operation: z.enum(['set', 'remove']).describe('Reminder operation'),
-                bookmarkId: z.number().describe('Bookmark ID'),
-                date: z.string().optional().describe('Reminder date in ISO format (YYYY-MM-DDTHH:mm:ss.sssZ) - required for set operation'),
-                note: z.string().optional().describe('Optional reminder note')
-            },
-            async ({ operation, bookmarkId, date, note }) => {
-                try {
-                    if (operation === 'set') {
-                        if (!date) throw new Error('Date required for setting reminder');
-
-                        const bookmark = await raindropService.setReminder(bookmarkId, { date, note });
-                        return {
-                            content: [{
-                                type: "text",
-                                text: `Reminder set for "${bookmark.title || 'Untitled'}" on ${date}`,
-                                metadata: {
-                                    bookmarkId: bookmark._id,
-                                    reminderDate: date,
-                                    reminderNote: note,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
-                            }]
-                        };
-                    } else {
-                        await raindropService.deleteReminder(bookmarkId);
-                        return {
-                            content: [{
-                                type: "text",
-                                text: `Reminder removed from bookmark ${bookmarkId}`,
-                                metadata: {
-                                    bookmarkId,
-                                    category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                                }
-                            }]
-                        };
-                    }
-                } catch (error) {
-                    throw new Error(`Failed to manage reminder: ${(error as Error).message}`);
                 }
             }
         );
@@ -941,37 +879,10 @@ export class OptimizedRaindropMCPService {
      */
     private initializeTagTools() {
         this.server.tool(
-            'tag_list',
-            'List all tags or tags from a specific collection. Use this to understand the current tag structure before performing tag operations.',
+            'tag_operations',
+            'Comprehensive tag management tool for all tag operations including listing, renaming, merging, and deleting tags. Use this to maintain a clean tag structure.',
             {
-                collectionId: z.number().optional().describe('Collection ID to filter tags (omit for all tags)')
-            },
-            async ({ collectionId }) => {
-                try {
-                    const tags = await raindropService.getTags(collectionId);
-                    return {
-                        content: tags.map(tag => ({
-                            type: "text",
-                            text: `${tag._id} (${tag.count} bookmarks)`,
-                            metadata: {
-                                name: tag._id,
-                                count: tag.count,
-                                collectionId,
-                                category: OptimizedRaindropMCPService.CATEGORIES.TAGS
-                            }
-                        }))
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to list tags: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'tag_manage',
-            'Perform tag management operations like renaming, merging, or deleting tags. Use this to maintain a clean tag structure.',
-            {
-                operation: z.enum(['rename', 'merge', 'delete', 'delete_multiple']).describe('Tag management operation'),
+                operation: z.enum(['list', 'rename', 'merge', 'delete', 'delete_multiple']).describe('Tag operation to perform'),
                 collectionId: z.number().optional().describe('Collection ID to scope operation (omit for all collections)'),
 
                 // Rename parameters
@@ -989,35 +900,64 @@ export class OptimizedRaindropMCPService {
             async ({ operation, collectionId, oldName, newName, sourceTags, destinationTag, tagName, tagNames }) => {
                 try {
                     let result: string;
+                    let metadata: Record<string, any> = {
+                        operation,
+                        collectionId,
+                        category: OptimizedRaindropMCPService.CATEGORIES.TAGS
+                    };
 
                     switch (operation) {
-                        case 'rename':
+                        case 'list': {
+                            const tags = await raindropService.getTags(collectionId);
+                            return {
+                                content: tags.map(tag => ({
+                                    type: "text",
+                                    text: `${tag._id} (${tag.count} bookmarks)`,
+                                    metadata: {
+                                        name: tag._id,
+                                        count: tag.count,
+                                        collectionId,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.TAGS
+                                    }
+                                }))
+                            };
+                        }
+
+                        case 'rename': {
                             if (!oldName || !newName) throw new Error('oldName and newName required for rename operation');
 
-                            const renameResult = await raindropService.renameTag(collectionId, oldName, newName);
+                            await raindropService.renameTag(collectionId, oldName, newName);
                             result = `Successfully renamed tag "${oldName}" to "${newName}"${collectionId ? ` in collection ${collectionId}` : ''}`;
+                            metadata = { ...metadata, oldName, newName };
                             break;
+                        }
 
-                        case 'merge':
+                        case 'merge': {
                             if (!sourceTags?.length || !destinationTag) throw new Error('sourceTags and destinationTag required for merge operation');
 
                             await raindropService.mergeTags(collectionId, sourceTags, destinationTag);
                             result = `Successfully merged tags [${sourceTags.join(', ')}] into "${destinationTag}"`;
+                            metadata = { ...metadata, sourceTags, destinationTag };
                             break;
+                        }
 
-                        case 'delete':
+                        case 'delete': {
                             if (!tagName) throw new Error('tagName required for delete operation');
 
                             await raindropService.deleteTags(collectionId, [tagName]);
                             result = `Successfully deleted tag "${tagName}"${collectionId ? ` from collection ${collectionId}` : ''}`;
+                            metadata = { ...metadata, deletedTag: tagName };
                             break;
+                        }
 
-                        case 'delete_multiple':
+                        case 'delete_multiple': {
                             if (!tagNames?.length) throw new Error('tagNames required for delete_multiple operation');
 
                             await raindropService.deleteTags(collectionId, tagNames);
                             result = `Successfully deleted ${tagNames.length} tags: [${tagNames.join(', ')}]`;
+                            metadata = { ...metadata, deletedTags: tagNames, deletedCount: tagNames.length };
                             break;
+                        }
 
                         default:
                             throw new Error(`Unknown operation: ${operation}`);
@@ -1027,15 +967,11 @@ export class OptimizedRaindropMCPService {
                         content: [{
                             type: "text",
                             text: result,
-                            metadata: {
-                                operation,
-                                collectionId,
-                                category: OptimizedRaindropMCPService.CATEGORIES.TAGS
-                            }
+                            metadata
                         }]
                     };
                 } catch (error) {
-                    throw new Error(`Failed to manage tags: ${(error as Error).message}`);
+                    throw new Error(`Failed to ${operation} tags: ${(error as Error).message}`);
                 }
             }
         );
@@ -1047,157 +983,146 @@ export class OptimizedRaindropMCPService {
      */
     private initializeHighlightTools() {
         this.server.tool(
-            'highlight_list',
-            'List highlights from all bookmarks, a specific bookmark, or a collection. Use this to find and review saved text highlights.',
+            'highlight_manage',
+            'Comprehensive highlight management tool for all CRUD operations. Use this for listing, creating, updating, and deleting text highlights from bookmarks.',
             {
-                scope: z.enum(['all', 'bookmark', 'collection']).describe('Scope of highlights to retrieve'),
-                bookmarkId: z.number().optional().describe('Bookmark ID (required when scope=bookmark)'),
-                collectionId: z.number().optional().describe('Collection ID (required when scope=collection)'),
+                operation: z.enum(['list', 'create', 'update', 'delete']).describe('Highlight operation to perform'),
+                
+                // List parameters
+                scope: z.enum(['all', 'bookmark', 'collection']).optional().describe('Scope of highlights to retrieve (for list operation)'),
+                bookmarkId: z.number().optional().describe('Bookmark ID (required for bookmark scope and create operation)'),
+                collectionId: z.number().optional().describe('Collection ID (required for collection scope)'),
                 page: z.number().optional().default(0).describe('Page number for pagination (starts at 0)'),
-                perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)')
-            },
-            async ({ scope, bookmarkId, collectionId, page, perPage }) => {
-                try {
-                    let highlights;
-
-                    switch (scope) {
-                        case 'all':
-                            highlights = await raindropService.getAllHighlightsByPage(page, perPage);
-                            break;
-                        case 'bookmark':
-                            if (!bookmarkId) throw new Error('bookmarkId required when scope=bookmark');
-                            highlights = await raindropService.getHighlights(bookmarkId);
-                            break;
-                        case 'collection':
-                            if (!collectionId) throw new Error('collectionId required when scope=collection');
-                            highlights = await raindropService.getHighlightsByCollection(collectionId);
-                            break;
-                        default:
-                            throw new Error(`Invalid scope: ${scope}`);
-                    }
-
-                    return {
-                        content: highlights.map(highlight => ({
-                            type: "text",
-                            text: highlight.text.substring(0, 200) + (highlight.text.length > 200 ? '...' : ''),
-                            metadata: {
-                                id: highlight._id,
-                                fullText: highlight.text,
-                                raindropId: highlight.raindrop?._id,
-                                raindropTitle: highlight.raindrop?.title,
-                                raindropLink: highlight.raindrop?.link,
-                                note: highlight.note,
-                                color: highlight.color,
-                                created: highlight.created,
-                                lastUpdate: highlight.lastUpdate,
-                                tags: highlight.tags,
-                                category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
-                            }
-                        })),
-                        metadata: {
-                            scope,
-                            bookmarkId,
-                            collectionId,
-                            page: page || 0,
-                            perPage: perPage || 25,
-                            total: highlights.length
-                        }
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to list highlights: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'highlight_create',
-            'Create a new text highlight for a bookmark. Use this to save important text passages from articles or documents.',
-            {
-                bookmarkId: z.number().describe('Bookmark ID to add highlight to'),
-                text: z.string().min(1).describe('Text to highlight (the actual content to be highlighted)'),
+                perPage: z.number().min(1).max(50).optional().default(25).describe('Results per page (1-50)'),
+                
+                // Create/Update parameters
+                id: z.number().optional().describe('Highlight ID (required for update and delete operations)'),
+                text: z.string().optional().describe('Text to highlight (required for create, optional for update)'),
                 note: z.string().optional().describe('Optional note or comment about this highlight'),
                 color: z.string().optional().describe('Highlight color (e.g., "yellow", "blue", "#FFFF00")')
             },
-            async ({ bookmarkId, text, note, color }) => {
+            async ({ operation, scope, bookmarkId, collectionId, page, perPage, id, text, note, color }) => {
                 try {
-                    const highlight = await raindropService.createHighlight(bookmarkId, { text, note, color });
-                    return {
-                        content: [{
-                            type: "text",
-                            text: highlight.text,
-                            metadata: {
-                                id: highlight._id,
-                                bookmarkId: highlight.raindrop?._id,
-                                raindropTitle: highlight.raindrop?.title,
-                                raindropLink: highlight.raindrop?.link,
-                                note: highlight.note,
-                                color: highlight.color,
-                                created: highlight.created,
-                                category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to create highlight: ${(error as Error).message}`);
-                }
-            }
-        );
+                    switch (operation) {
+                        case 'list': {
+                            if (!scope) scope = 'all'; // Default to 'all' if not specified
+                            let highlights;
 
-        this.server.tool(
-            'highlight_update',
-            'Update an existing highlight\'s text, note, or color. Use this to modify saved highlights.',
-            {
-                id: z.number().describe('Highlight ID to update'),
-                text: z.string().optional().describe('New highlighted text'),
-                note: z.string().optional().describe('New note or comment'),
-                color: z.string().optional().describe('New highlight color')
-            },
-            async ({ id, text, note, color }) => {
-                try {
-                    const highlight = await raindropService.updateHighlight(id, { text, note, color });
-                    return {
-                        content: [{
-                            type: "text",
-                            text: highlight.text,
-                            metadata: {
-                                id: highlight._id,
-                                bookmarkId: highlight.raindrop?._id,
-                                raindropTitle: highlight.raindrop?.title,
-                                raindropLink: highlight.raindrop?.link,
-                                note: highlight.note,
-                                color: highlight.color,
-                                lastUpdate: highlight.lastUpdate,
-                                category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
+                            switch (scope) {
+                                case 'all':
+                                    highlights = await raindropService.getAllHighlightsByPage(page, perPage);
+                                    break;
+                                case 'bookmark':
+                                    if (!bookmarkId) throw new Error('bookmarkId required when scope=bookmark');
+                                    highlights = await raindropService.getHighlights(bookmarkId);
+                                    break;
+                                case 'collection':
+                                    if (!collectionId) throw new Error('collectionId required when scope=collection');
+                                    highlights = await raindropService.getHighlightsByCollection(collectionId);
+                                    break;
+                                default:
+                                    throw new Error(`Invalid scope: ${scope}`);
                             }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to update highlight: ${(error as Error).message}`);
-                }
-            }
-        );
 
-        this.server.tool(
-            'highlight_delete',
-            'Delete a highlight permanently. This action cannot be undone.',
-            {
-                id: z.number().describe('Highlight ID to delete')
-            },
-            async ({ id }) => {
-                try {
-                    await raindropService.deleteHighlight(id);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Highlight ${id} successfully deleted`,
-                            metadata: {
-                                deletedHighlightId: id,
-                                category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
-                            }
-                        }]
-                    };
+                            return {
+                                content: highlights.map(highlight => ({
+                                    type: "text",
+                                    text: highlight.text.substring(0, 200) + (highlight.text.length > 200 ? '...' : ''),
+                                    metadata: {
+                                        id: highlight._id,
+                                        fullText: highlight.text,
+                                        raindropId: highlight.raindrop?._id,
+                                        raindropTitle: highlight.raindrop?.title,
+                                        raindropLink: highlight.raindrop?.link,
+                                        note: highlight.note,
+                                        color: highlight.color,
+                                        created: highlight.created,
+                                        lastUpdate: highlight.lastUpdate,
+                                        tags: highlight.tags,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
+                                    }
+                                })),
+                                metadata: {
+                                    scope,
+                                    bookmarkId,
+                                    collectionId,
+                                    page: page || 0,
+                                    perPage: perPage || 25,
+                                    total: highlights.length
+                                }
+                            };
+                        }
+
+                        case 'create': {
+                            if (!bookmarkId || !text) throw new Error('Bookmark ID and text required for create operation');
+                            
+                            const highlight = await raindropService.createHighlight(bookmarkId, { text, note, color });
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: highlight.text,
+                                    metadata: {
+                                        id: highlight._id,
+                                        bookmarkId: highlight.raindrop?._id,
+                                        raindropTitle: highlight.raindrop?.title,
+                                        raindropLink: highlight.raindrop?.link,
+                                        note: highlight.note,
+                                        color: highlight.color,
+                                        created: highlight.created,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
+                                    }
+                                }]
+                            };
+                        }
+
+                        case 'update': {
+                            if (!id) throw new Error('Highlight ID required for update operation');
+                            
+                            const updateData: Record<string, any> = {};
+                            if (text !== undefined) updateData.text = text;
+                            if (note !== undefined) updateData.note = note;
+                            if (color !== undefined) updateData.color = color;
+                            
+                            const highlight = await raindropService.updateHighlight(id, updateData);
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: highlight.text,
+                                    metadata: {
+                                        id: highlight._id,
+                                        bookmarkId: highlight.raindrop?._id,
+                                        raindropTitle: highlight.raindrop?.title,
+                                        raindropLink: highlight.raindrop?.link,
+                                        note: highlight.note,
+                                        color: highlight.color,
+                                        lastUpdate: highlight.lastUpdate,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
+                                    }
+                                }]
+                            };
+                        }
+
+                        case 'delete': {
+                            if (!id) throw new Error('Highlight ID required for delete operation');
+                            
+                            await raindropService.deleteHighlight(id);
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: `Highlight ${id} successfully deleted`,
+                                    metadata: {
+                                        deletedHighlightId: id,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS
+                                    }
+                                }]
+                            };
+                        }
+
+                        default:
+                            throw new Error(`Unknown operation: ${operation}`);
+                    }
                 } catch (error) {
-                    throw new Error(`Failed to delete highlight: ${(error as Error).message}`);
+                    throw new Error(`Failed to ${operation} highlight: ${(error as Error).message}`);
                 }
             }
         );
@@ -1209,59 +1134,58 @@ export class OptimizedRaindropMCPService {
      */
     private initializeUserTools() {
         this.server.tool(
-            'user_profile',
-            'Get user account information including name, email, subscription status, and registration date.',
-            {},
-            async () => {
-                try {
-                    const user = await raindropService.getUserInfo();
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `User: ${user.fullName || user.email} (${user.pro ? 'Pro' : 'Free'} Account)`,
-                            metadata: {
-                                id: user._id,
-                                email: user.email,
-                                fullName: user.fullName,
-                                pro: user.pro,
-                                registered: user.registered,
-                                category: OptimizedRaindropMCPService.CATEGORIES.USER
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to get user profile: ${(error as Error).message}`);
-                }
-            }
-        );
-
-        this.server.tool(
-            'user_statistics',
-            'Get user account statistics or statistics for a specific collection. Includes bookmark counts, collection counts, and other usage metrics.',
+            'user_account',
+            'Comprehensive user account management tool for profile information and statistics. Use this to access user data and usage metrics.',
             {
-                collectionId: z.number().optional().describe('Collection ID for specific collection statistics (omit for account-wide stats)')
+                operation: z.enum(['profile', 'statistics']).describe('User account operation to perform'),
+                collectionId: z.number().optional().describe('Collection ID for specific collection statistics (only for statistics operation)')
             },
-            async ({ collectionId }) => {
+            async ({ operation, collectionId }) => {
                 try {
-                    const stats = collectionId
-                        ? await raindropService.getCollectionStats(collectionId)
-                        : await raindropService.getUserStats();
+                    switch (operation) {
+                        case 'profile': {
+                            const user = await raindropService.getUserInfo();
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: `User: ${user.fullName || user.email} (${user.pro ? 'Pro' : 'Free'} Account)`,
+                                    metadata: {
+                                        id: user._id,
+                                        email: user.email,
+                                        fullName: user.fullName,
+                                        pro: user.pro,
+                                        registered: user.registered,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.USER
+                                    }
+                                }]
+                            };
+                        }
 
-                    const context = collectionId ? `Collection ${collectionId} Statistics` : 'Account Statistics';
+                        case 'statistics': {
+                            const stats = collectionId
+                                ? await raindropService.getCollectionStats(collectionId)
+                                : await raindropService.getUserStats();
 
-                    return {
-                        content: [{
-                            type: "text",
-                            text: context,
-                            metadata: {
-                                ...stats,
-                                collectionId,
-                                category: OptimizedRaindropMCPService.CATEGORIES.USER
-                            }
-                        }]
-                    };
+                            const context = collectionId ? `Collection ${collectionId} Statistics` : 'Account Statistics';
+
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: context,
+                                    metadata: {
+                                        ...stats,
+                                        collectionId,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.USER
+                                    }
+                                }]
+                            };
+                        }
+
+                        default:
+                            throw new Error(`Unknown operation: ${operation}`);
+                    }
                 } catch (error) {
-                    throw new Error(`Failed to get statistics: ${(error as Error).message}`);
+                    throw new Error(`Failed to get user ${operation}: ${(error as Error).message}`);
                 }
             }
         );
@@ -1273,8 +1197,8 @@ export class OptimizedRaindropMCPService {
      */
     private initializeImportExportTools() {
         this.server.tool(
-            'import_status',
-            'Check the status of an ongoing import operation. Use this to monitor import progress.',
+            'data_import',
+            'Manage data import operations. Use this to monitor import progress and status.',
             {},
             async () => {
                 try {
@@ -1296,65 +1220,70 @@ export class OptimizedRaindropMCPService {
         );
 
         this.server.tool(
-            'export_bookmarks',
-            'Export bookmarks in various formats for backup or migration. Supports CSV, HTML, and PDF formats with filtering options.',
+            'data_export',
+            'Comprehensive data export management tool. Use this to start exports and check their status. Supports CSV, HTML, and PDF formats with filtering options.',
             {
-                format: z.enum(['csv', 'html', 'pdf']).describe('Export format: csv (spreadsheet), html (browser bookmarks), pdf (document)'),
+                operation: z.enum(['start', 'status']).describe('Export operation to perform'),
+                
+                // Start export parameters
+                format: z.enum(['csv', 'html', 'pdf']).optional().describe('Export format: csv (spreadsheet), html (browser bookmarks), pdf (document) - required for start operation'),
                 collectionId: z.number().optional().describe('Export specific collection only (omit for all bookmarks)'),
                 includeBroken: z.boolean().optional().default(false).describe('Include bookmarks with broken/dead links'),
                 includeDuplicates: z.boolean().optional().default(false).describe('Include duplicate bookmarks')
             },
-            async ({ format, collectionId, includeBroken, includeDuplicates }) => {
+            async ({ operation, format, collectionId, includeBroken, includeDuplicates }) => {
                 try {
-                    const options = {
-                        format,
-                        collectionId,
-                        broken: includeBroken,
-                        duplicates: includeDuplicates
-                    };
-
-                    const result = await raindropService.exportBookmarks(options);
-                    return {
-                        content: [{
-                            type: "text",
-                            text: `Export started successfully in ${format.toUpperCase()} format. Check export status for download link.`,
-                            metadata: {
+                    switch (operation) {
+                        case 'start': {
+                            if (!format) throw new Error('Format required for start operation');
+                            
+                            const options = {
                                 format,
                                 collectionId,
-                                includeBroken,
-                                includeDuplicates,
-                                statusUrl: result.url,
-                                category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to start export: ${(error as Error).message}`);
-                }
-            }
-        );
+                                broken: includeBroken,
+                                duplicates: includeDuplicates
+                            };
 
-        this.server.tool(
-            'export_status',
-            'Check the status of an ongoing export operation and get download link when ready.',
-            {},
-            async () => {
-                try {
-                    const status = await raindropService.getExportStatus();
-                    const message = `Export Status: ${status.status}${status.url ? ` - Download: ${status.url}` : ''}`;
+                            const result = await raindropService.exportBookmarks(options);
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: `Export started successfully in ${format.toUpperCase()} format. Use 'status' operation to check progress and get download link.`,
+                                    metadata: {
+                                        operation,
+                                        format,
+                                        collectionId,
+                                        includeBroken,
+                                        includeDuplicates,
+                                        statusUrl: result.url,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
+                                    }
+                                }]
+                            };
+                        }
 
-                    return {
-                        content: [{
-                            type: "text",
-                            text: message,
-                            metadata: {
-                                ...status,
-                                category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
-                            }
-                        }]
-                    };
+                        case 'status': {
+                            const status = await raindropService.getExportStatus();
+                            const message = `Export Status: ${status.status}${status.url ? ` - Download: ${status.url}` : ''}`;
+
+                            return {
+                                content: [{
+                                    type: "text",
+                                    text: message,
+                                    metadata: {
+                                        operation,
+                                        ...status,
+                                        category: OptimizedRaindropMCPService.CATEGORIES.IMPORT_EXPORT
+                                    }
+                                }]
+                            };
+                        }
+
+                        default:
+                            throw new Error(`Unknown operation: ${operation}`);
+                    }
                 } catch (error) {
-                    throw new Error(`Failed to get export status: ${(error as Error).message}`);
+                    throw new Error(`Failed to ${operation} export: ${(error as Error).message}`);
                 }
             }
         );

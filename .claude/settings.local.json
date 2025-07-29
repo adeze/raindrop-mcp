@@ -5,7 +5,11 @@
       "Bash(bun run build)",
       "Bash(bun run:*)",
       "Bash(ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "mcp__firecrawl__firecrawl_search",
+      "WebFetch(domain:modelcontextprotocol.io)",
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
