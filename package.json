@@ -1,15 +1,14 @@
 {
     "name": "@adeze/raindrop-mcp",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "description": "Optimized MCP Server for Raindrop.io with enhanced AI-friendly tools and refactored service layer",
-    "main": "index.js",
-    "module": "src/index.ts",
+    "main": "build/index.js",
+    "module": "build/index.js",
     "type": "module",
     "bin": {
         "raindrop-mcp": "./build/index.js"
     },
     "files": [
-        "dist",
         "build"
     ],
     "private": false,
@@ -30,7 +29,7 @@
         "test:server": "bun run tests/test-server.ts",
         "test:comparison": "bun run tests/test-comparison.ts",
         "test:demo": "bun run tests/optimization-demo.ts",
-        "run build": "bun run build/src/index.js",
+        "run": "bun run build/src/index.js",
         "build": "bun build --target=node --format=esm --outdir=build ./src/index.ts",
         "start": "bun run src/index.ts",
         "start:http": "bun run src/http-server-optimized.ts",
@@ -46,7 +45,6 @@
         "debug:optimized": "bun run inspector:optimized",
         "clean": "rm -rf build",
         "prebuild": "bun run clean",
-        "mcp": "bun run src/index.js",
         "bump:patch": "npm version patch",
         "bump:minor": "npm version minor",
         "bump:major": "npm version major",
