@@ -9,6 +9,7 @@
 - Prefer interfaces for object types.
 - If you encounter ambiguity, prefer explicitness and reference the relevant documentation or example repositories.
 - For project-wide conventions, detailed documentation, and tool usage, see the #.github/copilot.prompt.md file.
+- 
 
 ## Coding Conventions
 
@@ -17,13 +18,14 @@
 - Keep code modular, well-documented, and easy to maintain.
 - If you encounter ambiguity, prefer explicitness and reference the relevant documentation or example repositories.
 
-When understanding the Model Context Protocol (MCP) specifications, please refer to :
+When working with the Model Context Protocol (MCP) specifications, please refer to :
 
+- use `context7` tool for llm friendly documentation and examples. and also:
 - https://modelcontextprotocol.io/llms-full.txt
 - https://github.com/modelcontextprotocol/specification
 - https://github.com/modelcontextprotocol/typescript-sdk
 
-I want to build this as a Desktop Extension, abbreviated as "DXT". Please follow these steps:
+when building this as a Desktop Extension, abbreviated as "DXT". Please follow these steps:
 
 1. **Read the specifications thoroughly:**
 
