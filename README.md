@@ -18,6 +18,8 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - **Import/Export**: Initiate and check the status of bookmark imports and exports.
 - **Trash Management**: Empty the trash.
 - **MCP Compliance**: Exposes Raindrop.io functionalities as MCP resources and tools.
+- **Consolidated Tools**: Optimized tool structure with 77% fewer tools (10 vs 37+) following MCP 2025 best practices.
+- **Operation-Based API**: Unified interfaces with consistent parameter schemas across tool categories.
 - **Streaming Support**: Provides real-time SSE (Server-Sent Events) endpoints for streaming bookmark updates.
 - **Built with TypeScript**: Strong typing for better maintainability.
 - **Uses Axios**: For making requests to the Raindrop.io API.
