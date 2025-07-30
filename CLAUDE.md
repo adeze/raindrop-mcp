@@ -75,7 +75,7 @@ The `RaindropService` has been significantly refactored to reduce code duplicati
 
 ## Project Structure
 - Source code in `src/` directory
-- Tests co-located with source files in `src/tests` directory
+- Tests co-located with source files in `tests/` directory
 - Configuration in .env
 - Types in `src/types`
 - Services in `src/services`
