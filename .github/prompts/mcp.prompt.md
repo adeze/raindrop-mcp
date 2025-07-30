@@ -7,7 +7,6 @@ This file provides detailed guidance for Copilot and other AI assistants working
 - `#fetch` [Raindrop.io API documentation](https://developer.raindrop.io) for all Raindrop-related endpoints, authentication, and data models.
 - `#fetch` [Model Context Protocol documentation](https://modelcontextprotocol.io/) and specifically [LLMs integration guide](https://modelcontextprotocol.io/llms-full.txt) to ensure MCP compliance and best practices.
 - `#githubRepo` [Model Context Protocol TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) for implementation details and usage patterns.
-- For additional AI assistant context, see [CLAUDE.md](../CLAUDE.md).
 
 ## Tooling
 
