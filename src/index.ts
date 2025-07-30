@@ -1,7 +1,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from 'dotenv';
-import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 import { createLogger } from './utils/logger.js';
+import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 
 config(); // Load .env file
 

@@ -1726,4 +1726,32 @@ export class OptimizedRaindropMCPService {
             }
         }));
     }
+
+    /**
+     * Get the MCP server instance
+     */
+    getServer() {
+        return this.server;
+    }
+
+    /**
+     * Cleanup method for graceful shutdown
+     */
+    async cleanup() {
+        // Perform any necessary cleanup here
+        this.logger.info('MCP service cleanup completed');
+    }
+}
+
+/**
+ * Factory function to create and configure the optimized Raindrop MCP server
+ * Returns both the server instance and a cleanup function
+ */
+export function createOptimizedRaindropServer() {
+    const service = new OptimizedRaindropMCPService();
+    
+    return {
+        server: service.getServer(),
+        cleanup: async () => await service.cleanup()
+    };
 }

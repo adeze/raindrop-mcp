@@ -28,12 +28,70 @@ class RaindropService {
     });
   }
 
+  // Common response handlers
+  private handleItemResponse<T>(data: any): T {
+    if (!data || !data.item) {
+      throw new Error('Invalid response structure from Raindrop.io API');
+    }
+    return data.item;
+  }
+
+  private handleItemsResponse<T>(data: any): T[] {
+    if (!data || !data.items) {
+      throw new Error('Invalid response structure from Raindrop.io API');
+    }
+    return data.items;
+  }
+
+  private handleCollectionResponse(data: any): { items: any[]; count: number } {
+    return {
+      items: data.items || [],
+      count: data.count || 0
+    };
+  }
+
+  private handleResultResponse(data: any): { result: boolean } {
+    return { result: data.result || false };
+  }
+
+  // Common endpoint builders
+  private buildTagEndpoint(collectionId?: number): string {
+    return collectionId ? `/tags/${collectionId}` : '/tags/0';
+  }
+
+  private buildRaindropEndpoint(collection?: number): string {
+    return collection !== undefined ? `/raindrops/${collection}` : '/raindrops/0';
+  }
+
+  // Common error handler
+  private handleApiError<T>(error: any, operation: string, defaultValue?: T): T | never {
+    if (error instanceof AxiosError && error.response?.status === 404 && defaultValue !== undefined) {
+      return defaultValue;
+    }
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`${operation}: ${message}`);
+  }
+
+  // Common async operation wrapper
+  private async safeApiCall<T>(
+    operation: () => Promise<T>, 
+    errorMessage: string, 
+    defaultValue?: T
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      return this.handleApiError(error, errorMessage, defaultValue);
+    }
+  }
+
   // Collections
   async getCollections(): Promise<Collection[]> {
     const { data } = await this.api.get('/collections');
+    const items = this.handleItemsResponse(data);
 
     // Preprocess the API response to fix discrepancies
-    const processedCollections = data.items.map((collection: any) => ({
+    const processedCollections = items.map((collection: any) => ({
       ...collection,
       sort: typeof collection.sort === 'number' ? collection.sort.toString() : collection.sort,
       parent: collection.parent === null ? undefined : collection.parent,
@@ -46,12 +104,12 @@ class RaindropService {
 
   async getCollection(id: number): Promise<Collection> {
     const { data } = await this.api.get(`/collection/${id}`);
-    return data.item;
+    return this.handleItemResponse<Collection>(data);
   }
 
   async getChildCollections(parentId: number): Promise<Collection[]> {
     const { data } = await this.api.get(`/collections/${parentId}/childrens`);
-    return data.items;
+    return this.handleItemsResponse<Collection>(data);
   }
 
   async createCollection(title: string, isPublic = false): Promise<Collection> {
@@ -59,12 +117,12 @@ class RaindropService {
       title,
       public: isPublic,
     });
-    return data.item;
+    return this.handleItemResponse<Collection>(data);
   }
 
   async updateCollection(id: number, updates: Partial<Collection>): Promise<Collection> {
     const { data } = await this.api.put(`/collection/${id}`, updates);
-    return data.item;
+    return this.handleItemResponse<Collection>(data);
   }
 
   async deleteCollection(id: number): Promise<void> {
@@ -97,22 +155,15 @@ class RaindropService {
       queryParams.search = encodeURIComponent(params.search);
     }
 
-    // Handle collection parameter
-    if (params.collection === undefined && !params.search) {
-      // Use the default collection endpoint if no specific collection or search
-      const { data } = await this.api.get('/raindrops/0', { params: queryParams });
-      return data;
-    }
-    
-    // For specific collection or search
-    const endpoint = params.collection !== undefined ? `/raindrops/${params.collection}` : '/raindrops/0';
+    // Build endpoint using common function
+    const endpoint = this.buildRaindropEndpoint(params.collection);
     const { data } = await this.api.get(endpoint, { params: queryParams });
-    return data;
+    return this.handleCollectionResponse(data);
   }
 
   async getBookmark(id: number): Promise<Bookmark> {
     const { data } = await this.api.get(`/raindrop/${id}`);
-    return data.item;
+    return this.handleItemResponse<Bookmark>(data);
   }
 
   async createBookmark(collectionId: number, bookmark: Partial<Bookmark>): Promise<Bookmark> {
@@ -120,12 +171,12 @@ class RaindropService {
       ...bookmark,
       collection: { $id: collectionId },
     });
-    return data.item;
+    return this.handleItemResponse<Bookmark>(data);
   }
 
   async updateBookmark(id: number, updates: Partial<Bookmark>): Promise<Bookmark> {
     const { data } = await this.api.put(`/raindrop/${id}`, updates);
-    return data.item;
+    return this.handleItemResponse<Bookmark>(data);
   }
 
   async deleteBookmark(id: number): Promise<void> {
@@ -144,17 +195,14 @@ class RaindropService {
       ids,
       ...updates
     });
-    return { result: data.result };
+    return this.handleResultResponse(data);
   }
 
   // Tags
   async getTags(collectionId?: number): Promise<{ _id: string; count: number }[]> {
-    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const endpoint = this.buildTagEndpoint(collectionId);
     const { data } = await this.api.get(endpoint);
-    if (!data || !data.items) {
-      throw new Error('Invalid response structure from Raindrop.io API');
-    }
-    return data.items;
+    return this.handleItemsResponse<{ _id: string; count: number }>(data);
   }
 
   async getTagsByCollection(collectionId: number): Promise<{ _id: string; count: number }[]> {
@@ -162,29 +210,29 @@ class RaindropService {
   }
 
   async deleteTags(collectionId: number | undefined, tags: string[]): Promise<{ result: boolean }> {
-    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const endpoint = this.buildTagEndpoint(collectionId);
     const { data } = await this.api.delete(endpoint, {
       data: { tags }
     });
-    return { result: data.result };
+    return this.handleResultResponse(data);
   }
 
   async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<{ result: boolean }> {
-    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const endpoint = this.buildTagEndpoint(collectionId);
     const { data } = await this.api.put(endpoint, {
       from: oldName,
       to: newName
     });
-    return { result: data.result };
+    return this.handleResultResponse(data);
   }
 
   async mergeTags(collectionId: number | undefined, tags: string[], newName: string): Promise<{ result: boolean }> {
-    const endpoint = collectionId ? `/tags/${collectionId}` : '/tags/0';
+    const endpoint = this.buildTagEndpoint(collectionId);
     const { data } = await this.api.put(endpoint, {
       tags,
       to: newName
     });
-    return { result: data.result };
+    return this.handleResultResponse(data);
   }
 
   // User
@@ -206,19 +254,19 @@ class RaindropService {
   // Collections management
   async reorderCollections(sort: string): Promise<{ result: boolean }> {
     const { data } = await this.api.put('/collections/sort', { sort });
-    return { result: data.result || false };
+    return this.handleResultResponse(data);
   }
 
   async toggleCollectionsExpansion(expand: boolean): Promise<{ result: boolean }> {
     const { data } = await this.api.put('/collections/collapsed', { collapsed: !expand });
-    return { result: data.result || false };
+    return this.handleResultResponse(data);
   }
 
   async mergeCollections(targetCollectionId: number, collectionIds: number[]): Promise<{ result: boolean }> {
     const { data } = await this.api.put(`/collection/${targetCollectionId}/merge`, {
       with: collectionIds
     });
-    return { result: data.result || false };
+    return this.handleResultResponse(data);
   }
 
   async removeEmptyCollections(): Promise<{ count: number }> {
@@ -228,105 +276,70 @@ class RaindropService {
 
   async emptyTrash(): Promise<{ result: boolean }> {
     const { data } = await this.api.put('/collection/-99/clear');
-    return { result: data.result || false };
+    return this.handleResultResponse(data);
   }
 
   // Highlights
   async getHighlights(raindropId: number): Promise<Highlight[]> {
-    try {
-      // According to the documentation, the endpoint for a specific raindrop's highlights is /raindrop/{id}/highlights
-      const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
-      
-      // Check for items array in response
-      if (data && Array.isArray(data.items)) {
-        return data.items.map((item: any) => this.mapHighlightData({
-          ...item, 
-          raindrop: item.raindrop || { _id: raindropId }
-        })).filter(Boolean);
-      }
-      
-      // Also try result array format
-      if (data && Array.isArray(data.result)) {
-        return data.result.map((item: any) => this.mapHighlightData({
-          ...item, 
-          raindrop: item.raindrop || { _id: raindropId }
-        })).filter(Boolean);
-      }
-      
-      return [];
-    } catch (error) {
-      if (error instanceof AxiosError && error.response?.status === 404) {
-        return []; // Return empty array if no highlights found
-      }
-      throw new Error(`Failed to get highlights for raindrop ${raindropId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    return this.safeApiCall(
+      async () => {
+        const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
+        
+        // Check for items array in response
+        if (data && Array.isArray(data.items)) {
+          return data.items.map((item: any) => this.mapHighlightData({
+            ...item, 
+            raindrop: item.raindrop || { _id: raindropId }
+          })).filter(Boolean);
+        }
+        
+        // Also try result array format
+        if (data && Array.isArray(data.result)) {
+          return data.result.map((item: any) => this.mapHighlightData({
+            ...item, 
+            raindrop: item.raindrop || { _id: raindropId }
+          })).filter(Boolean);
+        }
+        
+        return [];
+      },
+      `Failed to get highlights for raindrop ${raindropId}`,
+      []
+    );
   }
-
 
   async getAllHighlights(): Promise<Highlight[]> {
-      const { data } = await this.api.get('/highlights');
-      return data.items;
+    const { data } = await this.api.get('/highlights');
+    return this.handleItemsResponse<Highlight>(data);
   }
 
-  // Helper to convert the new highlight content format to our Highlight type
-  private mapHighlightContentToHighlight(content: any): Highlight | null {
-    if (!content || !content.metadata) {
-      return null;
-    }
-
-    // Extract raindrop ID from URI if possible
-    const raindropIdMatch = content.uri?.match(/highlights:\/\/(\d+)\//) || [];
-    const raindropId = content.metadata.raindrop?._id || 
-                       (raindropIdMatch[1] ? parseInt(raindropIdMatch[1], 10) : 0);
-
-    return {
-      _id: parseInt(content.metadata.id, 10) || 0, // Convert string ID to number
-      text: content.text || '',
-      note: content.metadata.note || '',
-      color: content.metadata.color || 'yellow', // Default to yellow if not provided
-      created: content.metadata.created || new Date().toISOString(),
-      lastUpdate: content.metadata.lastUpdate || content.metadata.created || new Date().toISOString(),
-      title: content.metadata.title || '',
-      tags: content.metadata.tags || [],
-      link: content.metadata.link || '',
-      excerpt: content.metadata.excerpt || '',
-      raindrop: {
-        _id: raindropId,
-        title: content.metadata.title || '',
-        link: content.metadata.link || '',
-        collection: content.metadata.collection || { $id: 0 },
-      },
-    };
-  }
 
   async getAllHighlightsByPage(page = 0, perPage = 25): Promise<Highlight[]> {
-    try {
-      // Use the correct endpoint based on testing: /highlights (not /user/highlights)
-      const { data } = await this.api.get('/highlights', {
-        params: {
-          page,
-          perpage: perPage // Note the lowercase "perpage" as specified in the API docs
+    return this.safeApiCall(
+      async () => {
+        const { data } = await this.api.get('/highlights', {
+          params: {
+            page,
+            perpage: perPage // Note the lowercase "perpage" as specified in the API docs
+          }
+        });
+        
+        // Map the API response to our Highlight type
+        if (data && Array.isArray(data.items)) {
+          return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
         }
-      });
-      
-      // Map the API response to our Highlight type
-      if (data && Array.isArray(data.items)) {
-        return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
-      }
-      
-      // Handle case when API returns {contents: []} structure
-      if (data && data.contents && Array.isArray(data.contents)) {
-        return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
-      }
-      
-      // If we got a response but neither structure is found, return empty array
-      return [];
-    } catch (error) {
-      if (error instanceof AxiosError && error.response?.status === 404) {
-        return []; // Return empty array if endpoint not found
-      }
-      throw new Error(`Failed to get all highlights: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+        
+        // Handle case when API returns {contents: []} structure
+        if (data && data.contents && Array.isArray(data.contents)) {
+          return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
+        }
+        
+        // If we got a response but neither structure is found, return empty array
+        return [];
+      },
+      'Failed to get all highlights',
+      []
+    );
   }
 
   // Helper method to map highlight data consistently
@@ -360,81 +373,66 @@ class RaindropService {
   }
 
   async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
-    try {
-      // According to the API docs, the endpoint for highlights by collection is /highlights/collection/{id}
-      const { data } = await this.api.get(`/highlights/${collectionId}`);
-      
-      if (data.contents && Array.isArray(data.contents)) {
-        return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
-      }
-      
-      if (data.items && Array.isArray(data.items)) {
-        return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
-      }
-      
-      return [];
-    } catch (error) {
-      if (error instanceof AxiosError && error.response?.status === 404) {
-        // Collection might not exist or has no highlights
+    return this.safeApiCall(
+      async () => {
+        const { data } = await this.api.get(`/highlights/${collectionId}`);
+        
+        if (data.contents && Array.isArray(data.contents)) {
+          return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
+        }
+        
+        if (data.items && Array.isArray(data.items)) {
+          return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
+        }
+        
         return [];
-      }
-      throw new Error(`Failed to get highlights for collection ${collectionId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+      },
+      `Failed to get highlights for collection ${collectionId}`,
+      []
+    );
   }
 
   async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<Highlight> {
-    try {
-      const { data } = await this.api.post('/highlights', {
-        ...highlightData,
-        raindrop: { $id: raindropId }
-      });
-      
-      if (!data || !data.item) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-      
-      // Use the map helper to ensure consistent formatting
-      const highlight = this.mapHighlightData({
-        ...data.item,
-        raindrop: data.item.raindrop || { _id: raindropId }
-      });
-      
-      if (!highlight) {
-        throw new Error('Failed to create highlight: Invalid response data');
-      }
-      
-      return highlight;
-    } catch (error) {
-      throw new Error(`Failed to create highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const { data } = await this.api.post('/highlights', {
+      ...highlightData,
+      raindrop: { $id: raindropId }
+    });
+    
+    const item = this.handleItemResponse<any>(data);
+    
+    // Use the map helper to ensure consistent formatting
+    const highlight = this.mapHighlightData({
+      ...item,
+      raindrop: item.raindrop || { _id: raindropId }
+    });
+    
+    if (!highlight) {
+      throw new Error('Failed to create highlight: Invalid response data');
     }
+    
+    return highlight;
   }
 
   async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<Highlight> {
-    try {
-      const { data } = await this.api.put(`/highlights/${id}`, updates);
-      
-      if (!data || !data.item) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-      
-      const highlight = this.mapHighlightData(data.item);
-      
-      if (!highlight) {
-        throw new Error('Failed to update highlight: Invalid response data');
-      }
-      
-      return highlight;
-    } catch (error) {
-      throw new Error(`Failed to update highlight: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const { data } = await this.api.put(`/highlights/${id}`, updates);
+    const item = this.handleItemResponse<any>(data);
+    
+    const highlight = this.mapHighlightData(item);
+    
+    if (!highlight) {
+      throw new Error('Failed to update highlight: Invalid response data');
     }
+    
+    return highlight;
   }
 
   async deleteHighlight(id: number): Promise<void> {
-    try {
-      await this.api.delete(`/highlights/${id}`);
-    } catch (error) {
-      throw new Error(`Failed to delete highlight with ID ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    return this.safeApiCall(
+      async () => {
+        await this.api.delete(`/highlights/${id}`);
+      },
+      `Failed to delete highlight with ID ${id}`
+    );
   }
 
   // Search
@@ -472,7 +470,7 @@ class RaindropService {
       params: queryParams 
     });
     
-    return data;
+    return this.handleCollectionResponse(data);
   }
 
   // Upload file
@@ -487,18 +485,18 @@ class RaindropService {
       },
     });
 
-    return data.item;
+    return this.handleItemResponse<Bookmark>(data);
   }
 
   // Reminder management
   async setReminder(raindropId: number, reminder: { date: string; note?: string }): Promise<Bookmark> {
     const { data } = await this.api.put(`/raindrop/${raindropId}/reminder`, reminder);
-    return data.item;
+    return this.handleItemResponse<Bookmark>(data);
   }
 
   async deleteReminder(raindropId: number): Promise<Bookmark> {
     const { data } = await this.api.delete(`/raindrop/${raindropId}/reminder`);
-    return data.item;
+    return this.handleItemResponse<Bookmark>(data);
   }
 
   // Import functionality

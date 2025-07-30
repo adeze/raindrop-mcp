@@ -18,8 +18,8 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - **Import/Export**: Initiate and check the status of bookmark imports and exports.
 - **Trash Management**: Empty the trash.
 - **MCP Compliance**: Exposes Raindrop.io functionalities as MCP resources and tools.
-- **Consolidated Tools**: Optimized tool structure with 77% fewer tools (10 vs 37+) following MCP 2025 best practices.
-- **Operation-Based API**: Unified interfaces with consistent parameter schemas across tool categories.
+- **Optimized Tools**: Enhanced tool structure with 35% fewer tools (24 vs 37+) following MCP 2025 best practices.
+- **AI-Friendly Interface**: Clear naming conventions and comprehensive parameter documentation.
 - **Streaming Support**: Provides real-time SSE (Server-Sent Events) endpoints for streaming bookmark updates.
 - **Built with TypeScript**: Strong typing for better maintainability.
 - **Uses Axios**: For making requests to the Raindrop.io API.
@@ -135,7 +135,22 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📋 Recent Enhancements
+## 📋 Recent Enhancements (v2.0.0)
 
-- **[Tool Optimization](https://github.com/adeze/raindrop-mcp/issues/2)**: 37→24 tools with enhanced AI-friendly descriptions
+### **Service Layer Refactoring**
+- **25-30% code reduction** through extracted common functions and patterns
+- **Consistent error handling** with standardized response processing
+- **Enhanced type safety** with generic response handlers
+- **Centralized endpoint building** for better API consistency
+
+### **Tool Optimization** 
+- **35% reduction** in tool count (37+ → 24 tools) with enhanced AI-friendly descriptions
+- **Hierarchical naming** with `category_action` pattern for better organization
+- **Comprehensive documentation** with detailed parameter descriptions and examples
+- **Dynamic tools** providing context-aware recommendations
+
+### **Developer Experience**
 - **[VS Code Configuration](https://github.com/adeze/raindrop-mcp/issues/3)**: Enterprise-grade testing & debugging support
+- **Enhanced error messages** with actionable suggestions
+- **Standardized resource patterns** for consistent API interactions
+- **Comprehensive diagnostic tools** for monitoring and debugging

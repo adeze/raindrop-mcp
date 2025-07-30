@@ -10,7 +10,9 @@
       "WebFetch(domain:github.com)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(find:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

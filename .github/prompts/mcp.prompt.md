@@ -1,6 +1,36 @@
 ---
 mode: "agent"
-tools: ["githubRepo", "codebase", "concept7", "fetch"]
+tools:
+  [
+    "changes",
+    "codebase",
+    "editFiles",
+    "extensions",
+    "fetch",
+    "findTestFiles",
+    "githubRepo",
+    "new",
+    "openSimpleBrowser",
+    "problems",
+    "runCommands",
+    "runNotebooks",
+    "runTasks",
+    "runTests",
+    "search",
+    "searchResults",
+    "terminalLastCommand",
+    "terminalSelection",
+    "testFailure",
+    "usages",
+    "vscodeAPI",
+    "context7",
+    "activePullRequest",
+    "copilotCodingAgent",
+    "get_syntax_docs",
+    "mermaid-diagram-preview",
+    "mermaid-diagram-validator",
+    "websearch",
+  ]
 description: "Project-wide prompt for Copilot and AI assistants"
 ---
 
