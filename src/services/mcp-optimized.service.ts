@@ -719,7 +719,6 @@ export class OptimizedRaindropMCPService {
                 return { content: this.mapCollections(collections) };
             })
         );
-
         this.server.tool(
             'collection_get',
             'Get detailed information about a specific collection by ID. Use this when you need full details about a collection.',
@@ -728,21 +727,7 @@ export class OptimizedRaindropMCPService {
             },
             this.asyncHandler(async ({ id }) => {
                 const collection = await raindropService.getCollection(id);
-                return {
-                    content: [{
-                        type: "text",
-                        text: `Collection: ${collection.title}`,
-                        metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            count: collection.count,
-                            public: collection.public,
-                            created: collection.created,
-                            lastUpdate: collection.lastUpdate,
-                            category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                        }
-                    }]
-                };
+                return { content: this.mapCollections([collection]) };
             })
         );
 
@@ -1051,7 +1036,6 @@ export class OptimizedRaindropMCPService {
                 };
             })
         );
-
         this.server.tool(
             'bookmark_get',
             'Get detailed information about a specific bookmark by ID. Use this when you need full bookmark details.',
@@ -1060,28 +1044,7 @@ export class OptimizedRaindropMCPService {
             },
             this.asyncHandler(async ({ id }) => {
                 const bookmark = await raindropService.getBookmark(id);
-                return {
-                    content: [{
-                        type: "resource",
-                        resource: {
-                            text: bookmark.title || 'Untitled Bookmark',
-                            uri: bookmark.link,
-                            metadata: {
-                                id: bookmark._id,
-                                title: bookmark.title,
-                                link: bookmark.link,
-                                excerpt: bookmark.excerpt,
-                                tags: bookmark.tags,
-                                collectionId: bookmark.collection?.$id,
-                                created: bookmark.created,
-                                lastUpdate: bookmark.lastUpdate,
-                                type: bookmark.type,
-                                important: bookmark.important,
-                                category: OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS
-                            }
-                        }
-                    }]
-                };
+                return { content: this.mapBookmarks([bookmark]) };
             })
         );
 
@@ -1681,11 +1644,11 @@ export class OptimizedRaindropMCPService {
     }
 
     /**
-     * Helper to map collections to content array
+     * Helper to map collections to MCP text content array
      */
-    private mapCollections(collections: any[], category = OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS) {
+    private mapCollections(collections: any[], category = OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS): Array<{ type: "text"; text: string; metadata: any }> {
         return collections.map(collection => ({
-            type: "text",
+            type: "text" as const,
             text: `${collection.title} (ID: ${collection._id}, ${collection.count} items)` ,
             metadata: {
                 id: collection._id,
@@ -1700,11 +1663,11 @@ export class OptimizedRaindropMCPService {
     }
 
     /**
-     * Helper to map bookmarks to content array
+     * Helper to map bookmarks to MCP resource content array
      */
-    private mapBookmarks(bookmarks: any[], category = OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS) {
+    private mapBookmarks(bookmarks: any[], category = OptimizedRaindropMCPService.CATEGORIES.BOOKMARKS): Array<{ type: "resource"; resource: { text: string; uri: string; metadata: any } }> {
         return bookmarks.map(bookmark => ({
-            type: "resource",
+            type: "resource" as const,
             resource: {
                 text: bookmark.title || 'Untitled Bookmark',
                 uri: bookmark.link,
@@ -1726,11 +1689,11 @@ export class OptimizedRaindropMCPService {
     }
 
     /**
-     * Helper to map tags to content array
+     * Helper to map tags to MCP text content array
      */
-    private mapTags(tags: any[], collectionId?: number, category = OptimizedRaindropMCPService.CATEGORIES.TAGS) {
+    private mapTags(tags: any[], collectionId?: number, category = OptimizedRaindropMCPService.CATEGORIES.TAGS): Array<{ type: "text"; text: string; metadata: any }> {
         return tags.map(tag => ({
-            type: "text",
+            type: "text" as const,
             text: `${tag._id} (${tag.count} bookmarks)` ,
             metadata: {
                 name: tag._id,
@@ -1742,11 +1705,11 @@ export class OptimizedRaindropMCPService {
     }
 
     /**
-     * Helper to map highlights to content array
+     * Helper to map highlights to MCP text content array
      */
-    private mapHighlights(highlights: any[], category = OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS) {
+    private mapHighlights(highlights: any[], category = OptimizedRaindropMCPService.CATEGORIES.HIGHLIGHTS): Array<{ type: "text"; text: string; metadata: any }> {
         return highlights.map(highlight => ({
-            type: "text",
+            type: "text" as const,
             text: highlight.text.substring(0, 200) + (highlight.text.length > 200 ? '...' : ''),
             metadata: {
                 id: highlight._id,
@@ -1763,466 +1726,4 @@ export class OptimizedRaindropMCPService {
             }
         }));
     }
-
-    /**
-     * Initialize standardized resources with consistent URI patterns
-     * All resources follow the pattern: raindrop://{type}/{scope}[/{id}]
-     */
-    private initializeResources() {
-        // Collections Resources
-        this.server.resource(
-            "collections-all",
-            "raindrop://collections/all",
-            async (uri) => {
-                const collections = await raindropService.getCollections();
-                return {
-                    contents: collections.map(collection => ({
-                        uri: `raindrop://collections/item/${collection._id}`,
-                        text: `${collection.title} (${collection.count} items)`,
-                        metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            count: collection.count,
-                            public: collection.public,
-                            created: collection.created,
-                            lastUpdate: collection.lastUpdate,
-                            category: 'collection'
-                        }
-                    }))
-                };
-            }
-        );
-
-        this.server.resource(
-            "collection-children",
-            new ResourceTemplate("raindrop://collections/children/{parentId}", { list: undefined }),
-            async (uri, { parentId }) => {
-                const collections = await raindropService.getChildCollections(Number(parentId));
-                return {
-                    contents: collections.map(collection => ({
-                        uri: `raindrop://collections/item/${collection._id}`,
-                        text: `${collection.title} (${collection.count} items)`,
-                        metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            count: collection.count,
-                            parentId: Number(parentId),
-                            category: 'collection'
-                        }
-                    }))
-                };
-            }
-        );
-
-        // Bookmarks Resources
-        this.server.resource(
-            "collection-bookmarks",
-            new ResourceTemplate("raindrop://bookmarks/collection/{collectionId}", { list: undefined }),
-            async (uri, { collectionId }) => {
-                const result = await raindropService.getBookmarks({ collection: Number(collectionId) });
-                return {
-                    contents: result.items.map(bookmark => ({
-                        uri: `raindrop://bookmarks/item/${bookmark._id}`,
-                        text: `${bookmark.title || 'Untitled'} - ${bookmark.link}`,
-                        metadata: {
-                            id: bookmark._id,
-                            title: bookmark.title,
-                            link: bookmark.link,
-                            excerpt: bookmark.excerpt,
-                            tags: bookmark.tags,
-                            collectionId: Number(collectionId),
-                            created: bookmark.created,
-                            lastUpdate: bookmark.lastUpdate,
-                            type: bookmark.type,
-                            category: 'bookmark'
-                        }
-                    })),
-                    metadata: {
-                        collectionId: Number(collectionId),
-                        totalCount: result.count
-                    }
-                };
-            }
-        );
-
-        this.server.resource(
-            "bookmark-details",
-            new ResourceTemplate("raindrop://bookmarks/item/{bookmarkId}", { list: undefined }),
-            async (uri, { bookmarkId }) => {
-                const bookmark = await raindropService.getBookmark(Number(bookmarkId));
-                return {
-                    contents: [{
-                        uri: bookmark.link,
-                        text: `${bookmark.title || 'Untitled Bookmark'}`,
-                        metadata: {
-                            id: bookmark._id,
-                            title: bookmark.title,
-                            link: bookmark.link,
-                            excerpt: bookmark.excerpt,
-                            tags: bookmark.tags,
-                            collectionId: bookmark.collection?.$id,
-                            created: bookmark.created,
-                            lastUpdate: bookmark.lastUpdate,
-                            type: bookmark.type,
-                            important: bookmark.important,
-                            category: 'bookmark'
-                        }
-                    }]
-                };
-            }
-        );
-
-        // Tags Resources
-        this.server.resource(
-            "tags-all",
-            "raindrop://tags/all",
-            async (uri) => {
-                const tags = await raindropService.getTags();
-                return {
-                    contents: tags.map(tag => ({
-                        uri: `raindrop://tags/item/${encodeURIComponent(tag._id)}`,
-                        text: `${tag._id} (${tag.count} bookmarks)`,
-                        metadata: {
-                            name: tag._id,
-                            count: tag.count,
-                            category: 'tag'
-                        }
-                    }))
-                };
-            }
-        );
-
-        this.server.resource(
-            "collection-tags",
-            new ResourceTemplate("raindrop://tags/collection/{collectionId}", { list: undefined }),
-            async (uri, { collectionId }) => {
-                const tags = await raindropService.getTagsByCollection(Number(collectionId));
-                return {
-                    contents: tags.map(tag => ({
-                        uri: `raindrop://tags/item/${encodeURIComponent(tag._id)}`,
-                        text: `${tag._id} (${tag.count} bookmarks)`,
-                        metadata: {
-                            name: tag._id,
-                            count: tag.count,
-                            collectionId: Number(collectionId),
-                            category: 'tag'
-                        }
-                    }))
-                };
-            }
-        );
-
-        // Highlights Resources
-        this.server.resource(
-            "highlights-all",
-            "raindrop://highlights/all",
-            async (uri) => {
-                const highlights = await raindropService.getAllHighlights();
-                return {
-                    contents: highlights.map(highlight => ({
-                        uri: `raindrop://highlights/item/${highlight._id}`,
-                        text: highlight.text.substring(0, 100) + (highlight.text.length > 100 ? '...' : ''),
-                        metadata: {
-                            id: highlight._id,
-                            text: highlight.text,
-                            raindropId: highlight.raindrop?._id,
-                            raindropTitle: highlight.raindrop?.title,
-                            raindropLink: highlight.raindrop?.link,
-                            note: highlight.note,
-                            color: highlight.color,
-                            created: highlight.created,
-                            lastUpdate: highlight.lastUpdate,
-                            tags: highlight.tags,
-                            category: 'highlight'
-                        }
-                    }))
-                };
-            }
-        );
-
-        this.server.resource(
-            "bookmark-highlights",
-            new ResourceTemplate("raindrop://highlights/bookmark/{bookmarkId}", { list: undefined }),
-            async (uri, { bookmarkId }) => {
-                const highlights = await raindropService.getHighlights(Number(bookmarkId));
-                return {
-                    contents: highlights.map(highlight => ({
-                        uri: `raindrop://highlights/item/${highlight._id}`,
-                        text: highlight.text.substring(0, 100) + (highlight.text.length > 100 ? '...' : ''),
-                        metadata: {
-                            id: highlight._id,
-                            text: highlight.text,
-                            bookmarkId: Number(bookmarkId),
-                            note: highlight.note,
-                            color: highlight.color,
-                            created: highlight.created,
-                            lastUpdate: highlight.lastUpdate,
-                            category: 'highlight'
-                        }
-                    }))
-                };
-            }
-        );
-
-        // User Resources
-        this.server.resource(
-            "user-profile",
-            "raindrop://user/profile",
-            async (uri) => {
-                const user = await raindropService.getUserInfo();
-                return {
-                    contents: [{
-                        uri: uri.href,
-                        text: `${user.fullName || user.email} - ${user.pro ? 'Pro' : 'Free'} Account`,
-                        metadata: {
-                            id: user._id,
-                            email: user.email,
-                            fullName: user.fullName,
-                            pro: user.pro,
-                            registered: user.registered,
-                            category: 'user'
-                        }
-                    }]
-                };
-            }
-        );
-
-        this.server.resource(
-            "user-statistics",
-            "raindrop://user/statistics",
-            async (uri) => {
-                const stats = await raindropService.getUserStats();
-                return {
-                    contents: [{
-                        uri: uri.href,
-                        text: `Account Statistics`,
-                        metadata: {
-                            ...stats,
-                            category: 'user-stats'
-                        }
-                    }]
-                };
-            }
-        );
-    }
-
-    /**
-     * Initialize optimized tools with enhanced descriptions and AI-friendly organization
-     */
-    private initializeTools() {
-        this.initializePromptsTool();
-        this.initializeDiagnosticsTool();
-        this.initializeCollectionTools();
-        this.initializeBookmarkTools();
-        this.initializeTagTools();
-        this.initializeHighlightTools();
-        this.initializeUserTools();
-        this.initializeImportExportTools();
-    }
-
-    /**
-     * Prompts Management Tool
-     * Use this tool to list and manage prompts for the MCP extension
-     */
-    private initializePromptsTool() {
-        // Implements the MCP prompts/list method for DXT compatibility
-        this.server.tool(
-            'prompts/list',
-            'List available prompts for the Raindrop MCP extension. Returns an array of prompt definitions (empty if none are defined).',
-            {},
-            async ({}) => {
-                try {
-                    return {
-                        content: [] // No prompts defined yet
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to list prompts: ${(error as Error).message}`);
-                }
-            }
-        );
-    }
-
-    /**
-     * Diagnostics Tool
-     * Use this tool to get diagnostic information about the MCP server and connection
-     */
-    private initializeDiagnosticsTool() {
-        this.server.tool(
-            'diagnostics',
-            'Get diagnostic information about the MCP server, including version, capabilities, logging status, and environment information. Helpful for debugging and support.',
-            {
-                includeEnvironment: z.boolean().optional().default(false).describe('Include environment variables (sensitive info masked)')
-            },
-            async ({ includeEnvironment }) => {
-                try {
-                    const diagnostics = {
-                        server: {
-                            name: 'raindrop-mcp-optimized',
-                            version: '2.0.0',
-                            description: 'Optimized MCP Server for Raindrop.io',
-                            uptime: process.uptime(),
-                            pid: process.pid,
-                            nodeVersion: process.version,
-                            platform: process.platform,
-                            arch: process.arch
-                        },
-                        capabilities: {
-                            logging: false, // MCP logging disabled for STDIO compatibility
-                            resources: true,
-                            tools: true,
-                            prompts: true
-                        },
-                        logging: {
-                            level: this.logLevel,
-                            stdioSafe: true, // Uses stderr for logs, safe for STDIO transport
-                            description: 'All logs use stderr to avoid polluting STDIO MCP protocol'
-                        },
-                        tools: {
-                            categories: Object.values(OptimizedRaindropMCPService.CATEGORIES),
-                            description: 'Available tool categories for bookmark management'
-                        },
-                        memory: {
-                            rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
-                            heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-                            heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
-                        },
-                        transport: {
-                            type: 'STDIO or HTTP',
-                            description: 'Server supports both STDIO (CLI) and HTTP transports'
-                        }
-                    };
-
-                    let finalDiagnostics: any = diagnostics;
-                    if (includeEnvironment) {
-                        finalDiagnostics = {
-                            ...diagnostics,
-                            environment: {
-                                hasRaindropToken: !!process.env.RAINDROP_ACCESS_TOKEN,
-                                logLevel: process.env.LOG_LEVEL || 'info (default)',
-                                nodeEnv: process.env.NODE_ENV || 'not set'
-                            }
-                        };
-                    }
-
-                    return {
-                        content: [{
-                            type: "text",
-                            text: "MCP Server Diagnostics",
-                            metadata: {
-                                ...finalDiagnostics,
-                                timestamp: new Date().toISOString(),
-                                category: 'Diagnostics'
-                            }
-                        }]
-                    };
-                } catch (error) {
-                    throw new Error(`Failed to get diagnostics: ${(error as Error).message}`);
-                }
-            }
-        );
-    }
-
-    /**
-     * Collection Management Tools
-     * Use these tools to organize bookmarks into collections (folders)
-     */
-    private initializeCollectionTools() {
-        this.server.tool(
-            'collection_list',
-            'List all collections or child collections of a parent. Use this to understand the user\'s collection structure before performing other operations.',
-            {
-                parentId: z.number().optional().describe('Parent collection ID to list children. Omit to list root collections.')
-            },
-            this.asyncHandler(async ({ parentId }) => {
-                const collections = parentId
-                    ? await raindropService.getChildCollections(parentId)
-                    : await raindropService.getCollections();
-                return { content: this.mapCollections(collections) };
-            })
-        );
-
-        this.server.tool(
-            'collection_get',
-            'Get detailed information about a specific collection by ID. Use this when you need full details about a collection.',
-            {
-                id: z.number().describe('Collection ID (e.g., 12345)')
-            },
-            this.asyncHandler(async ({ id }) => {
-                const collection = await raindropService.getCollection(id);
-                return {
-                    content: [{
-                        type: "text",
-                        text: `Collection: ${collection.title}`,
-                        metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            count: collection.count,
-                            public: collection.public,
-                            created: collection.created,
-                            lastUpdate: collection.lastUpdate,
-                            category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                        }
-                    }]
-                };
-            })
-        );
-
-        this.server.tool(
-            'collection_create',
-            'Create a new collection (folder) for organizing bookmarks. Collections help organize bookmarks by topic, project, or any categorization system.',
-            {
-                title: z.string().min(1).describe('Collection name (e.g., "Web Development Resources", "Research Papers")'),
-                isPublic: z.boolean().optional().default(false).describe('Make collection publicly viewable (default: false)')
-            },
-            this.asyncHandler(async ({ title, isPublic }) => {
-                const collection = await raindropService.createCollection(title, isPublic);
-                return {
-                    content: [{
-                        type: "text",
-                        text: `Created collection: ${collection.title}`,
-                        metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            public: collection.public,
-                            category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                        }
-                    }]
-                };
-            })
-        );
-
-        this.server.tool(
-            'collection_update',
-            'Update collection properties like title, visibility, or view settings. Use this to rename collections or change their configuration.',
-            {
-                id: z.number().describe('Collection ID to update'),
-                title: z.string().optional().describe('New collection title'),
-                isPublic: z.boolean().optional().describe('Change public visibility'),
-                view: z.enum(['list', 'simple', 'grid', 'masonry']).optional().describe('Collection view type in Raindrop.io interface'),
-                sort: z.enum(['title', '-created']).optional().describe('Default sort order (-created = newest first)')
-            },
-            this.asyncHandler(async ({ id, isPublic, ...updates }) => {
-                const apiUpdates: Record<string, any> = { ...updates };
-                if (isPublic !== undefined) {
-                    apiUpdates.public = isPublic;
-                }
-
-                const collection = await raindropService.updateCollection(id, apiUpdates);
-                return {
-                    content: [{
-                        type: "text",
-                        text: `Updated collection: ${collection.title}`,
-                        metadata: {
-                            id: collection._id,
-                            title: collection.title,
-                            public: collection.public,
-                            category: OptimizedRaindropMCPService.CATEGORIES.COLLECTIONS
-                        }
-                    }]
-                };
-            })
-        );
-
-        this.server.tool(
-            'collection_delete',
-            'Delete a collection
+}
