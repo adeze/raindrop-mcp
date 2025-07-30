@@ -26,16 +26,7 @@
       "env": {},
       "stopOnEntry": false
     },
-    {
-      "type": "bun",
-      "request": "launch",
-      "name": "Debug Optimized HTTP Server",
-      "program": "${workspaceFolder}/src/http-server-optimized.ts",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-      "env": {},
-      "stopOnEntry": false
-    },
+   
     {
       "type": "bun",
       "request": "launch",

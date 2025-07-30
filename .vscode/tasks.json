@@ -1,27 +1,7 @@
 {
 	"version": "2.0.0",
 	"tasks": [
-		// Development Server Tasks
-		{
-			"label": "Start Optimized HTTP Server (Development)",
-			"type": "shell",
-			"command": "bun",
-			"args": ["--watch", "src/http-server-optimized.ts"],
-			"group": "build",
-			"isBackground": true,
-			"options": {
-				"cwd": "${workspaceFolder}"
-			},
-			"presentation": {
-				"clear": false,
-				"echo": true,
-				"focus": false,
-				"panel": "shared",
-				"reveal": "always",
-				"showReuseMessage": true
-			},
-			"problemMatcher": []
-		},
+		
 		{
 			"label": "Start Original HTTP Server (Development)",
 			"type": "shell",
