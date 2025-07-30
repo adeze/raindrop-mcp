@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["esnext"],
+    "lib": ["ESNext"],
     "forceConsistentCasingInFileNames": true,
-    "target": "ES2022",
-    "module": "NodeNext",
+    "target": "ESNext",
+    "module": "Preserve",
     "moduleDetection": "force",
     "esModuleInterop": true,
     "resolveJsonModule": true,
@@ -13,8 +13,8 @@
     "outDir": "build",
     "rootDir": "src",
     // Bundler mode
-    "moduleResolution": "NodeNext",
-    "allowImportingTsExtensions": false,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
@@ -23,9 +23,11 @@
     "skipLibCheck": true,
     "declaration": true,
     "sourceMap": true,
-
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
     // Vitest support
-    "types": ["vitest/globals", "node"]
+    "types": ["vitest/globals", "node", "bun-types"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.test.ts"]

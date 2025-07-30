@@ -1,9 +1,17 @@
+/**
+ * HTTP server entrypoint for the optimized Raindrop MCP service.
+ *
+ * Exposes the MCP server over HTTP (default port 3002) with session management and CORS.
+ * Uses the optimized MCP service with AI-friendly tool descriptions and robust error handling.
+ *
+ * Compare with the original HTTP server on port 3001 for differences in tool coverage and design.
+ */
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { config } from 'dotenv';
 import express from "express";
 import { randomUUID } from "node:crypto";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 import { createLogger } from './utils/logger.js';
-import { config } from 'dotenv';
 
 config(); // Load .env file
 
@@ -11,23 +19,26 @@ const PORT = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 3002;
 const logger = createLogger('http-optimized');
 
 /**
- * HTTP Server with Optimized Raindrop MCP Service
- * 
- * This server uses the optimized MCP service with:
- * - Consolidated tools (24 vs 37)
- * - AI-friendly descriptions and parameters
- * - Consistent naming conventions
- * - Enhanced error handling
- * 
- * Compare with the original HTTP server on port 3001 to see the differences.
+ * Tracks active MCP sessions for monitoring and cleanup.
+ * @type {Map<string, any>}
  */
-
-// Track active sessions and transports for monitoring
 const activeSessions = new Map();
+/**
+ * Stores session metadata for each active session.
+ * @type {Map<string, any>}
+ */
 const sessionMetadata = new Map();
+/**
+ * Stores HTTP transports for each session.
+ * @type {Record<string, StreamableHTTPServerTransport>}
+ */
 const transports: Record<string, StreamableHTTPServerTransport> = {};
 
-// Helper function to check if request is an initialization request
+/**
+ * Checks if a request body is an MCP initialization request.
+ * @param body - The request body to check.
+ * @returns True if the request is an MCP initialize call.
+ */
 function isInitializeRequest(body: any): boolean {
     return body && body.method === 'initialize' && body.jsonrpc === '2.0';
 }
@@ -227,4 +238,5 @@ process.on('SIGINT', async () => {
     });
 });
 
-export { app, activeSessions, transports };
+export { activeSessions, app, transports };
+

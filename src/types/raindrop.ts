@@ -2,6 +2,9 @@ import { z } from "zod";
 
 // Raindrop.io types
 
+/**
+ * Represents a Raindrop.io user account.
+ */
 export type User = {
   _id: number;
   email: string;
@@ -19,6 +22,9 @@ export type User = {
   };
 };
 
+/**
+ * Represents a bookmark collection (folder) in Raindrop.io.
+ */
 export type Collection = {
   _id: number;
   title: string;

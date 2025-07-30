@@ -19,6 +19,12 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   error: 3,
 };
 
+/**
+ * Logger class for MCP-safe logging.
+ *
+ * All log output is sent to stderr to avoid interfering with STDIO protocol communication.
+ * Log level can be set via the LOG_LEVEL environment variable.
+ */
 class Logger {
   private level: LogLevel;
 
@@ -78,24 +84,33 @@ class Logger {
   /**
    * Create a child logger with a context prefix
    */
+  /**
+   * Create a child logger with a context prefix.
+   * @param context - Context string to prefix log messages.
+   * @returns A new Logger instance with context-aware output.
+   */
   child(context: string): Logger {
     const childLogger = new Logger();
     childLogger.level = this.level;
-    
     // Override write method to include context
     const originalWrite = childLogger.writeToStderr.bind(childLogger);
     childLogger.writeToStderr = (level: LogLevel, message: string, ...args: any[]) => {
       originalWrite(level, `[${context}] ${message}`, ...args);
     };
-    
     return childLogger;
   }
 }
 
-// Export singleton instance
+/**
+ * Singleton logger instance for general use.
+ */
 export const logger = new Logger();
 
-// Export logger factory for convenience
+/**
+ * Logger factory for creating context-specific loggers.
+ * @param context - Optional context string for log messages.
+ * @returns A Logger instance (child if context provided, otherwise singleton).
+ */
 export function createLogger(context?: string): Logger {
   return context ? logger.child(context) : logger;
 }

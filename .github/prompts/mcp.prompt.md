@@ -1,39 +1,3 @@
----
-mode: "agent"
-tools:
-  [
-    "changes",
-    "codebase",
-    "editFiles",
-    "extensions",
-    "fetch",
-    "findTestFiles",
-    "githubRepo",
-    "new",
-    "openSimpleBrowser",
-    "problems",
-    "runCommands",
-    "runNotebooks",
-    "runTasks",
-    "runTests",
-    "search",
-    "searchResults",
-    "terminalLastCommand",
-    "terminalSelection",
-    "testFailure",
-    "usages",
-    "vscodeAPI",
-    "context7",
-    "activePullRequest",
-    "copilotCodingAgent",
-    "get_syntax_docs",
-    "mermaid-diagram-preview",
-    "mermaid-diagram-validator",
-    "websearch",
-  ]
-description: "Project-wide prompt for Copilot and AI assistants"
----
-
 # Project Prompt for GitHub Copilot and AI Assistants
 
 This file provides detailed guidance for Copilot and other AI assistants working on this project. Please follow these conventions and use the specified tools for best results.
@@ -57,3 +21,5 @@ This file provides detailed guidance for Copilot and other AI assistants working
 - MCP Protocol specification use `#fetch` at `https://github.com/modelcontextprotocol/specification`
 
 - For MCP server implementations, use the `#githubRepo` tool to access `modelcontextprotocol/serverstypescript-sdk/src/examples/README.md`
+- LLM friendly documentation is `https://context7.com/context7/developer_raindrop_io/llms.txt`
+- Best practice boilerplate is available at `#githubRepo` [ MCP Boilerplate](https://github.com/cyanheads/mcp-ts-template

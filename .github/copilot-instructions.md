@@ -33,3 +33,6 @@
 
 Generate complete, production-ready code that can be immediately tested. Focus on defensive programming, clear error messages, and following the exact
 DXT specifications to ensure compatibility with the ecosystem.
+
+LLM friendly documentation is `https://context7.com/context7/developer_raindrop_io/llms.txt`
+Best practice boilerplate is available at `#githubRepo` [ MCP Boilerplate](https://github.com/cyanheads/mcp-ts-template

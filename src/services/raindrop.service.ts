@@ -1,12 +1,16 @@
+/**
+ * RaindropService: Integration layer for Raindrop.io REST API.
+ *
+ * Provides methods for managing collections, bookmarks, highlights, and tags using the official Raindrop.io API.
+ * All methods use Zod for schema validation and return type-safe results.
+ *
+ * Throws descriptive errors for API failures and validation issues.
+ */
 import axios, { Axios, AxiosError } from 'axios';
-// Import dotenv at the entry point
 import { config } from 'dotenv';
-config(); // Load .env file
-// Import shared types
-import type { Collection, Bookmark, Highlight,HighlightContent, SearchParams } from '../types/raindrop.js';
-import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import type { Bookmark, Collection, Highlight, SearchParams } from '../types/raindrop.js';
 import { CollectionSchema } from '../types/raindrop.js';
+config(); // Load .env file
 
 // Check if the token exists
 const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
@@ -15,6 +19,10 @@ if (!raindropAccessToken) {
   throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
 }
 
+/**
+ * Service class for interacting with the Raindrop.io API.
+ * Handles authentication, request/response validation, and error handling.
+ */
 class RaindropService {
   private api: Axios;
 

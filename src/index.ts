@@ -1,18 +1,24 @@
+/**
+ * Entrypoint for the MCP STDIO server.
+ *
+ * This file launches the optimized Raindrop MCP server using STDIO transport only.
+ * No HTTP or SSE endpoints are exposed here.
+ *
+ * All logging is sent to stderr to avoid polluting the STDIO protocol stream.
+ */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from 'dotenv';
-import { createLogger } from './utils/logger.js';
 import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
+import { createLogger } from './utils/logger.js';
 
 config(); // Load .env file
 
 const logger = createLogger('mcp-stdio');
 
-// Only the optimized MCP server and STDIO transport are used in this entrypoint.
-// No HTTP or SSE endpoints are exposed here.
-// 
-// IMPORTANT: This server uses STDIO for MCP protocol communication.
-// All logging uses stderr to avoid polluting the STDIO protocol stream.
-
+/**
+ * Main bootstrap for the STDIO-based MCP server.
+ * Sets up the transport, connects the server, and handles graceful shutdown.
+ */
 export async function main() {
   const transport = new StdioServerTransport();
   // Await the creation of the optimized server and destructure the result

@@ -28,6 +28,12 @@ import raindropService from './raindrop.service.js';
  * 
  * For debugging with MCP Inspector: https://modelcontextprotocol.io/docs/tools/inspector
  */
+/**
+ * Main MCP service class for the optimized Raindrop.io integration.
+ *
+ * Implements the Model Context Protocol (MCP) for Raindrop.io, exposing tools and resources for collections, bookmarks, tags, highlights, user info, and import/export.
+ * Organizes tools by category, provides AI-friendly documentation, and supports advanced MCP features.
+ */
 export class OptimizedRaindropMCPService {
     private server: McpServer;
     private logLevel: LoggingLevel = "debug";
