@@ -7,10 +7,9 @@
  * Throws descriptive errors for API failures and validation issues.
  */
 import axios, { Axios, AxiosError } from 'axios';
-import { config } from 'dotenv';
 import type { Bookmark, Collection, Highlight, SearchParams } from '../types/raindrop.js';
 import { CollectionSchema } from '../types/raindrop.js';
-config({ quiet: true }); // Load .env file quietly
+//config({ quiet: false }); // Load .env file quietly
 
 // Check if the token exists
 const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
@@ -18,6 +17,8 @@ if (!raindropAccessToken) {
   // Use more graceful handling in production
   throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
 }
+
+const RAINDROP_API_BASE = 'https://api.raindrop.io/rest/v1';
 
 /**
  * Service class for interacting with the Raindrop.io API.
@@ -73,8 +74,16 @@ class RaindropService {
 
   // Common error handler
   private handleApiError<T>(error: any, operation: string, defaultValue?: T): T | never {
-    if (error instanceof AxiosError && error.response?.status === 404 && defaultValue !== undefined) {
-      return defaultValue;
+    if (error instanceof AxiosError) {
+      if (error.response?.status === 404 && defaultValue !== undefined) {
+        return defaultValue;
+      }
+      if (error.response?.status === 401) {
+        throw new Error(
+          `${operation}: Unauthorized (401). Your Raindrop.io access token is invalid, expired, or missing required permissions. ` +
+          `Please check your RAINDROP_ACCESS_TOKEN environment variable and ensure it is valid.`
+        );
+      }
     }
     const message = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`${operation}: ${message}`);
@@ -316,38 +325,60 @@ class RaindropService {
     );
   }
 
-  async getAllHighlights(): Promise<Highlight[]> {
-    const { data } = await this.api.get('/highlights');
-    return this.handleItemsResponse<Highlight>(data);
+  /**
+   * Fetch all highlights across all bookmarks (paginated).
+   * Returns a flat array of all highlights.
+   */
+  static async getAllHighlights(): Promise<Highlight[]> {
+    const service = new RaindropService();
+    let page = 0;
+    const perPage = 50;
+    let allHighlights: Highlight[] = [];
+    let total = 0;
+
+    do {
+      const { items, count } = await service.getBookmarks({ page, perPage: perPage });
+      total = count;
+      for (const bookmark of items) {
+        const highlights = await service.getHighlights(bookmark._id);
+        allHighlights.push(...highlights);
+      }
+      page++;
+    } while (page * perPage < total);
+
+    return allHighlights;
   }
 
+  /**
+   * Static proxy for getCollections.
+   */
+  static async getCollections() {
+    const service = new RaindropService();
+    return service.getCollections();
+  }
 
-  async getAllHighlightsByPage(page = 0, perPage = 25): Promise<Highlight[]> {
-    return this.safeApiCall(
-      async () => {
-        const { data } = await this.api.get('/highlights', {
-          params: {
-            page,
-            perpage: perPage // Note the lowercase "perpage" as specified in the API docs
-          }
-        });
-        
-        // Map the API response to our Highlight type
-        if (data && Array.isArray(data.items)) {
-          return data.items.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
-        }
-        
-        // Handle case when API returns {contents: []} structure
-        if (data && data.contents && Array.isArray(data.contents)) {
-          return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
-        }
-        
-        // If we got a response but neither structure is found, return empty array
-        return [];
-      },
-      'Failed to get all highlights',
-      []
-    );
+  /**
+   * Static proxy for getUserInfo.
+   */
+  static async getUserInfo() {
+    const service = new RaindropService();
+    return service.getUserInfo();
+  }
+
+  /**
+   * Static proxy for searching bookmarks.
+   */
+  static async search(params: any) {
+    const service = new RaindropService();
+    return service.getBookmarks(params);
+  }
+
+  /**
+   * Static proxy for getTags.
+   */
+  static async getTags(collectionId?: number) {
+    const service = new RaindropService();
+    return service.getTags(collectionId);
   }
 
   // Helper method to map highlight data consistently
@@ -586,4 +617,4 @@ class RaindropService {
   }
 }
 
-export default new RaindropService();
+export default RaindropService;

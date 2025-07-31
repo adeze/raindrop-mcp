@@ -20,7 +20,7 @@
       "program": "${file}",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/.env",
+
       "env": {},
       "strictEnv": false,
       "watchMode": false,
@@ -36,7 +36,7 @@
       "program": "${workspaceFolder}/src/index.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/.env",
+
       "env": {},
       "stopOnEntry": false
     },
@@ -45,10 +45,10 @@
       "type": "bun",
       "request": "launch",
       "name": "Debug HTTP Server",
-      "program": "${workspaceFolder}/src/http-server.ts",
+      "program": "${workspaceFolder}/src/server.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/.env",
+
       "env": {},
       "stopOnEntry": false
     },
@@ -59,7 +59,7 @@
       "program": "${workspaceFolder}/tests/index.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/.env",
+
       "env": {},
       "stopOnEntry": false
     },
@@ -70,7 +70,7 @@
       "program": "${workspaceFolder}/tests/test-server.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "envFile": "${workspaceFolder}/.env",
+
       "env": {},
       "stopOnEntry": false
     }

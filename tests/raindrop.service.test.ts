@@ -1,33 +1,39 @@
+
+import { config } from 'dotenv';
 import { describe, expect, it } from 'vitest';
 import RaindropService from '../src/services/raindrop.service.js';
-// At the entry point of your application
-import { config } from 'dotenv';
 config(); // Load .env file
 
-// Check if the token exists
-const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
-if (!raindropAccessToken) {
-  // Use more graceful handling in production
-  throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
-}
+describe('RaindropService API Integration', () => {
+  it('should fetch all highlights (static method)', async () => {
+    const highlights = await RaindropService.getAllHighlights();
+    expect(Array.isArray(highlights)).toBe(true);
+    // Optionally log for debug
+    // console.log(`Fetched ${highlights.length} highlights`);
+  });
 
-
-
-// This test requires a valid access token in your config
-describe('Raindrop API Endpoints', () => {
-  it('should fetch highlights from /highlights endpoint', async () => {
-    try {
-      // Access the singleton instance and call getAllHighlights
-      const highlights = await RaindropService.getAllHighlights();
-      
-      // We're just checking that it returns an array (may be empty if you have no highlights)
-      expect(Array.isArray(highlights)).toBe(true);
-      
-      // Log the result to the test output for inspection
-      console.log(`Fetched ${highlights.length} highlights`);
-    } catch (error) {
-      // This will make the test fail with the API error message
-      expect(error).toBeUndefined();
+  it('should fetch collections', async () => {
+    const collections = await RaindropService.getCollections();
+    expect(Array.isArray(collections)).toBe(true);
+    if (collections.length > 0) {
+      expect(collections[0]).toHaveProperty('_id');
     }
+  });
+
+  it('should fetch user info', async () => {
+    const user = await RaindropService.getUserInfo();
+    expect(user).toBeDefined();
+    expect(user).toHaveProperty('email');
+  });
+
+  it('should search bookmarks (may be empty)', async () => {
+    const { items, count } = await RaindropService.search({ search: 'test' });
+    expect(Array.isArray(items)).toBe(true);
+    expect(typeof count).toBe('number');
+  });
+
+  it('should fetch tags (may be empty)', async () => {
+    const tags = await RaindropService.getTags();
+    expect(Array.isArray(tags)).toBe(true);
   });
 });

@@ -5,7 +5,7 @@
       "label": "Start HTTP Server (Development)",
       "type": "shell",
       "command": "bun",
-      "args": ["--watch", "src/http-server.ts"],
+      "args": ["--watch", "src/server.ts"],
       "group": "build",
       "isBackground": true,
       "options": {

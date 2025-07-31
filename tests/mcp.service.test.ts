@@ -1,18 +1,20 @@
+
 import { config } from 'dotenv';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import RaindropMCPService, { createRaindropServer } from '../mcp-optimized.service.js';
 import raindropService from '../src/services/raindrop.service.js';
+import { OptimizedRaindropMCPService } from '../src/services/raindropmcp.service.js';
 config(); // Load .env file
 
+
 describe('RaindropMCPService Live Tests', () => {
-  let mcpService: RaindropMCPService;
-  // For storing references to created items so we can clean up
-  let createdCollectionId: number;
-  let createdBookmarkId: number;
+  let mcpService: OptimizedRaindropMCPService;
+  let createdCollectionId: number | undefined;
+  let createdBookmarkId: number | undefined;
 
   beforeEach(() => {
-    // Create a fresh instance of the service for each test
-    mcpService = new RaindropMCPService();
+    mcpService = new OptimizedRaindropMCPService();
+    createdCollectionId = undefined;
+    createdBookmarkId = undefined;
   });
 
   afterEach(async () => {
@@ -21,20 +23,24 @@ describe('RaindropMCPService Live Tests', () => {
       try {
         await raindropService.deleteBookmark(createdBookmarkId);
       } catch (err) {
+        // Log but do not throw
+        // eslint-disable-next-line no-console
         console.error('Failed to clean up bookmark:', err);
       }
+      createdBookmarkId = undefined;
     }
-
     if (createdCollectionId) {
       try {
         await raindropService.deleteCollection(createdCollectionId);
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('Failed to clean up collection:', err);
       }
+      createdCollectionId = undefined;
     }
-
-    // Stop the MCP service
-    await mcpService.stop();
+    if (typeof mcpService.stop === 'function') {
+      await mcpService.stop();
+    }
   });
 
   describe('Live Collection Operations', () => {
@@ -48,10 +54,10 @@ describe('RaindropMCPService Live Tests', () => {
       expect(toolResult).toBeDefined();
       expect(toolResult.content).toHaveLength(1);
       expect(toolResult.content[0].text).toContain('Test Collection');
-      
+
       // Store ID for cleanup
       createdCollectionId = toolResult.content[0].metadata.id;
-      
+
       // Verify collection was created by fetching it
       const collection = await raindropService.getCollection(createdCollectionId);
       expect(collection._id).toBe(createdCollectionId);
@@ -74,7 +80,7 @@ describe('RaindropMCPService Live Tests', () => {
       
       expect(toolResult.content[0].text).toBe(newTitle);
       expect(toolResult.content[0].metadata.public).toBe(true);
-      
+
       // Verify update
       const updatedCollection = await raindropService.getCollection(createdCollectionId);
       expect(updatedCollection.title).toBe(newTitle);
@@ -102,10 +108,10 @@ describe('RaindropMCPService Live Tests', () => {
       expect(toolResult.content).toHaveLength(1);
       expect(toolResult.content[0].type).toBe("resource");
       expect(toolResult.content[0].resource.uri).toBe("https://example.com");
-      
+
       // Store ID for cleanup
       createdBookmarkId = toolResult.content[0].resource.metadata.id;
-      
+
       // Verify bookmark was created
       const bookmark = await raindropService.getBookmark(createdBookmarkId);
       expect(bookmark._id).toBe(createdBookmarkId);
@@ -152,7 +158,7 @@ describe('RaindropMCPService Live Tests', () => {
       expect(result).toBeDefined();
       expect(result.contents).toBeDefined();
       expect(Array.isArray(result.contents)).toBe(true);
-      
+
       if (result.contents.length > 0) {
         const firstCollection = result.contents[0];
         expect(firstCollection.uri).toContain('collections://all/');
@@ -166,7 +172,7 @@ describe('RaindropMCPService Live Tests', () => {
       
       expect(result).toBeDefined();
       expect(result.contents).toHaveLength(1);
-      
+
       const userInfo = result.contents[0];
       expect(userInfo.text).toContain('User:');
       expect(userInfo.metadata.id).toBeDefined();
@@ -180,7 +186,7 @@ describe('RaindropMCPService Live Tests', () => {
       expect(result).toBeDefined();
       expect(result.contents).toBeDefined();
       expect(Array.isArray(result.contents)).toBe(true);
-      
+
       // Only test further if tags exist
       if (result.contents.length > 0) {
         const firstTag = result.contents[0];
@@ -242,7 +248,7 @@ describe('RaindropMCPService Live Tests', () => {
     it('should provide a working createRaindropServer factory function', () => {
       const { server, cleanup } = createRaindropServer();
       expect(server).toBeDefined();
-      expect(cleanup).toBeInstanceOf(Function);
+      expect(typeof cleanup).toBe('function');
       cleanup();
     });
   });

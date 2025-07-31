@@ -7,11 +7,11 @@
  * All logging is sent to stderr to avoid polluting the STDIO protocol stream.
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { config } from 'dotenv';
+//import { config } from 'dotenv';
 
-import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
+import { createOptimizedRaindropServer } from './services/raindropmcp.service.js';
 import { createLogger } from './utils/logger.js';
-config({ quiet: true }); // Load .env file quietly
+//config({ quiet: true }); // Load .env file quietly
 
 const logger = createLogger('mcp-stdio');
 
