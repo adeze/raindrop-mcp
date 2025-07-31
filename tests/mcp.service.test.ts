@@ -22,7 +22,10 @@ describe('RaindropMCPService Live Tests', () => {
     if (mcpService && typeof mcpService.cleanup === 'function') {
       await mcpService.cleanup();
     }
-    mcpService = new RaindropMCPService();
+    const accessToken = process.env.RAINDROP_ACCESS_TOKEN!;
+    mcpService = new RaindropMCPService(); // No arguments
+    // If needed, set the access token here, e.g.:
+    // mcpService.setAccessToken(accessToken);
     raindropService = new RaindropService();
     createdCollectionId = undefined;
     createdBookmarkId = undefined;
@@ -47,10 +50,7 @@ describe('RaindropMCPService Live Tests', () => {
     if (typeof mcpService.cleanup === 'function') {
       await mcpService.cleanup();
     }
-    // Explicitly stop the server to prevent "Cannot read properties of undefined (reading 'stop')"
-    if (mcpService && mcpService.getServer() && typeof mcpService.getServer().stop === 'function') {
-      await mcpService.getServer().stop();
-    }
+    // Removed call to mcpService.getServer().stop() as 'stop' does not exist on McpServer
     // Set IDs and service to undefined after cleanup to avoid race conditions and double registration
     createdBookmarkId = undefined;
     createdCollectionId = undefined;
@@ -108,11 +108,12 @@ describe('RaindropMCPService Live Tests', () => {
     
     it('should provide a working createOptimizedRaindropServer factory function', () => {
       // Clear require cache to avoid double registration of tools
-      delete require.cache[require.resolve('../src/services/raindropmcp.service.js')];
-      const { server, cleanup } = require('../src/services/raindropmcp.service.js').createOptimizedRaindropServer();
+      delete require.cache[require.resolve('../src/services/raindropmcp.service.ts')];
+      const { server, cleanup } = require('../src/services/raindropmcp.service.ts').createOptimizedRaindropServer();
       expect(server).toBeDefined();
       expect(typeof cleanup).toBe('function');
       cleanup();
     });
   });
 });
+
