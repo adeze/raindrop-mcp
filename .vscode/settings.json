@@ -73,7 +73,7 @@
   },
   "testing.automaticallyOpenTestResults": "neverOpen",
   "chat.mcp.serverSampling": {
-    "raindrop-mcp/.vscode/mcp.json: dev-raindrop": {
+    "raindrop-mcp/.vscode/mcp.json: raindrop": {
       "allowedModels": ["github.copilot-chat/gpt-4.1"]
     }
   }
