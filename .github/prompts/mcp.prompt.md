@@ -1,3 +1,7 @@
+---
+
+
+---
 # Project Prompt for GitHub Copilot and AI Assistants
 
 This file provides detailed guidance for Copilot and other AI assistants working on this project. Please follow these conventions and use the specified tools for best results.

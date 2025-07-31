@@ -1,0 +1,48 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "Bun Test",
+            "type": "bun",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/.bin/bun",
+            "args": [
+                "test"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "NODE_ENV": "test"
+            }
+        },
+        {
+            "name": "MCP Service Tests",
+            "type": "bun",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/index.ts",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "NODE_ENV": "test",
+                "TEST_TIMEOUT": "30000"
+            }
+        },
+        {
+            "name": "Integration Tests",
+            "type": "bun",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/test-comparison.ts",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "NODE_ENV": "test",
+                "INTEGRATION_TEST": "true"
+            }
+        }
+    ],
+    "testPatterns": [
+        "tests/**/*.test.ts",
+        "tests/**/*.spec.ts",
+        "**/*.test.js",
+        "**/*.spec.js"
+    ],
+    "testTimeout": 30000,
+    "testEnvironment": "node"
+}

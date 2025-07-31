@@ -4,24 +4,24 @@
   "typescript.preferences.renameMatchingJsxTags": true,
   "typescript.suggest.autoImports": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
-  
+
   // Bun Configuration
   "bun.debugTerminal.enabled": true,
   "bun.debugTerminal.stopOnEntry": false,
   "bun.test.filePattern": "**/*{.test.,.spec.,_test_,_spec_}{js,ts,tsx,jsx,mts,cts}",
-  
+
   // Testing Configuration
   "testing.openTesting": "neverOpen",
   "testing.automaticallyOpenPeekView": "never",
   "testing.followRunningTest": false,
   "testing.defaultGutterClickAction": "run",
-  
+
   // Debug Configuration
   "debug.onTaskErrors": "abort",
   "debug.inlineValues": "on",
   "debug.showBreakpointsInOverviewRuler": true,
   "debug.allowBreakpointsEverywhere": true,
-  
+
   // Editor Configuration for Better Development Experience
   "editor.codeActionsOnSave": {
     "source.organizeImports": "explicit",
@@ -31,7 +31,7 @@
   "editor.rulers": [80, 120],
   "editor.bracketPairColorization.enabled": true,
   "editor.guides.bracketPairs": "active",
-  
+
   // File Explorer Configuration
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
@@ -39,13 +39,13 @@
     "*.test.ts": "${capture}.spec.ts",
     "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb"
   },
-  
+
   // Terminal Configuration
   "terminal.integrated.defaultProfile.osx": "zsh",
   "terminal.integrated.env.osx": {
     "NODE_ENV": "development"
   },
-  
+
   // Search Configuration
   "search.exclude": {
     "**/node_modules": true,
@@ -54,22 +54,27 @@
     "**/.git": true,
     "**/coverage": true
   },
-  
+
   // Files Configuration
   "files.watcherExclude": {
     "**/node_modules/**": true,
     "**/build/**": true,
     "**/dist/**": true
   },
-  
+
   // Extension Specific Settings
   "postman.settings.dotenv-detection-notification-visibility": false,
-  
+
   // MCP Development Specific
   "files.associations": {
     "*.mcp": "json",
     "smithery.yaml": "yaml",
     "raindrop.yaml": "yaml"
   },
-  "testing.automaticallyOpenTestResults": "neverOpen"
+  "testing.automaticallyOpenTestResults": "neverOpen",
+  "chat.mcp.serverSampling": {
+    "raindrop-mcp/.vscode/mcp.json: dev-raindrop": {
+      "allowedModels": ["github.copilot-chat/gpt-4.1"]
+    }
+  }
 }

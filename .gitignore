@@ -34,12 +34,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # Finder (MacOS) folder config
 .DS_Store
 Thumbs.db
-# VS Code specific files
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 
 # Temp files
 tmp/
@@ -63,4 +57,3 @@ bun-debug.log*
 raindrop-mcp.code-workspace
 
 **/CLAUDE.local.md
-.specstory/

@@ -1,0 +1,26 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "raindrop-key",
+      "description": "Raindrop Access Token",
+      "password": true
+    }
+  ],
+
+  "servers": {
+    "raindrop": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["src/index.ts"],
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "${input:raindrop-key}",
+        "DANGEROUSLY_OMIT_AUTH": "true"
+      },
+      "dev": {
+        "watch": "build/**/*.js",
+        "debug": { "type": "node" }
+      }
+    }
+  }
+}

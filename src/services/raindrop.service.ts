@@ -10,7 +10,7 @@ import axios, { Axios, AxiosError } from 'axios';
 import { config } from 'dotenv';
 import type { Bookmark, Collection, Highlight, SearchParams } from '../types/raindrop.js';
 import { CollectionSchema } from '../types/raindrop.js';
-config(); // Load .env file
+config({ quiet: true }); // Load .env file quietly
 
 // Check if the token exists
 const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;

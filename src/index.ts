@@ -11,7 +11,7 @@ import { config } from 'dotenv';
 import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 import { createLogger } from './utils/logger.js';
 
-config(); // Load .env file
+config({ quiet: true }); // Load .env file quietly
 
 const logger = createLogger('mcp-stdio');
 
