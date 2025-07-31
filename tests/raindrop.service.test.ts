@@ -3,7 +3,7 @@
 import { config } from 'dotenv';
 import { describe, expect, it } from 'vitest';
 import RaindropService from '../src/services/raindrop.service.js';
-config({ path: '../.env' });
+config();
 
 describe('RaindropService API Integration', () => {
   it('fetches highlights, collections, user info, bookmarks, and tags', async () => {

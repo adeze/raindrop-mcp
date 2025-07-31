@@ -2,7 +2,14 @@ import { config } from 'dotenv';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import RaindropService from '../src/services/raindrop.service.js';
 import { RaindropMCPService } from '../src/services/raindropmcp.service.js';
-config({ path: '../.env' });
+
+// Defensive check: Ensure RAINDROP_ACCESS_TOKEN is present before running tests
+config();
+if (!process.env.RAINDROP_ACCESS_TOKEN || process.env.RAINDROP_ACCESS_TOKEN.trim() === '') {
+  throw new Error(
+    'RAINDROP_ACCESS_TOKEN is missing or empty. Please set it in your environment or .env file before running tests.'
+  );
+}
 
 describe('RaindropMCPService Live Tests', () => {
   let mcpService: RaindropMCPService;
