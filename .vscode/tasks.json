@@ -9,7 +9,8 @@
       "group": "build",
       "isBackground": true,
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/.env"
       },
       "presentation": {
         "clear": false,
@@ -29,7 +30,8 @@
       "group": "build",
       "isBackground": true,
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/.env"
       },
       "presentation": {
         "clear": false,
@@ -49,7 +51,8 @@
       "args": ["run", "tests/index.test.ts"],
       "group": "test",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/.env"
       },
       "presentation": {
         "clear": true,
@@ -68,7 +71,8 @@
       "args": ["run", "tests/test-server.ts"],
       "group": "test",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/.env"
       },
       "presentation": {
         "clear": true,
@@ -87,7 +91,8 @@
       "args": ["test"],
       "group": "test",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/.env"
       },
       "presentation": {
         "clear": true,
@@ -106,7 +111,8 @@
       "args": ["test", "--coverage"],
       "group": "test",
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "envFile": "${workspaceFolder}/.env"
       },
       "presentation": {
         "clear": true,

@@ -22,6 +22,7 @@
       "cwd": "${workspaceFolder}",
 
       "env": {},
+      "envFile": "${workspaceFolder}/.env",
       "strictEnv": false,
       "watchMode": false,
       "stopOnEntry": false,
@@ -38,6 +39,7 @@
       "cwd": "${workspaceFolder}",
 
       "env": {},
+      "envFile": "${workspaceFolder}/.env",
       "stopOnEntry": false
     },
 
@@ -50,6 +52,7 @@
       "cwd": "${workspaceFolder}",
 
       "env": {},
+      "envFile": "${workspaceFolder}/.env",
       "stopOnEntry": false
     },
     {
@@ -61,6 +64,7 @@
       "cwd": "${workspaceFolder}",
 
       "env": {},
+      "envFile": "${workspaceFolder}/.env",
       "stopOnEntry": false
     },
     {

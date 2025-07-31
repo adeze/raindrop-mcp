@@ -19,7 +19,7 @@
         "inspector:http": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp",
         "inspector:http-server": "npx @modelcontextprotocol/inspector bun run src/server.ts",
         "type-check": "tsc --noEmit",
-        "test": "bun test",
+        "test": "bun  --env-file .env test",
         "test:coverage": "bun test --coverage",
         "test:all": "bun run tests/index.ts",
         "test:http": "bun run tests/test-client.ts",

@@ -1,16 +1,8 @@
 
 import axios from 'axios';
-// Only load dotenv in development or test environments
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    // Dynamically import dotenv only if needed
-    const { config } = await import('dotenv');
-    config();
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('dotenv not loaded:', err);
-  }
-}
+import { config } from 'dotenv';
+
+config(); // Load .env file
 
 // Check if the token exists
 const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;

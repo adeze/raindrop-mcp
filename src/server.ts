@@ -7,13 +7,12 @@
  * Compare with the original HTTP server on port 3001 for differences in tool coverage and design.
  */
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-//import { config } from 'dotenv';
+import { config } from 'dotenv';
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { createOptimizedRaindropServer } from './services/raindropmcp.service.js';
 import { createLogger } from './utils/logger.js';
-
-//config({ quiet: true }); // Load .env file
+config({ quiet: true }); // Load .env file
 
 const PORT = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 3002;
 const logger = createLogger('http');
