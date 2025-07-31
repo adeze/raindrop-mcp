@@ -4,9 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
   StdioServerTransport: vi.fn(),
 }));
-vi.mock('dotenv', () => ({
-  config: vi.fn(),
-}));
+
+import { config } from 'dotenv';
+config({ path: '../.env' });
 vi.mock('../src/services/raindropmcp.service.js', () => ({
   createOptimizedRaindropServer: vi.fn().mockImplementation(() => ({
     server: {
