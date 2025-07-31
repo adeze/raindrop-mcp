@@ -2,12 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug stdio ",
+      "program": "${workspaceFolder}/build/cli.js",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "HTTP_PORT": "3002"
+      },
+      "outFiles": ["${workspaceFolder}/build/**/*.js"]
+    },
+
+    {
       "type": "bun",
       "request": "launch",
       "name": "Debug Current File",
       "program": "${file}",
       "args": [],
       "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
       "env": {},
       "strictEnv": false,
       "watchMode": false,
@@ -23,6 +36,7 @@
       "program": "${workspaceFolder}/src/index.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
       "env": {},
       "stopOnEntry": false
     },
@@ -34,6 +48,7 @@
       "program": "${workspaceFolder}/src/http-server.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
       "env": {},
       "stopOnEntry": false
     },
@@ -44,6 +59,7 @@
       "program": "${workspaceFolder}/tests/index.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
       "env": {},
       "stopOnEntry": false
     },
@@ -54,19 +70,8 @@
       "program": "${workspaceFolder}/tests/test-server.ts",
       "args": [],
       "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
       "env": {},
-      "stopOnEntry": false
-    },
-    {
-      "type": "bun",
-      "request": "launch",
-      "name": "Run Unit Tests with Debug",
-      "program": "${workspaceFolder}/node_modules/.bin/bun",
-      "args": ["test", "--watch"],
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "NODE_ENV": "test"
-      },
       "stopOnEntry": false
     }
   ]

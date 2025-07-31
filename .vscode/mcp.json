@@ -12,7 +12,7 @@
     "raindrop": {
       "type": "stdio",
       "command": "node",
-      "args": ["src/index.ts"],
+      "args": ["build/cli.js"],
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${input:raindrop-key}",
         "DANGEROUSLY_OMIT_AUTH": "true"

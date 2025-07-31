@@ -46,7 +46,7 @@
       "label": "Run All Tests",
       "type": "shell",
       "command": "bun",
-      "args": ["run", "tests/index.ts"],
+      "args": ["run", "tests/index.test.ts"],
       "group": "test",
       "options": {
         "cwd": "${workspaceFolder}"
@@ -66,25 +66,6 @@
       "type": "shell",
       "command": "bun",
       "args": ["run", "tests/test-server.ts"],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Comparison Tests",
-      "type": "shell",
-      "command": "bun",
-      "args": ["run", "tests/test-comparison.ts"],
       "group": "test",
       "options": {
         "cwd": "${workspaceFolder}"
@@ -177,45 +158,6 @@
       "problemMatcher": []
     },
 
-    // Health Check Tasks
-    {
-      "label": "Check Optimized Server Health",
-      "type": "shell",
-      "command": "curl",
-      "args": ["-s", "http://localhost:3002/health", "|", "jq"],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Check Original Server Health",
-      "type": "shell",
-      "command": "curl",
-      "args": ["-s", "http://localhost:3001/health", "|", "jq"],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
     // MCP Inspector Tasks
     {
       "label": "Debug HTTP Server with Inspector",

@@ -21,8 +21,9 @@ applyTo: "**"
 - Prefer modern, type-safe, and idiomatic TypeScript. Use zod for schema validation where appropriate.
 - Keep code modular, well-documented, and easy to maintain.
 - If you encounter ambiguity, prefer explicitness and reference the relevant documentation or example repositories.
+- the buld diretory is `build` and the source directory is `src`.
 
-**Follow best development practices:**
+  **Follow best development practices:**
 
 - Implement proper MCP protocol communication via stdio transport
 - Structure tools with clear schemas, validation, and consistent JSON responses

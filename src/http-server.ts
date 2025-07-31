@@ -13,7 +13,7 @@ import { randomUUID } from "node:crypto";
 import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 import { createLogger } from './utils/logger.js';
 
-config(); // Load .env file
+config({ quiet: true }); // Load .env file
 
 const PORT = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 3002;
 const logger = createLogger('http-optimized');
@@ -93,7 +93,7 @@ app.get('/health', (req, res) => {
 // API documentation endpoint
 app.get('/', (req, res) => {
     res.json({
-        name: 'Raindrop MCP HTTP Server (Optimized)',
+        name: 'Raindrop MCP HTTP Server',
         version: '2.0.0',
         description: 'Optimized Model Context Protocol server for Raindrop.io with enhanced AI-friendly tools',
         endpoints: {

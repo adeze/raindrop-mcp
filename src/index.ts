@@ -8,9 +8,9 @@
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from 'dotenv';
+
 import { createOptimizedRaindropServer } from './services/mcp-optimized.service.js';
 import { createLogger } from './utils/logger.js';
-
 config({ quiet: true }); // Load .env file quietly
 
 const logger = createLogger('mcp-stdio');

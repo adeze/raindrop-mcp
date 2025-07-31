@@ -18,22 +18,11 @@
             "name": "MCP Service Tests",
             "type": "bun",
             "request": "launch",
-            "program": "${workspaceFolder}/tests/index.ts",
+            "program": "${workspaceFolder}/tests/index.test.ts",
             "cwd": "${workspaceFolder}",
             "env": {
                 "NODE_ENV": "test",
                 "TEST_TIMEOUT": "30000"
-            }
-        },
-        {
-            "name": "Integration Tests",
-            "type": "bun",
-            "request": "launch",
-            "program": "${workspaceFolder}/tests/test-comparison.ts",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "NODE_ENV": "test",
-                "INTEGRATION_TEST": "true"
             }
         }
     ],
