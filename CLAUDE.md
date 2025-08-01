@@ -17,16 +17,17 @@ npx @adeze/raindrop-mcp
 ```
 
 ### Development Commands
-- Build/Run: `bun run start` (or `bun run src/index.ts`)
-- Development: `bun run dev` (watch mode)
-- Type checking: `bun run type-check`
-- Tests: `bun run test`
-- Run single test: `bun test src/tests/mcp.service.test.ts`
-- Test with coverage: `bun run test:coverage`
-- Debug: `bun run debug` or `bun run inspector` (runs with MCP inspector)
-- Build: `bun run build` (builds to build directory)
-- Clean: `bun run clean` (removes build directory)
-- HTTP server: `bun run start:http` (starts with HTTP transport)
+- **Development**: `bun run dev` (watch STDIO mode) or `bun run dev:http` (watch HTTP mode)
+- **Production**: `bun run start:prod` (from build) or `bun run run` (CLI executable)
+- **HTTP Server**: `bun run start:http` (starts HTTP transport on port 3002)
+- **Type checking**: `bun run type-check`
+- **Testing**: `bun run test` or `bun run test:coverage`
+- **Building**: `bun run build` (creates build/ directory with cli.js and server.js)
+- **Debugging**: 
+  - MCP Inspector STDIO: `bun run inspector`
+  - MCP Inspector HTTP: `bun run inspector:http-server`
+- **Maintenance**: `bun run clean` (removes build/), `bun run dxt:pack` (creates DXT package)
+- **Versioning**: `bun run bump:patch|minor|major`
 
 ## Code Style
 - TypeScript with strict type checking
@@ -74,13 +75,21 @@ The `RaindropService` has been significantly refactored to reduce code duplicati
 - Tests should be co-located with source files in `src/tests` directory
 
 ## Project Structure
-- Source code in `src/` directory
-- Tests co-located with source files in `tests/` directory
-- Configuration in .env
-- Types in `src/types`
-- Services in `src/services`
-- OpenAPI specification in `raindrop.yaml`
-- Smithery configuration in `smithery.yaml`
+- **Source code**: `src/` directory with:
+  - `index.ts` - STDIO server entry point
+  - `cli.ts` - CLI executable entry point  
+  - `server.ts` - HTTP server entry point (port 3002)
+  - `services/` - Service layer (RaindropService, RaindropMCPService)
+  - `types/` - TypeScript type definitions
+  - `utils/` - Utilities (logger, etc.)
+- **Tests**: `tests/` directory with comprehensive test coverage
+- **Build output**: `build/` directory (cli.js, server.js)
+- **Configuration**: 
+  - `.env` - Environment variables
+  - `raindrop.yaml` - OpenAPI specification
+  - `smithery.yaml` - Smithery configuration
+  - `manifest.json` - DXT manifest
+  - `LOGGING_DIAGNOSTICS.md` - Logging documentation
 
 ## MCP Resources
 - Collections: `collections://all` and `collections://{parentId}/children`
@@ -133,7 +142,7 @@ For HTTP transport instead of stdio:
   "servers": {
     "raindrop": {
       "type": "http",
-      "url": "http://localhost:3000",
+      "url": "http://localhost:3002",
       "env": {
         "RAINDROP_ACCESS_TOKEN": "YOUR_API_TOKEN_HERE"
       }
@@ -142,9 +151,16 @@ For HTTP transport instead of stdio:
 }
 ```
 
-### Smithery Configuration
+### Alternative Installation Methods
 
-This project includes a `smithery.yaml` configuration file for [Smithery](https://smithery.ai/), which allows easy discovery and installation of MCP servers. The configuration specifies how to start the MCP server and requires no additional configuration options.
+#### Smithery Configuration
+This project includes a `smithery.yaml` configuration file for [Smithery](https://smithery.ai/), which allows easy discovery and installation of MCP servers.
+
+#### DXT Package
+The project can be packaged as a DXT (Developer Extension) for easy distribution:
+- Build DXT: `bun run dxt:pack`
+- Package includes CLI executable and HTTP server
+- Configurable via `manifest.json` with user-friendly API key setup
 
 ## MCP Tools Documentation
 
@@ -237,3 +253,24 @@ The server provides **24 optimized tools** (reduced from 37+ original tools) org
 - **Enhanced error messages** with actionable suggestions
 - **Standardized resource URI patterns** (raindrop://type/scope)
 - **Comprehensive diagnostic tools** for debugging and monitoring
+
+## Additional Features
+
+### Logging and Diagnostics
+- **STDIO-safe logging**: Uses stderr to avoid protocol pollution
+- **Structured logging**: Timestamp, log levels, context-aware
+- **Built-in diagnostics tool**: Get server status, memory usage, capabilities
+- **Environment-based configuration**: `LOG_LEVEL=debug` for verbose output
+- **Transport awareness**: Consistent logging across STDIO and HTTP modes
+- See `LOGGING_DIAGNOSTICS.md` for detailed information
+
+### Dual Entry Points
+- **CLI executable** (`src/cli.ts`): For direct command-line usage
+- **HTTP server** (`src/server.ts`): For web-based MCP protocol (port 3002)
+- **STDIO server** (`src/index.ts`): Standard MCP protocol over stdin/stdout
+
+### Version Information
+- **Current version**: 2.0.5
+- **Node.js**: >=18.0.0 required
+- **Bun**: >=1.0.0 required
+- **MCP SDK**: ^1.17.1
