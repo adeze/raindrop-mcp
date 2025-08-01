@@ -1,5 +1,75 @@
 import { z } from "zod";
 
+
+
+// Bookmark schema
+export const BookmarkSchema = z.object({
+  _id: z.number(),
+  title: z.string(),
+  excerpt: z.string().optional(),
+  note: z.string().optional(),
+  type: z.enum(["link", "article", "image", "video", "document", "audio"]),
+  tags: z.array(z.string()),
+  cover: z.string().optional(),
+  link: z.string(),
+  domain: z.string(),
+  created: z.string(),
+  lastUpdate: z.string(),
+  removed: z.boolean(),
+  media: z.array(z.object({
+    link: z.string(),
+    type: z.enum(["image", "video", "audio", "pdf", "doc"]),
+    width: z.number().optional(),
+    height: z.number().optional(),
+  })).optional(),
+  user: z.object({ $id: z.number() }),
+  collection: z.object({ $id: z.number() }),
+  html: z.string().optional(),
+  important: z.boolean(),
+  highlights: z.array(z.any()).optional(), // TODO: Use HighlightSchema
+  reminder: z.object({ date: z.string(), note: z.string().optional() }).optional(),
+  broken: z.boolean().optional(),
+  duplicate: z.boolean().optional(),
+  sort: z.number().optional(),
+  cache: z.object({
+    status: z.enum(["ready", "retry", "failed", "invalid-origin", "invalid-timeout"]),
+    size: z.number(),
+    created: z.string(),
+  }).optional(),
+});
+
+// Highlight schema
+export const HighlightSchema = z.object({
+  _id: z.number(),
+  text: z.string(),
+  note: z.string().optional(),
+  color: z.string().optional(),
+  created: z.string(),
+  lastUpdate: z.string().optional(),
+  title: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  link: z.string().optional(),
+  domain: z.string().optional(),
+  excerpt: z.string().optional(),
+  raindrop: z.object({
+    _id: z.number(),
+    title: z.string().optional(),
+    link: z.string().optional(),
+    collection: z.object({ $id: z.number() }).optional(),
+  }),
+});
+
+// Tag schema (Raindrop API returns tags as strings, but sometimes as objects with _id and count)
+export const TagSchema = z.object({
+  _id: z.string().optional(),
+  name: z.string().optional(),
+  count: z.number().optional(),
+});
+
+
+
+
+
 // Raindrop.io types
 
 /**

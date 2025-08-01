@@ -1,5 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
 import { z } from "zod";
+import { BookmarkSchema, CollectionSchema, HighlightSchema, TagSchema } from "../types/raindrop";
+
 import RaindropService from "./raindrop.service.js";
 
 export class RaindropMCPService {
@@ -10,7 +13,7 @@ export class RaindropMCPService {
         this.raindropService = new RaindropService();
         this.server = new McpServer({
             name: "raindrop-mcp-server",
-            version: "2.0.0",
+            version: "2.0.6",
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
             capabilities: {
                 logging: false,
@@ -48,7 +51,7 @@ export class RaindropMCPService {
                 offset: z.number().optional().describe("Offset for pagination")
             },
             {
-                collections: z.array(z.any()), // TODO: Replace with actual collection type
+                collections: z.array(CollectionSchema),
             },
             this.asyncHandler(async (args: { limit?: number; offset?: number }, _extra) => {
                 // Fetch collections from RaindropService
@@ -89,7 +92,7 @@ export class RaindropMCPService {
                 description: z.string().optional()
             },
             {
-                result: z.any(),
+                result: CollectionSchema.nullable(),
             },
             this.asyncHandler(async (args, _extra) => {
                 let result = null;
@@ -135,7 +138,7 @@ export class RaindropMCPService {
                 sample: z.number().min(1).max(100).optional()
             },
             {
-                bookmarks: z.array(z.any()),
+                bookmarks: z.array(BookmarkSchema),
             },
             this.asyncHandler(async (args, _extra) => {
                 // Map args to SearchParams
@@ -175,7 +178,7 @@ export class RaindropMCPService {
                 data: z.any().optional()
             },
             {
-                result: z.any(),
+                result: BookmarkSchema.nullable(),
             },
             this.asyncHandler(async (args, _extra) => {
                 let result = null;
@@ -231,7 +234,11 @@ export class RaindropMCPService {
                 collectionId: z.number().optional()
             },
             {
-                result: z.any(),
+                result: z.union([
+                  TagSchema,
+                  z.array(TagSchema),
+                  z.object({ deleted: z.boolean() })
+                ]).nullable(),
             },
             this.asyncHandler(async (args, _extra) => {
                 let result = null;
@@ -276,7 +283,7 @@ export class RaindropMCPService {
                 color: z.string().optional()
             },
             {
-                result: z.any(),
+                result: HighlightSchema.nullable(),
             },
             this.asyncHandler(async (args, _extra) => {
                 let result = null;
@@ -317,54 +324,64 @@ export class RaindropMCPService {
             })
         );
 
-        // --- USER TOOLS ---
-        this.server.tool(
+     
+        // --- USER RESOURCES ---
+        this.server.registerResource(
             "user_profile",
-            "Get user account information including name, email, subscription status, and registration date.",
-            {},
+            "user_profile",
             {
-                profile: z.any(),
+                description: "User profile resource. Get user account information including name, email, subscription status, and registration date.",
+                input: z.object({}),
+                output: z.object({
+                    profile: z.object({ error: z.string() }) // Replace with actual profile schema if available
+                })
             },
-            this.asyncHandler(async (_args, _extra) => {
+            async (_params: any, _context: any, ..._extra: any[]) => {
                 // No getUserProfile in RaindropService, return error
+                const profile = { error: "Not implemented: user_profile" };
                 return {
-                    content: [
-                        ({
-                            type: "text",
-                            text: JSON.stringify({ error: "Not implemented: user_profile" }, null, 2),
+                    contents: [
+                        {
+                            text: JSON.stringify({ profile }, null, 2),
+                            uri: "user_profile",
                             _meta: {},
-                        } as any),
-                    ],
+                            mimeType: "application/json"
+                        }
+                    ]
                 };
-            })
+            }
         );
 
-        this.server.tool(
+        this.server.registerResource(
             "user_statistics",
-            "Get user or collection statistics. Includes bookmark counts, collection counts, and usage metrics.",
+            "user_statistics",
             {
-                collectionId: z.number().optional()
+                description: "User or collection statistics resource. Includes bookmark counts, collection counts, and usage metrics.",
+                input: z.object({
+                    collectionId: z.number().optional()
+                }),
+                output: z.object({
+                    stats: z.any() // Could be refined if user/collection stats schemas are defined
+                })
             },
-            {
-                stats: z.any(),
-            },
-            this.asyncHandler(async (args, _extra) => {
+            async (params: any, _context: any, ..._extra: any[]) => {
                 let stats = null;
-                if (args.collectionId) {
-                    stats = await this.raindropService.getCollectionStats(args.collectionId);
+                if (params.collectionId) {
+                    stats = await this.raindropService.getCollectionStats(params.collectionId);
                 } else {
                     stats = await this.raindropService.getUserStats();
                 }
                 return {
-                    content: [
-                        ({
-                            type: "text",
+                    contents: [
+                        {
                             text: JSON.stringify({ stats }, null, 2),
+                            uri: "user_statistics",
                             _meta: {},
-                        } as any),
-                    ],
+                            mimeType: "application/json"
+                        }
+                    ]
                 };
-            })
+            }
         );
 
         // --- IMPORT/EXPORT TOOLS ---
@@ -379,7 +396,7 @@ export class RaindropMCPService {
                 includeDuplicates: z.boolean().optional().default(false)
             },
             {
-                result: z.any(),
+                result: z.any(), // Import/export schemas could be refined if needed
             },
             this.asyncHandler(async (args, _extra) => {
                 let result = null;
@@ -413,7 +430,7 @@ export class RaindropMCPService {
                 includeEnvironment: z.boolean().optional().default(false)
             },
             {
-                diagnostics: z.any(),
+                diagnostics: z.object({ error: z.string() }),
             },
             this.asyncHandler(async (args, _extra) => {
                 // No getDiagnostics in RaindropService, return error

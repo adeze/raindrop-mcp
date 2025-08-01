@@ -10,7 +10,6 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { config } from 'dotenv';
 import express from "express";
 import { randomUUID } from "node:crypto";
-import { createOptimizedRaindropServer } from './services/raindropmcp.service.js';
 import { createLogger } from './utils/logger.js';
 config({ quiet: true }); // Load .env file
 

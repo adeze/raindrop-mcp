@@ -8,7 +8,7 @@
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from 'dotenv';
-import { createOptimizedRaindropServer } from './services/raindropmcp.service.js';
+import { RaindropMCPService } from './services/raindropmcp.service.js';
 import { createLogger } from './utils/logger.js';
 
 config({ quiet: true }); // Load .env file quietly
@@ -21,8 +21,8 @@ const logger = createLogger('mcp-stdio');
  */
 export async function main() {
   const transport = new StdioServerTransport();
-  // Await the creation of the optimized server and destructure the result
-  const { server, cleanup } = createOptimizedRaindropServer();
+  // Await the creation of the Raindrop server and destructure the result
+  const { server, cleanup } = new RaindropMCPService();
 
   await server.connect(transport);
   logger.info('MCP server connected via STDIO transport');
