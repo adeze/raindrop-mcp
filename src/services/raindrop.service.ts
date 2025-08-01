@@ -6,10 +6,10 @@
  *
  * Throws descriptive errors for API failures and validation issues.
  */
-import axios, { Axios, AxiosError } from 'axios';
+import ky, { type KyInstance, HTTPError } from 'ky';
 import type { Bookmark, Collection, Highlight, SearchParams } from '../types/raindrop.js';
 import { CollectionSchema } from '../types/raindrop.js';
-//config({ quiet: false }); // Load .env file quietly
+
 
 // Check if the token exists
 const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
@@ -18,22 +18,40 @@ if (!raindropAccessToken) {
   throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
 }
 
-const RAINDROP_API_BASE = 'https://api.raindrop.io/rest/v1';
-
 /**
  * Service class for interacting with the Raindrop.io API.
  * Handles authentication, request/response validation, and error handling.
  */
 class RaindropService {
-  private api: Axios;
+  private api: KyInstance;
 
   constructor() {
-    this.api = axios.create({
-      baseURL: 'https://api.raindrop.io/rest/v1',
+    this.api = ky.create({
+      prefixUrl: 'https://api.raindrop.io/rest/v1',
       headers: {
         Authorization: `Bearer ${raindropAccessToken}`,
-        'Content-Type': 'application/json',
       },
+      timeout: 10000,
+      retry: {
+        limit: 2,
+        methods: ['get'],
+        statusCodes: [408, 413, 429, 500, 502, 503, 504]
+      },
+      hooks: {
+        beforeError: [
+          error => {
+            const { response } = error;
+            if (response?.status === 401) {
+              error.message = 'Unauthorized (401). Your Raindrop.io access token is invalid, expired, or missing required permissions. Please check your RAINDROP_ACCESS_TOKEN environment variable.';
+            } else if (response?.status === 429) {
+              error.message = 'Rate limited (429). Please wait before making more requests to the Raindrop.io API.';
+            } else if (response?.status >= 500) {
+              error.message = `Raindrop.io API server error (${response.status}). Please try again later.`;
+            }
+            return error;
+          }
+        ]
+      }
     });
   }
 
@@ -74,16 +92,12 @@ class RaindropService {
 
   // Common error handler
   private handleApiError<T>(error: any, operation: string, defaultValue?: T): T | never {
-    if (error instanceof AxiosError) {
+    if (error instanceof HTTPError) {
       if (error.response?.status === 404 && defaultValue !== undefined) {
         return defaultValue;
       }
-      if (error.response?.status === 401) {
-        throw new Error(
-          `${operation}: Unauthorized (401). Your Raindrop.io access token is invalid, expired, or missing required permissions. ` +
-          `Please check your RAINDROP_ACCESS_TOKEN environment variable and ensure it is valid.`
-        );
-      }
+      // Error messages are already handled by ky hooks
+      throw new Error(`${operation}: ${error.message}`);
     }
     const message = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`${operation}: ${message}`);
@@ -102,48 +116,88 @@ class RaindropService {
     }
   }
 
-  // Collections
+
+  // Simple API call wrapper with ky
+  private async callApi<T>(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    endpoint: string,
+    data?: any,
+    responseHandler?: (data: any) => T
+  ): Promise<T> {
+    try {
+      let response;
+      
+      switch (method) {
+        case 'GET':
+          response = await this.api.get(endpoint, { 
+            searchParams: data 
+          }).json();
+          break;
+        case 'POST':
+          response = await this.api.post(endpoint, { 
+            json: data 
+          }).json();
+          break;
+        case 'PUT':
+          response = await this.api.put(endpoint, { 
+            json: data 
+          }).json();
+          break;
+        case 'DELETE':
+          if (data && Object.keys(data).length > 0) {
+            response = await this.api.delete(endpoint, { 
+              json: data 
+            }).json();
+          } else {
+            response = await this.api.delete(endpoint).json();
+          }
+          break;
+        default:
+          throw new Error(`Unsupported HTTP method: ${method}`);
+      }
+
+      return responseHandler ? responseHandler(response) : response as T;
+    } catch (error) {
+      throw this.handleApiError(error, `${method} ${endpoint}`);
+    }
+  }
+
+
+  // Collections - Using simplified approach
   async getCollections(): Promise<Collection[]> {
-    const { data } = await this.api.get('/collections');
-    const items = this.handleItemsResponse(data);
-
-    // Preprocess the API response to fix discrepancies
-    const processedCollections = items.map((collection: any) => ({
-      ...collection,
-      sort: typeof collection.sort === 'number' ? collection.sort.toString() : collection.sort,
-      parent: collection.parent === null ? undefined : collection.parent,
-    }));
-
-    // Validate the processed collections
-    const validatedCollections = CollectionSchema.array().parse(processedCollections);
-    return validatedCollections;
+    return await this.callApi('GET', '/collections', undefined, (data) => {
+      const items = this.handleItemsResponse(data);
+      const processedCollections = items.map((collection: any) => ({
+        ...collection,
+        sort: typeof collection.sort === 'number' ? collection.sort.toString() : collection.sort,
+        parent: collection.parent === null ? undefined : collection.parent,
+      }));
+      return CollectionSchema.array().parse(processedCollections);
+    });
   }
 
   async getCollection(id: number): Promise<Collection> {
-    const { data } = await this.api.get(`/collection/${id}`);
-    return this.handleItemResponse<Collection>(data);
+    return await this.callApi('GET', `/collection/${id}`, undefined, 
+      (data) => this.handleItemResponse<Collection>(data));
   }
 
   async getChildCollections(parentId: number): Promise<Collection[]> {
-    const { data } = await this.api.get(`/collections/${parentId}/childrens`);
-    return this.handleItemsResponse<Collection>(data);
+    return await this.callApi('GET', `/collections/${parentId}/childrens`, undefined,
+      (data) => this.handleItemsResponse<Collection>(data));
   }
 
   async createCollection(title: string, isPublic = false): Promise<Collection> {
-    const { data } = await this.api.post('/collection', {
-      title,
-      public: isPublic,
-    });
-    return this.handleItemResponse<Collection>(data);
+    return await this.callApi('POST', '/collection', { title, public: isPublic },
+      (data) => this.handleItemResponse<Collection>(data));
   }
 
   async updateCollection(id: number, updates: Partial<Collection>): Promise<Collection> {
-    const { data } = await this.api.put(`/collection/${id}`, updates);
-    return this.handleItemResponse<Collection>(data);
+    return await this.callApi('PUT', `/collection/${id}`, updates,
+      (data) => this.handleItemResponse<Collection>(data));
   }
 
   async deleteCollection(id: number): Promise<void> {
-    await this.api.delete(`/collection/${id}`);
+    return await this.callApi('DELETE', `/collection/${id}`);
   }
 
   async shareCollection(
@@ -151,75 +205,58 @@ class RaindropService {
     level: 'view' | 'edit' | 'remove', 
     emails?: string[]
   ): Promise<{ link: string; access: any[] }> {
-    const { data } = await this.api.put(`/collection/${id}/sharing`, {
-      level,
-      emails
-    });
-    return {
-      link: data.link,
-      access: data.access || []
-    };
+    return await this.callApi('PUT', `/collection/${id}/sharing`, { level, emails },
+      (data) => ({ link: data.link, access: data.access || [] }));
   }
 
-  // Bookmarks
+  // Bookmarks - Using simplified approach
   async getBookmarks(params: SearchParams = {}): Promise<{ items: Bookmark[]; count: number }> {
-    // Convert parameters to the format expected by the Raindrop.io API
     const queryParams: Record<string, any> = { ...params };
-
-    // Handle special cases for search parameter
     if (params.search) {
-      // Ensure search parameter is properly encoded
       queryParams.search = encodeURIComponent(params.search);
     }
-
-    // Build endpoint using common function
     const endpoint = this.buildRaindropEndpoint(params.collection);
-    const { data } = await this.api.get(endpoint, { params: queryParams });
-    return this.handleCollectionResponse(data);
+    return await this.callApi('GET', endpoint, queryParams,
+      (data) => this.handleCollectionResponse(data));
   }
 
   async getBookmark(id: number): Promise<Bookmark> {
-    const { data } = await this.api.get(`/raindrop/${id}`);
-    return this.handleItemResponse<Bookmark>(data);
+    return await this.callApi('GET', `/raindrop/${id}`, undefined,
+      (data) => this.handleItemResponse<Bookmark>(data));
   }
 
   async createBookmark(collectionId: number, bookmark: Partial<Bookmark>): Promise<Bookmark> {
-    const { data } = await this.api.post(`/raindrop`, {
-      ...bookmark,
-      collection: { $id: collectionId },
-    });
-    return this.handleItemResponse<Bookmark>(data);
+    const requestData = { ...bookmark, collection: { $id: collectionId } };
+    return await this.callApi('POST', '/raindrop', requestData,
+      (data) => this.handleItemResponse<Bookmark>(data));
   }
 
   async updateBookmark(id: number, updates: Partial<Bookmark>): Promise<Bookmark> {
-    const { data } = await this.api.put(`/raindrop/${id}`, updates);
-    return this.handleItemResponse<Bookmark>(data);
+    return await this.callApi('PUT', `/raindrop/${id}`, updates,
+      (data) => this.handleItemResponse<Bookmark>(data));
   }
 
   async deleteBookmark(id: number): Promise<void> {
-    await this.api.delete(`/raindrop/${id}`);
+    return await this.callApi('DELETE', `/raindrop/${id}`);
   }
   
   async permanentDeleteBookmark(id: number): Promise<void> {
-    await this.api.delete(`/raindrop/${id}/permanent`);
+    return await this.callApi('DELETE', `/raindrop/${id}/permanent`);
   }
 
   async batchUpdateBookmarks(
     ids: number[], 
     updates: { tags?: string[]; collection?: number; important?: boolean; broken?: boolean; }
   ): Promise<{ result: boolean }> {
-    const { data } = await this.api.put('/raindrops', {
-      ids,
-      ...updates
-    });
-    return this.handleResultResponse(data);
+    return await this.callApi('PUT', '/raindrops', { ids, ...updates },
+      (data) => this.handleResultResponse(data));
   }
 
-  // Tags
+  // Tags - Using simplified approach  
   async getTags(collectionId?: number): Promise<{ _id: string; count: number }[]> {
     const endpoint = this.buildTagEndpoint(collectionId);
-    const { data } = await this.api.get(endpoint);
-    return this.handleItemsResponse<{ _id: string; count: number }>(data);
+    return await this.callApi('GET', endpoint, undefined,
+      (data) => this.handleItemsResponse<{ _id: string; count: number }>(data));
   }
 
   async getTagsByCollection(collectionId: number): Promise<{ _id: string; count: number }[]> {
@@ -228,79 +265,66 @@ class RaindropService {
 
   async deleteTags(collectionId: number | undefined, tags: string[]): Promise<{ result: boolean }> {
     const endpoint = this.buildTagEndpoint(collectionId);
-    const { data } = await this.api.delete(endpoint, {
-      data: { tags }
-    });
-    return this.handleResultResponse(data);
+    return await this.callApi('DELETE', endpoint, { tags },
+      (data) => this.handleResultResponse(data));
   }
 
   async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<{ result: boolean }> {
     const endpoint = this.buildTagEndpoint(collectionId);
-    const { data } = await this.api.put(endpoint, {
-      from: oldName,
-      to: newName
-    });
-    return this.handleResultResponse(data);
+    return await this.callApi('PUT', endpoint, { from: oldName, to: newName },
+      (data) => this.handleResultResponse(data));
   }
 
   async mergeTags(collectionId: number | undefined, tags: string[], newName: string): Promise<{ result: boolean }> {
     const endpoint = this.buildTagEndpoint(collectionId);
-    const { data } = await this.api.put(endpoint, {
-      tags,
-      to: newName
-    });
-    return this.handleResultResponse(data);
+    return await this.callApi('PUT', endpoint, { tags, to: newName },
+      (data) => this.handleResultResponse(data));
   }
 
   // User
   async getUserInfo() {
-    const { data } = await this.api.get('/user');
-    return data.user;
+    return await this.callApi('GET', '/user', undefined, (data) => data.user);
   }
 
   async getUserStats() {
-    const { data } = await this.api.get('/user/stats');
-    return data;
+    return await this.callApi('GET', '/user/stats');
   }
 
   async getCollectionStats(collectionId: number) {
-    const { data } = await this.api.get(`/collection/${collectionId}/stats`);
-    return data;
+    return await this.callApi('GET', `/collection/${collectionId}/stats`);
   }
 
   // Collections management
   async reorderCollections(sort: string): Promise<{ result: boolean }> {
-    const { data } = await this.api.put('/collections/sort', { sort });
-    return this.handleResultResponse(data);
+    return await this.callApi('PUT', '/collections/sort', { sort },
+      (data) => this.handleResultResponse(data));
   }
 
   async toggleCollectionsExpansion(expand: boolean): Promise<{ result: boolean }> {
-    const { data } = await this.api.put('/collections/collapsed', { collapsed: !expand });
-    return this.handleResultResponse(data);
+    return await this.callApi('PUT', '/collections/collapsed', { collapsed: !expand },
+      (data) => this.handleResultResponse(data));
   }
 
   async mergeCollections(targetCollectionId: number, collectionIds: number[]): Promise<{ result: boolean }> {
-    const { data } = await this.api.put(`/collection/${targetCollectionId}/merge`, {
-      with: collectionIds
-    });
-    return this.handleResultResponse(data);
+    return await this.callApi('PUT', `/collection/${targetCollectionId}/merge`, { with: collectionIds },
+      (data) => this.handleResultResponse(data));
   }
 
   async removeEmptyCollections(): Promise<{ count: number }> {
-    const { data } = await this.api.put('/collections/clean');
-    return { count: data.count || 0 };
+    return await this.callApi('PUT', '/collections/clean', undefined,
+      (data) => ({ count: data.count || 0 }));
   }
 
   async emptyTrash(): Promise<{ result: boolean }> {
-    const { data } = await this.api.put('/collection/-99/clear');
-    return this.handleResultResponse(data);
+    return await this.callApi('PUT', '/collection/-99/clear', undefined,
+      (data) => this.handleResultResponse(data));
   }
 
   // Highlights
   async getHighlights(raindropId: number): Promise<Highlight[]> {
     return this.safeApiCall(
       async () => {
-        const { data } = await this.api.get(`/raindrop/${raindropId}/highlights`);
+        const data = await this.api.get(`raindrop/${raindropId}/highlights`).json() as any;
         
         // Check for items array in response
         if (data && Array.isArray(data.items)) {
@@ -325,6 +349,20 @@ class RaindropService {
     );
   }
 
+  // Static methods factory - more efficient approach
+  private static createStaticProxy<T extends keyof RaindropService>(methodName: T): RaindropService[T] {
+    return ((...args: any[]) => {
+      const service = new RaindropService();
+      return (service[methodName] as any)(...args);
+    }) as RaindropService[T];
+  }
+
+  // Static proxies using factory
+  static getCollections = RaindropService.createStaticProxy('getCollections');
+  static getUserInfo = RaindropService.createStaticProxy('getUserInfo');
+  static getTags = RaindropService.createStaticProxy('getTags');
+  static search = (params: any) => RaindropService.createStaticProxy('getBookmarks')(params);
+
   /**
    * Fetch all highlights across all bookmarks (paginated).
    * Returns a flat array of all highlights.
@@ -347,38 +385,6 @@ class RaindropService {
     } while (page * perPage < total);
 
     return allHighlights;
-  }
-
-  /**
-   * Static proxy for getCollections.
-   */
-  static async getCollections() {
-    const service = new RaindropService();
-    return service.getCollections();
-  }
-
-  /**
-   * Static proxy for getUserInfo.
-   */
-  static async getUserInfo() {
-    const service = new RaindropService();
-    return service.getUserInfo();
-  }
-
-  /**
-   * Static proxy for searching bookmarks.
-   */
-  static async search(params: any) {
-    const service = new RaindropService();
-    return service.getBookmarks(params);
-  }
-
-  /**
-   * Static proxy for getTags.
-   */
-  static async getTags(collectionId?: number) {
-    const service = new RaindropService();
-    return service.getTags(collectionId);
   }
 
   // Helper method to map highlight data consistently
@@ -414,7 +420,7 @@ class RaindropService {
   async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
     return this.safeApiCall(
       async () => {
-        const { data } = await this.api.get(`/highlights/${collectionId}`);
+        const data = await this.api.get(`highlights/${collectionId}`).json() as any;
         
         if (data.contents && Array.isArray(data.contents)) {
           return data.contents.map((item: any) => this.mapHighlightData(item)).filter(Boolean);
@@ -432,43 +438,44 @@ class RaindropService {
   }
 
   async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<Highlight> {
-    const { data } = await this.api.post('/highlights', {
+    return await this.callApi('POST', '/highlights', {
       ...highlightData,
       raindrop: { $id: raindropId }
+    }, (data) => {
+      const item = this.handleItemResponse<any>(data);
+      
+      // Use the map helper to ensure consistent formatting
+      const highlight = this.mapHighlightData({
+        ...item,
+        raindrop: item.raindrop || { _id: raindropId }
+      });
+      
+      if (!highlight) {
+        throw new Error('Failed to create highlight: Invalid response data');
+      }
+      
+      return highlight;
     });
-    
-    const item = this.handleItemResponse<any>(data);
-    
-    // Use the map helper to ensure consistent formatting
-    const highlight = this.mapHighlightData({
-      ...item,
-      raindrop: item.raindrop || { _id: raindropId }
-    });
-    
-    if (!highlight) {
-      throw new Error('Failed to create highlight: Invalid response data');
-    }
-    
-    return highlight;
   }
 
   async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<Highlight> {
-    const { data } = await this.api.put(`/highlights/${id}`, updates);
-    const item = this.handleItemResponse<any>(data);
-    
-    const highlight = this.mapHighlightData(item);
-    
-    if (!highlight) {
-      throw new Error('Failed to update highlight: Invalid response data');
-    }
-    
-    return highlight;
+    return await this.callApi('PUT', `/highlights/${id}`, updates, (data) => {
+      const item = this.handleItemResponse<any>(data);
+      
+      const highlight = this.mapHighlightData(item);
+      
+      if (!highlight) {
+        throw new Error('Failed to update highlight: Invalid response data');
+      }
+      
+      return highlight;
+    });
   }
 
   async deleteHighlight(id: number): Promise<void> {
     return this.safeApiCall(
       async () => {
-        await this.api.delete(`/highlights/${id}`);
+        await this.api.delete(`highlights/${id}`);
       },
       `Failed to delete highlight with ID ${id}`
     );
@@ -505,11 +512,8 @@ class RaindropService {
       delete queryParams.createdEnd;
     }
     
-    const { data } = await this.api.get('/raindrops', { 
-      params: queryParams 
-    });
-    
-    return this.handleCollectionResponse(data);
+    return await this.callApi('GET', '/raindrops', queryParams,
+      (data) => this.handleCollectionResponse(data));
   }
 
   // Upload file
@@ -518,24 +522,22 @@ class RaindropService {
     formData.append('file', file);
     formData.append('collectionId', collectionId.toString());
 
-    const { data } = await this.api.put('/raindrop/file', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const data = await this.api.put('raindrop/file', {
+      body: formData
+    }).json();
 
     return this.handleItemResponse<Bookmark>(data);
   }
 
   // Reminder management
   async setReminder(raindropId: number, reminder: { date: string; note?: string }): Promise<Bookmark> {
-    const { data } = await this.api.put(`/raindrop/${raindropId}/reminder`, reminder);
-    return this.handleItemResponse<Bookmark>(data);
+    return await this.callApi('PUT', `/raindrop/${raindropId}/reminder`, reminder,
+      (data) => this.handleItemResponse<Bookmark>(data));
   }
 
   async deleteReminder(raindropId: number): Promise<Bookmark> {
-    const { data } = await this.api.delete(`/raindrop/${raindropId}/reminder`);
-    return this.handleItemResponse<Bookmark>(data);
+    return await this.callApi('DELETE', `/raindrop/${raindropId}/reminder`, undefined,
+      (data) => this.handleItemResponse<Bookmark>(data));
   }
 
   // Import functionality
@@ -555,11 +557,9 @@ class RaindropService {
       formData.append('mode', options.mode);
     }
     
-    const { data } = await this.api.post('/import', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const data = await this.api.post('import', {
+      body: formData
+    }).json() as any;
     
     return {
       imported: data.imported || 0,
@@ -575,14 +575,13 @@ class RaindropService {
     duplicates?: number;
     error?: string;
   }> {
-    const { data } = await this.api.get('/import/status');
-    return {
+    return await this.callApi('GET', '/import/status', undefined, (data) => ({
       status: data.status,
       progress: data.progress,
       imported: data.imported,
       duplicates: data.duplicates,
       error: data.error
-    };
+    }));
   }
 
   // Export functionality
@@ -592,11 +591,9 @@ class RaindropService {
     broken?: boolean;
     duplicates?: boolean;
   }): Promise<{ url: string }> {
-    const { data } = await this.api.post('/export', options);
-    
-    return {
+    return await this.callApi('POST', '/export', options, (data) => ({
       url: data.url
-    };
+    }));
   }
 
   // Check export status
@@ -606,14 +603,12 @@ class RaindropService {
     url?: string;
     error?: string;
   }> {
-    const { data } = await this.api.get('/export/status');
-    
-    return {
+    return await this.callApi('GET', '/export/status', undefined, (data) => ({
       status: data.status,
       progress: data.progress,
       url: data.url,
       error: data.error
-    };
+    }));
   }
 }
 

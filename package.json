@@ -29,7 +29,9 @@
         "bump:minor": "npm version minor",
         "bump:major": "npm version major",
         "bun:update": "bun update",
-        "dxt:pack": "npx @anthropic-ai/dxt@latest pack"
+        "dxt:pack": "npx @anthropic-ai/dxt@latest pack",
+        "generate:schema": "npx openapi-typescript ./raindrop.yaml -o ./src/types/raindrop.schema.d.ts",
+        "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop.yaml -g typescript-axios -o ./src/server/generated-client"
     },
     "repository": {
         "type": "git",
@@ -62,16 +64,19 @@
         "dotenv": "^17.2.1",
         "esm": "^3.2.25",
         "express": "^5.1.0",
+        "ky": "^1.8.2",
         "rate-limiter-flexible": "^7.2.0",
         "zod": "^3.25.76",
         "zod-to-json-schema": "^3.24.6"
     },
     "devDependencies": {
         "@modelcontextprotocol/inspector": "^0.16.2",
+        "@openapitools/openapi-generator-cli": "^2.21.4",
         "@types/bun": "^1.2.19",
         "@types/express": "^5.0.3",
         "@types/node": "^24.1.0",
         "@vitest/coverage-v8": "^3.2.4",
+        "openapi-typescript": "^7.8.0",
         "typescript": "^5.9.2",
         "vitest": "^3.2.4"
     },
