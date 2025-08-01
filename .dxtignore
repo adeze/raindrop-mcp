@@ -1,11 +1,9 @@
 .claude/
-.cursor/
 .github/
-.specstory/
 .vscode/
 tests/
 .env*
-#CLAUDE.md
+# CLAUDE.md
 raindrop.yaml
 # tsconfig.json
 # vitest.config.ts
