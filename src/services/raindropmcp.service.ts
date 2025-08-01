@@ -51,12 +51,25 @@ export class RaindropMCPService {
                 collections: z.array(z.any()), // TODO: Replace with actual collection type
             },
             this.asyncHandler(async (args: { limit?: number; offset?: number }, _extra) => {
-                // TODO: Implement actual logic
+                // Fetch collections from RaindropService
+                const collections = await this.raindropService.getCollections();
+                // Optionally apply limit/offset here if needed
+                let sliced = collections;
+                if (Array.isArray(collections)) {
+                    if (typeof args.offset === 'number') {
+                        sliced = sliced.slice(args.offset);
+                    }
+                    if (typeof args.limit === 'number') {
+                        sliced = sliced.slice(0, args.limit);
+                    }
+                }
+                // Map collections to MCP-friendly format
+                const mapped = this.mapCollections(collections);
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ collections: [] }, null, 2),
+                            text: JSON.stringify({ collections: mapped }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -76,15 +89,31 @@ export class RaindropMCPService {
                 description: z.string().optional()
             },
             {
-                result: z.any(), // TODO: Replace with actual result type
+                result: z.any(),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement collection create/update/delete
+                let result = null;
+                if (args.operation === "create") {
+                    if (!args.title) throw new Error("title is required for create");
+                    // parentId, color, description are not supported by createCollection signature
+                    result = await this.raindropService.createCollection(args.title);
+                } else if (args.operation === "update") {
+                    if (!args.id) throw new Error("id is required for update");
+                    result = await this.raindropService.updateCollection(args.id, {
+                        title: args.title,
+                        color: args.color,
+                        description: args.description
+                    });
+                } else if (args.operation === "delete") {
+                    if (!args.id) throw new Error("id is required for delete");
+                    await this.raindropService.deleteCollection(args.id);
+                    result = { deleted: true };
+                }
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ result: null }, null, 2),
+                            text: JSON.stringify({ result: result ? this.mapCollections([result])[0] : null }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -106,15 +135,24 @@ export class RaindropMCPService {
                 sample: z.number().min(1).max(100).optional()
             },
             {
-                bookmarks: z.array(z.any()), // TODO: Replace with actual bookmark type
+                bookmarks: z.array(z.any()),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement bookmark search with sampling
+                // Map args to SearchParams
+                const params: any = {};
+                if (args.query) params.search = args.query;
+                if (args.collectionId) params.collection = args.collectionId;
+                if (args.tags) params.tags = args.tags;
+                if (args.important !== undefined) params.important = args.important;
+                if (args.limit) params.perPage = args.limit;
+                if (args.offset) params.page = Math.floor(args.offset / (args.limit || 25)) + 1;
+                const { items } = await this.raindropService.getBookmarks(params);
+                const mapped = this.mapBookmarks(items);
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ bookmarks: [] }, null, 2),
+                            text: JSON.stringify({ bookmarks: mapped }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -124,10 +162,10 @@ export class RaindropMCPService {
 
         this.server.tool(
             "bookmark_manage",
-            "Create, update, delete, move, or tag bookmarks. Use operation parameter.",
+            "Create, update, or delete bookmarks. Use operation parameter.",
             {
-                operation: z.enum(["create", "update", "delete", "move", "tag_add", "tag_remove"]),
-                ids: z.array(z.number()).optional(),
+                operation: z.enum(["create", "update", "delete"]),
+                id: z.number().optional(),
                 collectionId: z.number().optional(),
                 url: z.string().url().optional(),
                 title: z.string().optional(),
@@ -137,15 +175,44 @@ export class RaindropMCPService {
                 data: z.any().optional()
             },
             {
-                result: z.any(), // TODO: Replace with actual result type
+                result: z.any(),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement bookmark create/update/delete/move/tag
+                let result = null;
+                switch (args.operation) {
+                    case "create":
+                        if (!args.collectionId) throw new Error("collectionId is required for create");
+                        result = await this.raindropService.createBookmark(args.collectionId, {
+                            link: args.url,
+                            title: args.title,
+                            excerpt: args.description,
+                            tags: args.tags,
+                            important: args.important
+                        });
+                        break;
+                    case "update":
+                        if (!args.id) throw new Error("id is required for update");
+                        result = await this.raindropService.updateBookmark(args.id, {
+                            link: args.url,
+                            title: args.title,
+                            excerpt: args.description,
+                            tags: args.tags,
+                            important: args.important
+                        });
+                        break;
+                    case "delete":
+                        if (!args.id) throw new Error("id is required for delete");
+                        await this.raindropService.deleteBookmark(args.id);
+                        result = { deleted: true };
+                        break;
+                    default:
+                        throw new Error("Unsupported operation for bookmark_manage");
+                }
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ result: null }, null, 2),
+                            text: JSON.stringify({ result: result ? this.mapBookmarks([result])[0] : null }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -158,21 +225,37 @@ export class RaindropMCPService {
             "tag_manage",
             "Rename, merge, or delete tags. Use operation parameter.",
             {
-                operation: z.enum(["rename", "merge", "delete", "delete_multiple"]),
+                operation: z.enum(["rename", "merge", "delete"]),
                 tagNames: z.array(z.string()).optional(),
                 newName: z.string().optional(),
                 collectionId: z.number().optional()
             },
             {
-                result: z.any(), // TODO: Replace with actual result type
+                result: z.any(),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement tag rename/merge/delete
+                let result = null;
+                switch (args.operation) {
+                    case "rename":
+                        if (!args.tagNames || !args.newName) throw new Error("tagNames and newName required for rename");
+                        result = await this.raindropService.renameTag(args.collectionId, args.tagNames[0], args.newName);
+                        break;
+                    case "merge":
+                        if (!args.tagNames || !args.newName) throw new Error("tagNames and newName required for merge");
+                        result = await this.raindropService.mergeTags(args.collectionId, args.tagNames, args.newName);
+                        break;
+                    case "delete":
+                        if (!args.tagNames) throw new Error("tagNames required for delete");
+                        result = await this.raindropService.deleteTags(args.collectionId, args.tagNames);
+                        break;
+                    default:
+                        throw new Error("Unsupported operation for tag_manage");
+                }
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ result: null }, null, 2),
+                            text: JSON.stringify({ result }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -193,15 +276,40 @@ export class RaindropMCPService {
                 color: z.string().optional()
             },
             {
-                result: z.any(), // TODO: Replace with actual result type
+                result: z.any(),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement highlight create/update/delete
+                let result = null;
+                switch (args.operation) {
+                    case "create":
+                        if (!args.bookmarkId || !args.text) throw new Error("bookmarkId and text required for create");
+                        result = await this.raindropService.createHighlight(args.bookmarkId, {
+                            text: args.text,
+                            note: args.note,
+                            color: args.color
+                        });
+                        break;
+                    case "update":
+                        if (!args.id) throw new Error("id required for update");
+                        result = await this.raindropService.updateHighlight(args.id, {
+                            text: args.text,
+                            note: args.note,
+                            color: args.color
+                        });
+                        break;
+                    case "delete":
+                        if (!args.id) throw new Error("id required for delete");
+                        await this.raindropService.deleteHighlight(args.id);
+                        result = { deleted: true };
+                        break;
+                    default:
+                        throw new Error("Unsupported operation for highlight_manage");
+                }
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ result: null }, null, 2),
+                            text: JSON.stringify({ result: result ? this.mapHighlights([result])[0] : null }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -215,15 +323,15 @@ export class RaindropMCPService {
             "Get user account information including name, email, subscription status, and registration date.",
             {},
             {
-                profile: z.any(), // TODO: Replace with actual profile type
+                profile: z.any(),
             },
             this.asyncHandler(async (_args, _extra) => {
-                // TODO: Implement user profile fetch
+                // No getUserProfile in RaindropService, return error
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ profile: null }, null, 2),
+                            text: JSON.stringify({ error: "Not implemented: user_profile" }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -238,15 +346,20 @@ export class RaindropMCPService {
                 collectionId: z.number().optional()
             },
             {
-                stats: z.any(), // TODO: Replace with actual stats type
+                stats: z.any(),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement user/collection statistics fetch
+                let stats = null;
+                if (args.collectionId) {
+                    stats = await this.raindropService.getCollectionStats(args.collectionId);
+                } else {
+                    stats = await this.raindropService.getUserStats();
+                }
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ stats: null }, null, 2),
+                            text: JSON.stringify({ stats }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -266,15 +379,25 @@ export class RaindropMCPService {
                 includeDuplicates: z.boolean().optional().default(false)
             },
             {
-                result: z.any(), // TODO: Replace with actual result type
+                result: z.any(),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement import/export logic
+                let result = null;
+                if (args.operation === "import_status") {
+                    result = await this.raindropService.getImportStatus();
+                } else if (args.operation === "export_bookmarks") {
+                    result = await this.raindropService.exportBookmarks({
+                        collection: args.collectionId,
+                        format: args.format,
+                        broken: args.includeBroken,
+                        duplicates: args.includeDuplicates
+                    });
+                }
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ result: null }, null, 2),
+                            text: JSON.stringify({ result }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -290,15 +413,15 @@ export class RaindropMCPService {
                 includeEnvironment: z.boolean().optional().default(false)
             },
             {
-                diagnostics: z.any(), // TODO: Replace with actual diagnostics type
+                diagnostics: z.any(),
             },
             this.asyncHandler(async (args, _extra) => {
-                // TODO: Implement diagnostics
+                // No getDiagnostics in RaindropService, return error
                 return {
                     content: [
                         ({
                             type: "text",
-                            text: JSON.stringify({ diagnostics: null }, null, 2),
+                            text: JSON.stringify({ error: "Not implemented: diagnostics" }, null, 2),
                             _meta: {},
                         } as any),
                     ],
@@ -307,7 +430,76 @@ export class RaindropMCPService {
         );
     }
 
+
     // Helper methods (mapCollections, mapBookmarks, mapTags, mapHighlights, requestConfirmation, cleanup, getMimeTypeFromUrl)
-    // ...implementations go here...
+
+    /**
+     * Maps Raindrop API collections to MCP-friendly format.
+     * @param collections Raw collections from Raindrop API
+     */
+    private mapCollections(collections: any[]): any[] {
+        // TODO: Replace with actual mapping logic and types
+        return collections.map((col) => ({
+            id: col._id || col.id,
+            title: col.title,
+            description: col.description,
+            count: col.count,
+            parentId: col.parent?.$id || col.parentId,
+            color: col.color,
+            created: col.created,
+            lastUpdate: col.lastUpdate,
+            expanded: col.expanded,
+            access: col.access,
+            // ...add more fields as needed
+        }));
+    }
+
+    /**
+     * Maps Raindrop API bookmarks to MCP-friendly format.
+     */
+    private mapBookmarks(bookmarks: any[]): any[] {
+        // TODO: Replace with actual mapping logic and types
+        return bookmarks.map((bm) => ({
+            id: bm._id || bm.id,
+            title: bm.title,
+            url: bm.link || bm.url,
+            excerpt: bm.excerpt,
+            tags: bm.tags,
+            created: bm.created,
+            lastUpdate: bm.lastUpdate,
+            important: bm.important,
+            collectionId: bm.collection?.$id || bm.collectionId,
+            // ...add more fields as needed
+        }));
+    }
+
+    /**
+     * Maps Raindrop API tags to MCP-friendly format.
+     */
+    private mapTags(tags: any[]): any[] {
+        // TODO: Replace with actual mapping logic and types
+        return tags.map((tag) => ({
+            name: tag.name || tag,
+            count: tag.count,
+            // ...add more fields as needed
+        }));
+    }
+
+    /**
+     * Maps Raindrop API highlights to MCP-friendly format.
+     */
+    private mapHighlights(highlights: any[]): any[] {
+        // TODO: Replace with actual mapping logic and types
+        return highlights.map((hl) => ({
+            id: hl._id || hl.id,
+            text: hl.text,
+            note: hl.note,
+            color: hl.color,
+            created: hl.created,
+            lastUpdate: hl.lastUpdate,
+            bookmarkId: hl.bookmarkId,
+            // ...add more fields as needed
+        }));
+    }
 }
 
