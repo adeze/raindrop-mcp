@@ -2,15 +2,6 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "typescript",
-      "tsconfig": "tsconfig.json",
-      "problemMatcher": ["$tsc"],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
       "label": "Start HTTP Server (Development)",
       "type": "shell",
       "command": "bun",
@@ -57,152 +48,25 @@
       "label": "Run All Tests",
       "type": "shell",
       "command": "bun",
-      "args": ["run", "tests/index.test.ts"],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "envFile": "${workspaceFolder}/.env"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Server Tests",
-      "type": "shell",
-      "command": "bun",
-      "args": ["run", "tests/test-server.ts"],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "envFile": "${workspaceFolder}/.env"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Unit Tests",
-      "type": "shell",
-      "command": "bun",
       "args": ["test"],
       "group": "test",
       "options": {
         "cwd": "${workspaceFolder}",
         "envFile": "${workspaceFolder}/.env"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Unit Tests with Coverage",
-      "type": "shell",
-      "command": "bun",
-      "args": ["test", "--coverage"],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "envFile": "${workspaceFolder}/.env"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Watch Unit Tests",
-      "type": "shell",
-      "command": "bun",
-      "args": ["test", "--watch"],
-      "group": "test",
-      "isBackground": true,
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": false,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": true
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Test Coverage Report",
-      "type": "shell",
-      "command": "bun",
-      "args": ["test", "--coverage", "--coverage-reporter=html"],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
+      }
     },
 
     // MCP Inspector Tasks
+
     {
       "label": "Debug HTTP Server with Inspector",
-      "type": "shell",
-      "command": "npx",
-      "args": ["@modelcontextprotocol/inspector", "http://localhost:3002/mcp"],
-      "group": "test",
-      "isBackground": true,
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": false,
-        "echo": true,
-        "focus": false,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": true
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Debug Original HTTP Server with Inspector",
       "type": "shell",
       "command": "npx",
       "args": [
         "@modelcontextprotocol/inspector",
         "bun",
         "run",
-        "src/http-server.ts"
+        "src/server.ts"
       ],
       "group": "test",
       "isBackground": true,
@@ -220,7 +84,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Debug STDIO Server with Inspector",
+      "label": "Launch STDIO Server with Inspector",
       "type": "shell",
       "command": "npx",
       "args": ["@modelcontextprotocol/inspector", "bun", "run", "src/index.ts"],
@@ -241,6 +105,15 @@
     },
     // Build Tasks
     {
+      "type": "typescript",
+      "tsconfig": "tsconfig.json",
+      "problemMatcher": ["$tsc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
       "label": "Build Project",
       "type": "shell",
       "command": "bun",
@@ -249,13 +122,16 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Build DXT",
+      "type": "shell",
+      "command": "bun",
+      "args": ["run", "dxt:pack"],
+      "group": "build",
+      "options": {
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": ["$tsc"]
     },
@@ -268,14 +144,6 @@
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": true,
-        "panel": "shared",
-        "reveal": "always",
-        "showReuseMessage": false
-      },
       "problemMatcher": ["$tsc"]
     },
     // Utility Tasks
@@ -287,42 +155,7 @@
       "group": "build",
       "options": {
         "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": true,
-        "echo": true,
-        "focus": false,
-        "panel": "shared",
-        "reveal": "silent",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Terminate All Tasks",
-      "type": "shell",
-      "command": "echo",
-      "args": ["Terminating all tasks..."],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "clear": false,
-        "echo": false,
-        "focus": false,
-        "panel": "shared",
-        "reveal": "never",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    }
-  ],
-  "inputs": [
-    {
-      "id": "terminate",
-      "type": "command",
-      "command": "workbench.action.tasks.terminate",
-      "args": "terminateAll"
+      }
     }
   ]
 }

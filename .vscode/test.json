@@ -14,18 +14,6 @@
             "env": {
                 "NODE_ENV": "test"
             }
-        },
-        {
-            "name": "MCP Service Tests",
-            "type": "bun",
-            "request": "launch",
-            "program": "${workspaceFolder}/tests/index.test.ts",
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "NODE_ENV": "test",
-                "TEST_TIMEOUT": "30000"
-            }
         }
     ],
     "testPatterns": [

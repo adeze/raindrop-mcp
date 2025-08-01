@@ -2,81 +2,37 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug STDIO Server with Inspector",
+      "request": "launch",
+      "type": "node",
+      "runtimeExecutable": "npx",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/inspector",
+        "node",
+        "build/index.js"
+      ],
+      "preLaunchTask": "Build Project"
+    },
+    {
+      "name": "Debug HTTP Server with Inspector",
       "type": "node",
       "request": "launch",
-      "name": "Debug stdio ",
-      "program": "${workspaceFolder}/build/cli.js",
-      "envFile": "${workspaceFolder}/.env",
-      "env": {
-        "HTTP_PORT": "3002"
-      },
-      "outFiles": ["${workspaceFolder}/build/**/*.js"]
-    },
-
-    {
-      "type": "bun",
-      "request": "launch",
-      "name": "Debug Current File",
-      "program": "${file}",
-      "args": [],
+      "runtimeExecutable": "npx",
       "cwd": "${workspaceFolder}",
-
-      "env": {},
+      "args": [
+        "-y",
+        "@modelcontextprotocol/inspector",
+        "node",
+        "build/server.js"
+      ],
       "envFile": "${workspaceFolder}/.env",
-      "strictEnv": false,
-      "watchMode": false,
+      "env": {},
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
       "stopOnEntry": false,
-      "noDebug": false,
-      "runtime": "bun",
-      "runtimeArgs": []
-    },
-    {
-      "type": "bun",
-      "request": "launch",
-      "name": "Debug MCP Server (STDIO)",
-      "program": "${workspaceFolder}/src/index.ts",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-
-      "env": {},
-      "envFile": "${workspaceFolder}/.env",
-      "stopOnEntry": false
-    },
-
-    {
-      "type": "bun",
-      "request": "launch",
-      "name": "Debug HTTP Server",
-      "program": "${workspaceFolder}/src/server.ts",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-
-      "env": {},
-      "envFile": "${workspaceFolder}/.env",
-      "stopOnEntry": false
-    },
-    {
-      "type": "bun",
-      "request": "launch",
-      "name": "Run Test Suite",
-      "program": "${workspaceFolder}/tests/index.ts",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-
-      "env": {},
-      "envFile": "${workspaceFolder}/.env",
-      "stopOnEntry": false
-    },
-    {
-      "type": "bun",
-      "request": "launch",
-      "name": "Run Server Tests",
-      "program": "${workspaceFolder}/tests/test-server.ts",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-
-      "env": {},
-      "stopOnEntry": false
+      "preLaunchTask": "Build Project"
     }
   ]
 }

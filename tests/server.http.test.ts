@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const PORT = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 3002;

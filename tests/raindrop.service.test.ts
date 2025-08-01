@@ -1,6 +1,5 @@
 
 
-describe('RaindropService API Integration', () => {
 import { config } from 'dotenv';
 import { describe, expect, it } from 'vitest';
 import RaindropService from '../src/services/raindrop.service.js';

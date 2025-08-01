@@ -15,8 +15,7 @@
       "args": ["build/cli.js"],
       "envFile": "${workspaceFolder}/.env",
       "env": {
-        "RAINDROP_ACCESS_TOKEN": "${input:raindrop-key}",
-        "DANGEROUSLY_OMIT_AUTH": "true"
+        "RAINDROP_ACCESS_TOKEN": "${input:raindrop-key}"
       },
       "dev": {
         "watch": "build/**/*.js",

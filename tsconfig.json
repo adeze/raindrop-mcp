@@ -11,7 +11,7 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "outDir": "build",
-    "rootDir": "src",
+    "rootDir": ".",
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -29,6 +29,6 @@
     // Vitest support
     "types": ["vitest/globals", "node", "bun-types"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules"]
 }

@@ -39,6 +39,7 @@ describe('RaindropMCPService Read-Only Live Tests', () => {
       expect(Array.isArray(collections)).toBe(true);
       if (collections.length > 0) {
         const firstCollection = collections[0];
+        expect(firstCollection).toBeDefined();
         expect(firstCollection._id).toBeDefined();
         expect(firstCollection.title).toBeDefined();
       }
