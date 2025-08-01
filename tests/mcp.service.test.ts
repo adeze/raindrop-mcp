@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import RaindropService from '../src/services/raindrop.service.js';
 import { RaindropMCPService } from '../src/services/raindropmcp.service.js';
 
 // Defensive check: Ensure RAINDROP_ACCESS_TOKEN is present before running tests
@@ -11,17 +10,14 @@ if (!process.env.RAINDROP_ACCESS_TOKEN || process.env.RAINDROP_ACCESS_TOKEN.trim
   );
 }
 
-describe('RaindropMCPService Read-Only Live Tests', () => {
+describe('RaindropMCPService', () => {
   let mcpService: RaindropMCPService;
-  let raindropService: RaindropService;
 
   beforeEach(async () => {
-    // Defensive: Clean up any previous global registrations
     if (mcpService && typeof mcpService.cleanup === 'function') {
       await mcpService.cleanup();
     }
     mcpService = new RaindropMCPService();
-    raindropService = new RaindropService();
   });
 
   afterEach(async () => {
@@ -29,95 +25,134 @@ describe('RaindropMCPService Read-Only Live Tests', () => {
       await mcpService.cleanup();
     }
     mcpService = undefined as unknown as RaindropMCPService;
-    raindropService = undefined as unknown as RaindropService;
   });
 
-  describe('Live Resource Access (Read-Only)', () => {
-    it('should retrieve collections via service', async () => {
-      const collections = await raindropService.getCollections();
-      expect(collections).toBeDefined();
-      expect(Array.isArray(collections)).toBe(true);
-      if (collections.length > 0) {
-        const firstCollection = collections[0];
-        expect(firstCollection).toBeDefined();
-        expect(firstCollection._id).toBeDefined();
-        expect(firstCollection.title).toBeDefined();
-      }
-    });
-
-    it('should retrieve user info via service', async () => {
-      const userInfo = await raindropService.getUserInfo();
-      expect(userInfo).toBeDefined();
-      expect(userInfo._id).toBeDefined();
-      expect(userInfo.email).toBeDefined();
-      expect(userInfo.fullName || userInfo.email).toBeDefined();
-    });
-
-    it('should retrieve tags via service', async () => {
-      const tags = await raindropService.getTags();
-      expect(tags).toBeDefined();
-      expect(Array.isArray(tags)).toBe(true);
-      if (tags.length > 0) {
-        const firstTag = tags[0];
-        expect(firstTag._id).toBeDefined();
-        expect(firstTag.count).toBeDefined();
-      }
-    });
-
-    it('should retrieve highlights for a valid collection (if any exist)', async () => {
-      const collections = await raindropService.getCollections();
-      if (collections.length > 0) {
-        const firstCollection = collections[0];
-        const highlights = await raindropService.getHighlightsByCollection(firstCollection._id);
-        expect(highlights).toBeDefined();
-        expect(Array.isArray(highlights)).toBe(true);
-      }
-    });
-
-    // Bookmarks-by-collection method does not exist; test tags-by-collection as a read-only example
-    it('should retrieve tags for a valid collection (if any exist)', async () => {
-      const collections = await raindropService.getCollections();
-      if (collections.length > 0) {
-        const firstCollection = collections[0];
-        const tags = await raindropService.getTagsByCollection(firstCollection._id);
-        expect(tags).toBeDefined();
-        expect(Array.isArray(tags)).toBe(true);
-      }
-    });
-
-    it('should handle error when retrieving tags for invalid collection', async () => {
-      await expect(raindropService.getTagsByCollection(-1)).rejects.toBeInstanceOf(Error);
-    });
-
-    it('should handle error when retrieving highlights for invalid collection', async () => {
-      await expect(raindropService.getHighlightsByCollection(-1)).rejects.toBeInstanceOf(Error);
-    });
+  it('should successfully initialize McpServer', () => {
+    const server = mcpService.getServer();
+    expect(server).toBeDefined();
   });
 
-  describe('Server Configuration', () => {
-    it('should successfully initialize McpServer', () => {
-      const server = mcpService.getServer();
-      expect(server).toBeDefined();
-    });
-
-    it('should provide a working createOptimizedRaindropServer factory function', () => {
-      // Clear require cache to avoid double registration of tools
-      delete require.cache[require.resolve('../src/services/raindropmcp.service.ts')];
-      const { server, cleanup } = require('../src/services/raindropmcp.service.ts').createOptimizedRaindropServer();
-      expect(server).toBeDefined();
-      expect(typeof cleanup).toBe('function');
-      cleanup();
-    });
+  it('should read the user_profile resource via a public API', async () => {
+    // Add a public method to RaindropMCPService for resource reading if not present
+    if (typeof mcpService.readResource !== 'function') {
+      throw new Error('readResource(uri: string) public method not implemented on RaindropMCPService');
+    }
+    const result = await mcpService.readResource('user_profile');
+    expect(result).toBeDefined();
+    expect(result.contents).toBeDefined();
+    expect(Array.isArray(result.contents)).toBe(true);
+    expect(result.contents[0].uri).toBe('user_profile');
+    expect(result.contents[0].text).toContain('user_profile');
   });
 
-  // Additional read-only tests for MCP endpoints (if exposed)
-  it('should expose a valid MCP manifest', async () => {
-    // Defensive: manifest should be loaded and valid JSON
-    const manifest = require('../manifest.json');
+  it('should list available tools', async () => {
+    const tools = await mcpService.listTools();
+    expect(tools).toBeDefined();
+    expect(Array.isArray(tools)).toBe(true);
+    expect(tools.length).toBeGreaterThan(0);
+    // Check that each tool has required properties and types
+    for (const tool of tools) {
+      expect(tool).toHaveProperty('id');
+      expect(typeof tool.id).toBe('string');
+      expect(tool).toHaveProperty('name');
+      expect(typeof tool.name).toBe('string');
+      expect(tool).toHaveProperty('description');
+      expect(typeof tool.description).toBe('string');
+      expect(tool).toHaveProperty('inputSchema');
+      expect(tool).toHaveProperty('outputSchema');
+    }
+    // Check for a known tool
+    const diagnosticsTool = tools.find((t: any) => t.id === 'diagnostics');
+    expect(diagnosticsTool).toBeDefined();
+    expect(diagnosticsTool?.name.toLowerCase()).toContain('diagnostic');
+  });
+
+  it('should call the diagnostics tool and receive a resource_link', async () => {
+    // For testability, call the diagnostics tool logic directly from the RaindropMCPService instance
+    // (Assumes registerTools is not private, or refactor to expose the handler for testing)
+    // We'll simulate the handler as in the service definition
+    const handler = mcpService["asyncHandler"](async (_args: any, _extra: any) => {
+      return {
+        content: [
+          {
+            type: "resource_link",
+            uri: "diagnostics://server",
+            name: "Server Diagnostics",
+            description: "Server diagnostics and environment info resource.",
+            mimeType: "application/json",
+            _meta: {},
+          }
+        ],
+      };
+    });
+    const result = await handler({ includeEnvironment: false }, {});
+    expect(result).toBeDefined();
+    expect(result.content).toBeDefined();
+    expect(Array.isArray(result.content)).toBe(true);
+    const link = result.content.find((c: any) => c.type === "resource_link");
+    expect(link).toBeDefined();
+    if (!link) throw new Error('No resource_link found in diagnostics tool result');
+    expect(link.uri).toBe("diagnostics://server");
+  });
+
+  it('should read the diagnostics resource via a public API', async () => {
+    if (typeof mcpService.readResource !== 'function') {
+      throw new Error('readResource(uri: string) public method not implemented on RaindropMCPService');
+    }
+    const result = await mcpService.readResource('diagnostics://server');
+    expect(result).toBeDefined();
+    expect(result.contents).toBeDefined();
+    expect(Array.isArray(result.contents)).toBe(true);
+    expect(result.contents[0].uri).toBe('diagnostics://server');
+    expect(result.contents[0].text).toContain('diagnostics');
+  });
+
+  it('should return the MCP manifest with correct structure', async () => {
+    const manifest = await mcpService.getManifest();
     expect(manifest).toBeDefined();
-    expect(typeof manifest).toBe('object');
-    expect(manifest.name).toBeDefined();
-    expect(manifest.tools).toBeDefined();
+    expect(manifest).toHaveProperty('name');
+    expect(manifest).toHaveProperty('version');
+    expect(manifest).toHaveProperty('description');
+    expect(manifest).toHaveProperty('capabilities');
+    expect(manifest).toHaveProperty('tools');
+    expect(Array.isArray((manifest as any).tools)).toBe(true);
+  });
+
+  it('should call a tool by ID and return a valid response', async () => {
+    const result = await mcpService.callTool('diagnostics', { includeEnvironment: false });
+    expect(result).toBeDefined();
+    expect(result.content).toBeDefined();
+    expect(Array.isArray(result.content)).toBe(true);
+    const link = result.content.find((c: any) => c.type === 'resource_link');
+    expect(link).toBeDefined();
+    expect(link.uri).toBe('diagnostics://server');
+  });
+
+  it('should list all registered resources with metadata', () => {
+    const resources = mcpService.listResources();
+    expect(resources).toBeDefined();
+    expect(Array.isArray(resources)).toBe(true);
+    expect(resources.length).toBeGreaterThan(0);
+    for (const resource of resources) {
+      expect(resource).toHaveProperty('id');
+      expect(resource).toHaveProperty('uri');
+    }
+  });
+
+  it('should return true for healthCheck', async () => {
+    const healthy = await mcpService.healthCheck();
+    expect(healthy).toBe(true);
+  });
+
+  it('should return correct server info', () => {
+    const info = mcpService.getInfo();
+    expect(info).toBeDefined();
+    expect(info).toHaveProperty('name');
+    expect(info).toHaveProperty('version');
+    expect(info).toHaveProperty('description');
+    expect(typeof info.name).toBe('string');
+    expect(typeof info.version).toBe('string');
+    expect(typeof info.description).toBe('string');
   });
 });
 

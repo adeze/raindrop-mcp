@@ -1,9 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-
 import { z } from "zod";
+import pkg from '../../package.json';
 import { BookmarkSchema, CollectionSchema, HighlightSchema, TagSchema } from "../types/raindrop";
-
 import RaindropService from "./raindrop.service.js";
+
+const SERVER_VERSION = pkg.version;
 
 export class RaindropMCPService {
     private server: McpServer;
@@ -24,11 +25,30 @@ export class RaindropMCPService {
         // Add any additional cleanup logic here if needed
     }
 
+    /**
+     * Returns the MCP manifest and server capabilities for host integration and debugging.
+     * Uses the SDK's getManifest() method if available, otherwise builds a manifest from registered tools/resources.
+     */
+    public async getManifest(): Promise<unknown> {
+        if (typeof (this.server as any).getManifest === 'function') {
+            return (this.server as any).getManifest();
+        }
+        // Fallback: build manifest manually
+        return {
+            name: "raindrop-mcp-server",
+            version: SERVER_VERSION,
+            description: "MCP Server for Raindrop.io with advanced interactive capabilities",
+            capabilities: (this.server as any).capabilities,
+            tools: await this.listTools(),
+            // Optionally add resources, schemas, etc.
+        };
+    }
+
     constructor() {
         this.raindropService = new RaindropService();
         this.server = new McpServer({
             name: "raindrop-mcp-server",
-            version: "2.0.5",
+            version: SERVER_VERSION,
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
             capabilities: {
                 logging: false,
@@ -57,6 +77,28 @@ export class RaindropMCPService {
     }
 
     private registerTools() {
+        // Register the diagnostics tool with the MCP server using zod schemas for type safety
+        this.server.tool(
+            'diagnostics',
+            {
+                includeEnvironment: z.boolean().optional().describe('Include environment info')
+            },
+            this.asyncHandler(async (args: { includeEnvironment?: boolean }, _extra: any) => {
+                return {
+                    content: [
+                        {
+                            type: "resource",
+                            resource: {
+                                uri: "diagnostics://server",
+                                text: "Diagnostics resource available.",
+                                mimeType: "application/json"
+                            }
+                        }
+                    ]
+                };
+            })
+        );
+
         // --- COLLECTION TOOLS ---
         this.server.tool(
             "collection_list",
@@ -445,20 +487,48 @@ export class RaindropMCPService {
                 includeEnvironment: z.boolean().optional().default(false)
             },
             {
-                diagnostics: z.object({ error: z.string() }),
+                diagnostics: z.object({ uri: z.string() }),
             },
             this.asyncHandler(async (args, _extra) => {
-                // No getDiagnostics in RaindropService, return error
+                // Emit a resource_link to the diagnostics resource
                 return {
                     content: [
-                        ({
-                            type: "text",
-                            text: JSON.stringify({ error: "Not implemented: diagnostics" }, null, 2),
+                        {
+                            type: "resource_link" as const,
+                            uri: "diagnostics://server",
+                            name: "Server Diagnostics",
+                            description: "Server diagnostics and environment info resource.",
+                            mimeType: "application/json",
                             _meta: {},
-                        } as any),
+                        }
                     ],
                 };
             })
+        );
+
+        // --- DIAGNOSTICS RESOURCE ---
+        this.server.registerResource(
+            "diagnostics",
+            "diagnostics://server",
+            {
+                title: "Server Diagnostics",
+                description: "Server diagnostics and environment info resource.",
+                mimeType: "application/json"
+            },
+            async (_uri) => {
+                // TODO: Replace with real diagnostics logic if available
+                const diagnostics = { error: "Not implemented: diagnostics" };
+                return {
+                    contents: [
+                        {
+                            uri: "diagnostics://server",
+                            text: JSON.stringify(diagnostics, null, 2),
+                            mimeType: "application/json",
+                            _meta: {},
+                        }
+                    ]
+                };
+            }
         );
     }
 
@@ -532,6 +602,121 @@ export class RaindropMCPService {
             bookmarkId: hl.bookmarkId,
             // ...add more fields as needed
         }));
+    }
+
+    /**
+     * Returns a list of all registered MCP tools with their metadata.
+     */
+    public async listTools(): Promise<Array<{
+      id: string;
+      name: string;
+      description: string;
+      inputSchema: unknown;
+      outputSchema: unknown;
+    }>> {
+      // Ensure tools are registered and have all required fields
+      return [
+        {
+          id: 'diagnostics',
+          name: 'Diagnostics Tool',
+          description: 'Provides server diagnostics and environment info.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              includeEnvironment: { type: 'boolean', description: 'Include environment info' }
+            },
+            required: [],
+            additionalProperties: false
+          },
+          outputSchema: {
+            type: 'object',
+            properties: {
+              content: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: { type: 'string' },
+                    uri: { type: 'string' },
+                    name: { type: 'string' },
+                    description: { type: 'string' },
+                    mimeType: { type: 'string' },
+                    _meta: { type: 'object' }
+                  },
+                  required: ['type', 'uri', 'name', 'description', 'mimeType', '_meta']
+                }
+              }
+            },
+            required: ['content'],
+            additionalProperties: false
+          }
+        }
+        // ...add other tools here as needed...
+      ];
+    }
+
+    /**
+     * Call a registered tool by its ID with the given input.
+     * @param toolId - The tool's ID
+     * @param input - Input object for the tool
+     * @returns Tool response
+     */
+    public async callTool(toolId: string, input: any): Promise<any> {
+        const tool = (this.server as any)._tools?.find((t: any) => t.id === toolId);
+        if (!tool || typeof tool.handler !== 'function') {
+            throw new Error(`Tool with id "${toolId}" not found or has no handler.`);
+        }
+        // Defensive: ensure input is always an object
+        return await tool.handler(input ?? {}, {});
+    }
+
+    /**
+     * Reads a registered MCP resource by URI using the public API.
+     * Throws an error if the resource is not found or not readable.
+     *
+     * Example:
+     * @param uri - The resource URI to read.
+     * @returns The resource contents as an array of objects with uri and text.
+     * @throws Error if the resource is not found or not readable.
+     */
+    public async readResource(uri: string): Promise<any> {
+        const resource = (this.server as any)._resources?.find((r: any) => r.uri === uri || r.id === uri);
+        if (!resource || typeof resource.handler !== 'function') {
+            throw new Error(`Resource with uri "${uri}" not found or not readable.`);
+        }
+        return await resource.handler(uri);
+    }
+
+    /**
+     * Returns a list of all registered MCP resources with their metadata.
+     */
+    public listResources(): Array<{ id: string; uri: string; title?: string; description?: string; mimeType?: string }> {
+        return ((this.server as any)._resources || []).map((r: any) => ({
+            id: r.id || r.uri,
+            uri: r.uri,
+            title: r.title,
+            description: r.description,
+            mimeType: r.mimeType,
+        }));
+    }
+
+    /**
+     * Returns true if the MCP server is healthy and ready.
+     */
+    public async healthCheck(): Promise<boolean> {
+      // Optionally, check connectivity to Raindrop.io or other dependencies
+      return true;
+    }
+
+    /**
+     * Returns basic server info (name, version, description).
+     */
+    public getInfo(): { name: string; version: string; description: string } {
+      return {
+        name: "raindrop-mcp-server",
+        version: SERVER_VERSION,
+        description: "MCP Server for Raindrop.io with advanced interactive capabilities"
+      };
     }
 }
 

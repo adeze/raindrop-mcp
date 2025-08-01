@@ -1,7 +1,6 @@
 ---
-
----title: MCP Refactor Prompt
----description: Refactor Raindrop MCP tools for better LLM integration and usability.
+description: Refactor Raindrop MCP tools for better LLM integration and usability.
+---
 
 1. Capabilities: Resources, Sampling, Elicitation
    a. Resources

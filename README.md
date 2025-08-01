@@ -80,6 +80,35 @@ npx @adeze/raindrop-mcp
     bun start
     ```
 
+
+## Inspector CLI & VS Code Integration
+
+This project is designed for seamless debugging and protocol inspection using the [MCP Inspector CLI](https://github.com/modelcontextprotocol/inspector). For full instructions and best practices, see [`./github/prompts/inspector.prompt.md`](.github/prompts/inspector.prompt.md).
+
+### MCP Inspector CLI Usage
+
+- **List available tools:**
+  ```bash
+  npx -y @modelcontextprotocol/inspector --cli node build/index.js --method tools/list
+  ```
+- **Send protocol requests (e.g., ping):**
+  ```bash
+  npx -y @modelcontextprotocol/inspector --cli node build/index.js --method ping
+  ```
+- **Debug with Inspector:**
+  - For STDIO server:
+    ```bash
+    npx -y @modelcontextprotocol/inspector node build/index.js
+    ```
+  - For HTTP server:
+    ```bash
+    npx -y @modelcontextprotocol/inspector node build/server.js
+    ```
+
+You can automate these flows in VS Code using launch configurations and tasks. See the prompt file for more advanced scenarios and flags.
+
+---
+
 The server uses standard input/output (stdio) for communication by default, listening for requests on stdin and sending responses to stdout.
 
 ## Usage with MCP Clients

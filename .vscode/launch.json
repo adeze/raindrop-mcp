@@ -11,9 +11,11 @@
         "-y",
         "@modelcontextprotocol/inspector",
         "node",
-        "build/index.js"
+        "--inspect-brk",
+        "build/cli.js"
       ],
-      "preLaunchTask": "Build Project"
+      "preLaunchTask": "Build Project",
+      "console": "integratedTerminal"
     },
     {
       "name": "Debug HTTP Server with Inspector",
