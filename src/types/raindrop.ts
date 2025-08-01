@@ -255,10 +255,15 @@ export type SearchParams = {
   search?: string;
   collection?: number;
   tags?: string[];
+  tag?: string; // Added for single tag filtering
   page?: number;
   perPage?: number;
   sort?: string;
   important?: boolean;
+  duplicates?: boolean; // Added
+  broken?: boolean; // Added
+  highlight?: boolean; // Added
+  domain?: string; // Added
   media?: 'image' | 'video' | 'document' | 'audio';
   word?: string;
   pleaseParse?: boolean;

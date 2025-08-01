@@ -21,7 +21,7 @@ describe('HTTP Server Entrypoint (src/server.ts)', () => {
   it('responds to /health with healthy status and session info', async () => {
     const res = await fetch(`${BASE_URL}/health`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.status).toBe('healthy');
     expect(body.service).toContain('raindrop-mcp');
     expect(typeof body.activeSessions).toBe('number');
@@ -32,7 +32,7 @@ describe('HTTP Server Entrypoint (src/server.ts)', () => {
   it('responds to / with documentation and endpoint info', async () => {
     const res = await fetch(`${BASE_URL}/`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.name).toContain('Raindrop MCP');
     expect(body.endpoints).toBeDefined();
     expect(body.optimizations).toBeDefined();
@@ -46,7 +46,7 @@ describe('HTTP Server Entrypoint (src/server.ts)', () => {
       body: JSON.stringify({ foo: 'bar' })
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBeDefined();
     expect(body.error.message).toContain('Bad Request');
   });

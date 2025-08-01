@@ -12,8 +12,10 @@
       "mcp__context7__get-library-docs",
       "Bash(bun run:*)",
       "Bash(find:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "WebFetch(domain:developer.raindrop.io)"
     ],
     "deny": []
-  }
+  },
+  "$schema": "https://json.schemastore.org/claude-code-settings.json"
 }
