@@ -78,6 +78,7 @@
         "@types/express": "^5.0.3",
         "@types/node": "^24.1.0",
         "@vitest/coverage-v8": "^3.2.4",
+        "node-fetch": "^3.3.2",
         "typescript": "^5.9.2",
         "vitest": "^3.2.4"
     },

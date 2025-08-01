@@ -6,21 +6,13 @@ config();
  // config({ path: '../.env' });
 describe('.env configuration', () => {
   it('should load RAINDROP_ACCESS_TOKEN from environment variables and emit its value', () => {
- 
     const accessToken = process.env.RAINDROP_ACCESS_TOKEN;
-
-    // Defensive checks
-    expect(accessToken).toBeTypeOf('string');
+    // Defensive checks for type safety and presence
+    expect(typeof accessToken).toBe('string');
+    expect(accessToken).toBeDefined();
     expect(accessToken).not.toBe('');
-    expect(accessToken).not.toBeNull();
-    expect(accessToken).not.toBeUndefined();
-
     // Emit the value for debugging (write to stderr to avoid interfering with MCP protocol)
-   // Always emit the value for debugging (safe for MCP protocol)
-  
-      process.stderr.write(`RAINDROP_ACCESS_TOKEN value: ${accessToken}\n`);
-    
-    expect(accessToken, `RAINDROP_ACCESS_TOKEN value: ${accessToken}`).toBeDefined();
+    process.stderr.write(`RAINDROP_ACCESS_TOKEN value: ${accessToken}\n`);
   });
 });
 
@@ -32,10 +24,14 @@ describe('MCP Server Entrypoint', () => {
   });
 
   it('handles errors in main()', async () => {
+    let errorCaught = false;
     try {
       await main();
     } catch (err) {
+      errorCaught = true;
       expect(err).toBeInstanceOf(Error);
     }
+    // Optionally assert that error was actually thrown if main() is expected to throw
+    // expect(errorCaught).toBe(true);
   });
 });
