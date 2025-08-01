@@ -39,24 +39,86 @@ export class RaindropMCPService {
     }
 
     private registerTools() {
-      
+        // --- COLLECTION TOOLS ---
+        this.server.tool(
+            "collection_list",
+            "List all Raindrop collections for the authenticated user.",
+            {
+                limit: z.number().optional().describe("Maximum number of collections to return"),
+                offset: z.number().optional().describe("Offset for pagination")
+            },
+            {
+                collections: z.array(z.any()), // TODO: Replace with actual collection type
+            },
+            this.asyncHandler(async (args: { limit?: number; offset?: number }, _extra) => {
+                // TODO: Implement actual logic
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ collections: [] }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
+            })
+        );
+
+        this.server.tool(
+            "collection_manage",
+            "Create, update, or delete a collection. Use operation parameter.",
+            {
+                operation: z.enum(["create", "update", "delete"]),
+                id: z.number().optional(),
+                title: z.string().optional(),
+                parentId: z.number().optional(),
+                color: z.string().optional(),
+                description: z.string().optional()
+            },
+            {
+                result: z.any(), // TODO: Replace with actual result type
+            },
+            this.asyncHandler(async (args, _extra) => {
+                // TODO: Implement collection create/update/delete
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ result: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
+            })
+        );
 
         // --- BOOKMARK TOOLS ---
         this.server.tool(
             "bookmark_search",
             "Search bookmarks with advanced filters, tags, and full-text. Supports resource URIs, pagination, and sampling.",
             {
-                query: z.string().optional().describe("Search query (title, description, content, URL)"),
-                collectionId: z.number().optional().describe("Limit search to collection ID"),
-                tags: z.array(z.string()).optional().describe("Filter by tags"),
-                important: z.boolean().optional().describe("Only show important/starred bookmarks"),
-                limit: z.number().min(1).max(100).optional().default(25).describe("Max results per page (default 25)"),
-                offset: z.number().min(0).optional().default(0).describe("Offset for pagination (default 0)"),
-                sample: z.number().min(1).max(100).optional().describe("Return a random sample of bookmarks (overrides limit/offset)")
+                query: z.string().optional(),
+                collectionId: z.number().optional(),
+                tags: z.array(z.string()).optional(),
+                important: z.boolean().optional(),
+                limit: z.number().min(1).max(100).optional().default(25),
+                offset: z.number().min(0).optional().default(0),
+                sample: z.number().min(1).max(100).optional()
             },
-            this.asyncHandler(async (params) => {
+            {
+                bookmarks: z.array(z.any()), // TODO: Replace with actual bookmark type
+            },
+            this.asyncHandler(async (args, _extra) => {
                 // TODO: Implement bookmark search with sampling
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ bookmarks: [] }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
 
@@ -64,19 +126,30 @@ export class RaindropMCPService {
             "bookmark_manage",
             "Create, update, delete, move, or tag bookmarks. Use operation parameter.",
             {
-                operation: z.enum(["create", "update", "delete", "move", "tag_add", "tag_remove"]).describe("Operation to perform"),
-                ids: z.array(z.number()).optional().describe("Bookmark IDs (required for update/delete/move/tag)"),
-                collectionId: z.number().optional().describe("Target collection ID (for create/move)"),
-                url: z.string().url().optional().describe("Bookmark URL (for create)"),
-                title: z.string().optional().describe("Bookmark title (for create/update)"),
-                description: z.string().optional().describe("Bookmark description/notes (for create/update)"),
-                tags: z.array(z.string()).optional().describe("Tags to set/add/remove"),
-                important: z.boolean().optional().describe("Mark as important/starred (for create/update)"),
-                data: z.any().optional().describe("Additional bookmark data (for advanced operations)")
+                operation: z.enum(["create", "update", "delete", "move", "tag_add", "tag_remove"]),
+                ids: z.array(z.number()).optional(),
+                collectionId: z.number().optional(),
+                url: z.string().url().optional(),
+                title: z.string().optional(),
+                description: z.string().optional(),
+                tags: z.array(z.string()).optional(),
+                important: z.boolean().optional(),
+                data: z.any().optional()
             },
-            this.asyncHandler(async (params) => {
+            {
+                result: z.any(), // TODO: Replace with actual result type
+            },
+            this.asyncHandler(async (args, _extra) => {
                 // TODO: Implement bookmark create/update/delete/move/tag
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ result: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
 
@@ -85,14 +158,25 @@ export class RaindropMCPService {
             "tag_manage",
             "Rename, merge, or delete tags. Use operation parameter.",
             {
-                operation: z.enum(["rename", "merge", "delete", "delete_multiple"]).describe("Tag management operation"),
-                tagNames: z.array(z.string()).optional().describe("Tags to delete/merge (required for delete/merge)"),
-                newName: z.string().optional().describe("New tag name (for rename/merge)"),
-                collectionId: z.number().optional().describe("Collection ID to scope operation (optional)")
+                operation: z.enum(["rename", "merge", "delete", "delete_multiple"]),
+                tagNames: z.array(z.string()).optional(),
+                newName: z.string().optional(),
+                collectionId: z.number().optional()
             },
-            this.asyncHandler(async (params) => {
+            {
+                result: z.any(), // TODO: Replace with actual result type
+            },
+            this.asyncHandler(async (args, _extra) => {
                 // TODO: Implement tag rename/merge/delete
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ result: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
 
@@ -101,16 +185,27 @@ export class RaindropMCPService {
             "highlight_manage",
             "Create, update, or delete highlights. Use operation parameter.",
             {
-                operation: z.enum(["create", "update", "delete"]).describe("Highlight operation"),
-                id: z.number().optional().describe("Highlight ID (for update/delete)"),
-                bookmarkId: z.number().optional().describe("Bookmark ID (for create)"),
-                text: z.string().optional().describe("Highlight text (for create/update)"),
-                note: z.string().optional().describe("Highlight note/comment (for create/update)"),
-                color: z.string().optional().describe("Highlight color (for create/update)")
+                operation: z.enum(["create", "update", "delete"]),
+                id: z.number().optional(),
+                bookmarkId: z.number().optional(),
+                text: z.string().optional(),
+                note: z.string().optional(),
+                color: z.string().optional()
             },
-            this.asyncHandler(async (params) => {
+            {
+                result: z.any(), // TODO: Replace with actual result type
+            },
+            this.asyncHandler(async (args, _extra) => {
                 // TODO: Implement highlight create/update/delete
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ result: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
 
@@ -119,9 +214,20 @@ export class RaindropMCPService {
             "user_profile",
             "Get user account information including name, email, subscription status, and registration date.",
             {},
-            this.asyncHandler(async () => {
+            {
+                profile: z.any(), // TODO: Replace with actual profile type
+            },
+            this.asyncHandler(async (_args, _extra) => {
                 // TODO: Implement user profile fetch
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ profile: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
 
@@ -129,11 +235,22 @@ export class RaindropMCPService {
             "user_statistics",
             "Get user or collection statistics. Includes bookmark counts, collection counts, and usage metrics.",
             {
-                collectionId: z.number().optional().describe("Collection ID for specific stats (omit for account-wide stats)")
+                collectionId: z.number().optional()
             },
-            this.asyncHandler(async (params) => {
+            {
+                stats: z.any(), // TODO: Replace with actual stats type
+            },
+            this.asyncHandler(async (args, _extra) => {
                 // TODO: Implement user/collection statistics fetch
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ stats: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
 
@@ -142,15 +259,26 @@ export class RaindropMCPService {
             "import_export",
             "Import/export bookmarks, check import/export status. Use operation parameter.",
             {
-                operation: z.enum(["import_status", "export_bookmarks"]).describe("Import/export operation"),
-                format: z.enum(["csv", "html", "pdf"]).optional().describe("Export format (for export_bookmarks)"),
-                collectionId: z.number().optional().describe("Collection ID (optional)"),
-                includeBroken: z.boolean().optional().default(false).describe("Include broken/dead links (optional)"),
-                includeDuplicates: z.boolean().optional().default(false).describe("Include duplicate bookmarks (optional)")
+                operation: z.enum(["import_status", "export_bookmarks"]),
+                format: z.enum(["csv", "html", "pdf"]).optional(),
+                collectionId: z.number().optional(),
+                includeBroken: z.boolean().optional().default(false),
+                includeDuplicates: z.boolean().optional().default(false)
             },
-            this.asyncHandler(async (params) => {
+            {
+                result: z.any(), // TODO: Replace with actual result type
+            },
+            this.asyncHandler(async (args, _extra) => {
                 // TODO: Implement import/export logic
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ result: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
 
@@ -159,11 +287,22 @@ export class RaindropMCPService {
             "diagnostics",
             "Server diagnostics and environment info. Use includeEnvironment param for detailed info.",
             {
-                includeEnvironment: z.boolean().optional().default(false).describe("Include environment/system info")
+                includeEnvironment: z.boolean().optional().default(false)
             },
-            this.asyncHandler(async (params) => {
+            {
+                diagnostics: z.any(), // TODO: Replace with actual diagnostics type
+            },
+            this.asyncHandler(async (args, _extra) => {
                 // TODO: Implement diagnostics
-                return { content: [] };
+                return {
+                    content: [
+                        ({
+                            type: "text",
+                            text: JSON.stringify({ diagnostics: null }, null, 2),
+                            _meta: {},
+                        } as any),
+                    ],
+                };
             })
         );
     }
