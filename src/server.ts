@@ -10,6 +10,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { config } from 'dotenv';
 import express from "express";
 import { randomUUID } from "node:crypto";
+import { RaindropMCPService } from './services/raindropmcp.service.js';
 import { createLogger } from './utils/logger.js';
 config({ quiet: true }); // Load .env file
 
@@ -130,6 +131,11 @@ app.get('/', (req, res) => {
     });
 });
 
+// Instantiate the shared MCP service and get the server instance
+const raindropMCP = new RaindropMCPService();
+const mcpServer = raindropMCP.getServer();
+const cleanup = raindropMCP.cleanup.bind(raindropMCP);
+
 // MCP endpoint with proper session handling
 app.all('/mcp', async (req, res) => {
     try {
@@ -144,7 +150,6 @@ app.all('/mcp', async (req, res) => {
         } else if (!sessionId && req.method === 'POST' && isInitializeRequest(req.body)) {
             // New initialization request
             logger.info('Creating new optimized Streamable HTTP session');
-            const { server, cleanup } = createOptimizedRaindropServer();
 
             transport = new StreamableHTTPServerTransport({
                 sessionIdGenerator: () => randomUUID(),
@@ -166,11 +171,10 @@ app.all('/mcp', async (req, res) => {
                     sessionMetadata.delete(transport.sessionId);
                     logger.info(`Optimized Streamable HTTP session cleaned up: ${transport.sessionId}`);
                 }
-                // Cleanup is handled per session, not globally
             };
 
-            // Connect to the MCP server
-            await server.connect(transport);
+            // Connect to the shared MCP server
+            await mcpServer.connect(transport);
         } else {
             // Invalid request
             logger.warn('Invalid optimized MCP request: missing session ID or invalid initialization');

@@ -63,7 +63,7 @@
     },
     "homepage": "https://github.com/adeze/raindrop-mcp#readme",
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.17.0",
+        "@modelcontextprotocol/sdk": "^1.17.1",
         "axios": "^1.11.0",
         "dotenv": "^17.2.1",
         "esm": "^3.2.25",
@@ -78,7 +78,7 @@
         "@types/express": "^5.0.3",
         "@types/node": "^24.1.0",
         "@vitest/coverage-v8": "^3.2.4",
-        "typescript": "^5.8.3",
+        "typescript": "^5.9.2",
         "vitest": "^3.2.4"
     },
     "engines": {

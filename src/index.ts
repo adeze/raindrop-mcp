@@ -19,10 +19,12 @@ const logger = createLogger('mcp-stdio');
  * Main bootstrap for the STDIO-based MCP server.
  * Sets up the transport, connects the server, and handles graceful shutdown.
  */
+
 export async function main() {
   const transport = new StdioServerTransport();
-  // Await the creation of the Raindrop server and destructure the result
-  const { server, cleanup } = new RaindropMCPService();
+  const raindropMCP = new RaindropMCPService();
+  const server = raindropMCP.getServer();
+  const cleanup = raindropMCP.cleanup.bind(raindropMCP);
 
   await server.connect(transport);
   logger.info('MCP server connected via STDIO transport');

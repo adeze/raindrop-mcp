@@ -9,11 +9,26 @@ export class RaindropMCPService {
     private server: McpServer;
     private raindropService: RaindropService;
 
+    /**
+     * Expose the MCP server instance for external control (e.g., connect, close).
+     */
+    public getServer() {
+        return this.server;
+    }
+
+    /**
+     * Expose a cleanup method for graceful shutdown (no-op by default).
+     * Extend as needed for resource cleanup.
+     */
+    public async cleanup() {
+        // Add any additional cleanup logic here if needed
+    }
+
     constructor() {
         this.raindropService = new RaindropService();
         this.server = new McpServer({
             name: "raindrop-mcp-server",
-            version: "2.0.6",
+            version: "2.0.5",
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
             capabilities: {
                 logging: false,
