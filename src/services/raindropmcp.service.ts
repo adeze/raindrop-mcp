@@ -80,21 +80,23 @@ export class RaindropMCPService {
         // Register the diagnostics tool with the MCP server using zod schemas for type safety
         this.server.tool(
             'diagnostics',
+            'Server diagnostics and environment info. Use includeEnvironment param for detailed info.',
             {
                 includeEnvironment: z.boolean().optional().describe('Include environment info')
             },
-            this.asyncHandler(async (args: { includeEnvironment?: boolean }, _extra: any) => {
+            this.asyncHandler(async (_args: { includeEnvironment?: boolean }, _extra: any) => {
+                // Emit a resource_link to the diagnostics resource
                 return {
                     content: [
                         {
-                            type: "resource",
-                            resource: {
-                                uri: "diagnostics://server",
-                                text: "Diagnostics resource available.",
-                                mimeType: "application/json"
-                            }
+                            type: "resource_link" as const,
+                            uri: "diagnostics://server",
+                            name: "Server Diagnostics",
+                            description: "Server diagnostics and environment info resource.",
+                            mimeType: "application/json",
+                            _meta: {},
                         }
-                    ]
+                    ],
                 };
             })
         );
