@@ -183,3 +183,36 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Enhanced error messages** with actionable suggestions
 - **Standardized resource patterns** for consistent API interactions
 - **Comprehensive diagnostic tools** for monitoring and debugging
+
+## Automated Release & Tagging
+
+This project uses Bun scripts and GitHub CLI to automate version tagging and DXT manifest release.
+
+### Tagging the Current Version
+
+Tags the current commit with the version from `package.json` and pushes it to GitHub:
+
+```bash
+bun run tag:version
+```
+
+### Publishing the DXT Manifest to GitHub Releases
+
+Creates a GitHub release for the current version and attaches the `raindrop-mcp.dxt` manifest:
+
+```bash
+bun run release:dxt
+```
+
+**Requirements:**
+- [GitHub CLI](https://cli.github.com/) (`gh`) must be installed and authenticated.
+- [`jq`](https://stedolan.github.io/jq/) must be installed (`brew install jq` on macOS).
+- The `raindrop-mcp.dxt` file must exist in the project root.
+
+**Scripts (in `package.json`):**
+```json
+"tag:version": "git tag v$(jq -r .version package.json) && git push origin v$(jq -r .version package.json)",
+"release:dxt": "gh release create v$(jq -r .version package.json) raindrop-mcp.dxt --title \"Release v$(jq -r .version package.json)\" --notes \"DXT manifest for MCP\""
+```
+
+See [Model Context Protocol documentation](https://modelcontextprotocol.io/) and [Raindrop.io API docs](https://developer.raindrop.io) for more details.
