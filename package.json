@@ -31,7 +31,9 @@
         "bun:update": "bun update",
         "dxt:pack": "npx @anthropic-ai/dxt@latest pack",
         "generate:schema": "npx openapi-typescript ./raindrop-complete.yaml -o ./src/types/raindrop.schema.d.ts",
-        "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop.yaml -g typescript-axios -o ./src/server/generated-client"
+        "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop.yaml -g typescript-axios -o ./src/server/generated-client",
+        "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/",
+        "bun:publish:npm": "bun publish"
     },
     "repository": {
         "type": "git",
