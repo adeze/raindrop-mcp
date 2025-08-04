@@ -4,7 +4,7 @@
 - Raindrop.io API Documentation: [https://developer.raindrop.io](https://developer.raindrop.io)
 - MCP Documentation: [https://modelcontextprotocol.io/](https://modelcontextprotocol.io/)
 - [Model Context Protocol with LLMs](https://modelcontextprotocol.io/llms-full.txt)
-- [MCP Typescript SDK v1.9.0](https://github.com/modelcontextprotocol/typescript-sdk)
+- [MCP Typescript SDK v1.17.1](https://github.com/modelcontextprotocol/typescript-sdk)
 - [Example MCP servers repository](https://github.com/modelcontextprotocol/servers)
 - [This project on GitHub](https://github.com/adeze/raindrop-mcp)
 
