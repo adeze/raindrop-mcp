@@ -10,6 +10,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { config } from 'dotenv';
 import express from "express";
 import { randomUUID } from "node:crypto";
+import { AuthorizationCode } from 'simple-oauth2';
 import { RaindropMCPService } from './services/raindropmcp.service.js';
 import { createLogger } from './utils/logger.js';
 config({ quiet: true }); // Load .env file
@@ -50,30 +51,48 @@ const RAINDROP_CLIENT_ID = process.env.RAINDROP_CLIENT_ID;
 const RAINDROP_CLIENT_SECRET = process.env.RAINDROP_CLIENT_SECRET;
 const RAINDROP_REDIRECT_URI = process.env.RAINDROP_REDIRECT_URI || `http://localhost:${PORT}/auth/raindrop/callback`;
 
+const oauthClient = new AuthorizationCode({
+  client: {
+    id: RAINDROP_CLIENT_ID,
+    secret: RAINDROP_CLIENT_SECRET,
+  },
+  auth: {
+    tokenHost: 'https://raindrop.io',
+    authorizePath: '/oauth/authorize',
+    tokenPath: '/oauth/access_token',
+  },
+});
+
 // Step 1: Redirect user to Raindrop.io OAuth
 app.get('/auth/raindrop', (req, res) => {
-    if (!RAINDROP_CLIENT_ID) {
-        res.status(500).send('RAINDROP_CLIENT_ID not set');
-        return;
-    }
-    const authUrl = `https://raindrop.io/oauth/authorize?client_id=${encodeURIComponent(RAINDROP_CLIENT_ID)}&redirect_uri=${encodeURIComponent(RAINDROP_REDIRECT_URI)}&response_type=code&scope=read+write`;
-    res.redirect(authUrl);
+  if (!RAINDROP_CLIENT_ID) {
+    res.status(500).send('RAINDROP_CLIENT_ID not set');
+    return;
+  }
+  const authorizationUri = oauthClient.authorizeURL({
+    redirect_uri: RAINDROP_REDIRECT_URI,
+    scope: 'read write',
+  });
+  res.redirect(authorizationUri);
 });
 
 // Step 2: Handle OAuth callback and exchange code for token
 app.get('/auth/raindrop/callback', async (req, res) => {
-    const code = req.query.code as string;
-    if (!code) {
-        res.status(400).send('Missing code parameter');
-        return;
-    }
-    try {
-        // Exchange code for token using RaindropService helper
-        const token = await raindropMCP.raindropService.exchangeOAuthCodeForToken(code, RAINDROP_CLIENT_ID, RAINDROP_CLIENT_SECRET, RAINDROP_REDIRECT_URI);
-        res.json({ access_token: token });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message || 'OAuth token exchange failed' });
-    }
+  const code = req.query.code as string;
+  if (!code) {
+    res.status(400).send('Missing code parameter');
+    return;
+  }
+  try {
+    const tokenParams = {
+      code,
+      redirect_uri: RAINDROP_REDIRECT_URI,
+    };
+    const accessToken = await oauthClient.getToken(tokenParams);
+    res.json({ access_token: accessToken.token.access_token });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'OAuth token exchange failed' });
+  }
 });
 
 // CORS middleware
