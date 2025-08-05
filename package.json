@@ -29,7 +29,7 @@
         "bump:minor": "npm version minor",
         "bump:major": "npm version major",
         "bun:update": "bun update",
-        "dxt:pack": "npx @anthropic-ai/dxt@latest pack",
+        "dxt:pack": "npx @anthropic-ai/dxt@latest pack && dxt clean raindrop-mcp.dxt",
         "generate:schema": "npx openapi-typescript ./raindrop-complete.yaml -o ./src/types/raindrop.schema.d.ts",
         "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop.yaml -g typescript-axios -o ./src/server/generated-client",
         "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/",

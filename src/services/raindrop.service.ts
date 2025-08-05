@@ -1065,65 +1065,7 @@ class RaindropService {
     }
   }
 
-  // Export functionality - Type-safe with openapi-fetch
-  async exportBookmarks(options: {
-    collection?: number;
-    format: 'csv' | 'html' | 'pdf';
-    broken?: boolean;
-    duplicates?: boolean;
-  }): Promise<{ url: string }> {
-    try {
-      const { data, error } = await this.client.POST('/export', {
-        body: {
-          collection: options.collection,
-          format: options.format,
-          broken: options.broken || false,
-          duplicates: options.duplicates || false
-        }
-      });
-      
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-      
-      if (!data?.result || !data.url) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-      
-      return { url: data.url };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to export bookmarks');
-    }
-  }
 
-  // Check export status
-  async getExportStatus(): Promise<{
-    status: 'in-progress' | 'ready' | 'error';
-    progress?: number;
-    url?: string;
-    error?: string;
-  }> {
-    try {
-      const { data, error } = await this.client.GET('/export/status');
-      
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-      
-      if (!data?.result) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-      
-      return {
-        status: data.status,
-        progress: data.progress,
-        url: data.url,
-        error: data.error
-      };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to get export status');
-    }
-  }
 }
 
 export default RaindropService;

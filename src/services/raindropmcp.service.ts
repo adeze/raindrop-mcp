@@ -452,33 +452,6 @@ export class RaindropMCPService {
                 (items) => this.mapHighlights(items)
             ),
 
-            // Import/Export tool
-            {
-                name: "import_export",
-                description: "Import/export bookmarks, check import/export status. Use operation parameter.",
-                inputSchema: z.object({
-                    operation: z.enum(["import_status", "export_bookmarks"]),
-                    format: z.enum(["csv", "html", "pdf"]).optional(),
-                    collectionId: z.number().optional(),
-                    includeBroken: z.boolean().optional().default(false),
-                    includeDuplicates: z.boolean().optional().default(false)
-                }),
-                outputSchema: z.object({ result: z.any() }),
-                handler: this.asyncHandler(async (args) => {
-                    let result = null;
-                    if (args.operation === "import_status") {
-                        result = await this.raindropService.getImportStatus();
-                    } else if (args.operation === "export_bookmarks") {
-                        result = await this.raindropService.exportBookmarks({
-                            collection: args.collectionId,
-                            format: args.format,
-                            broken: args.includeBroken,
-                            duplicates: args.includeDuplicates
-                        });
-                    }
-                    return this.createTextResponse({ result });
-                })
-            }
         ];
 
         // Register all tools
