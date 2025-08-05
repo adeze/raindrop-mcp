@@ -47,7 +47,7 @@ const SERVER_VERSION = pkg.version;
 
 export class RaindropMCPService {
     private server: McpServer;
-    private raindropService: RaindropService;
+    public raindropService: RaindropService;
 
     /**
      * Expose the MCP server instance for external control (e.g., connect, close).

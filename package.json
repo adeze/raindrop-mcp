@@ -70,6 +70,7 @@
         "express": "^5.1.0",
         "openapi-fetch": "^0.14.0",
         "rate-limiter-flexible": "^7.2.0",
+        "simple-oauth2": "^5.1.0",
         "zod": "^3.25.76",
         "zod-to-json-schema": "^3.24.6"
     },
@@ -78,7 +79,7 @@
         "@openapitools/openapi-generator-cli": "^2.21.4",
         "@types/bun": "^1.2.19",
         "@types/express": "^5.0.3",
-        "@types/node": "^24.1.0",
+        "@types/node": "^24.2.0",
         "@vitest/coverage-v8": "^3.2.4",
         "openapi-typescript": "^7.8.0",
         "typescript": "^5.9.2",

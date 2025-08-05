@@ -7,9 +7,9 @@
  * Throws descriptive errors for API failures and validation issues.
  */
 import createClient from 'openapi-fetch';
-import type { paths, components } from '../types/raindrop.schema.js';
 import type { Bookmark, Collection, Highlight, SearchParams } from '../types/raindrop.js';
 import { CollectionSchema } from '../types/raindrop.js';
+import type { paths } from '../types/raindrop.schema.js';
 
 
 // Check if the token exists
@@ -663,6 +663,47 @@ class RaindropService {
         return [];
       }
       return this.handleApiError(error, `Failed to get highlights for raindrop ${raindropId}`);
+    }
+  }
+
+  /**
+   * Exchanges OAuth code for Raindrop.io access token
+   * @param code - The authorization code from Raindrop.io
+   * @param clientId - Your Raindrop.io client ID
+   * @param clientSecret - Your Raindrop.io client secret
+   * @param redirectUri - The redirect URI used in the OAuth flow
+   * @returns The access token string
+   */
+  public async exchangeOAuthCodeForToken(
+    code: string,
+    clientId: string,
+    clientSecret: string,
+    redirectUri: string
+  ): Promise<string> {
+    try {
+      const response = await fetch('https://raindrop.io/oauth/access_token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to exchange code: ${response.statusText}`);
+      }
+      const data = await response.json() as { access_token?: string };
+      if (!data.access_token) {
+        throw new Error('No access_token in response');
+      }
+      return data.access_token;
+    } catch (error: any) {
+      throw new Error(`OAuth token exchange failed: ${error.message || error}`);
     }
   }
 
