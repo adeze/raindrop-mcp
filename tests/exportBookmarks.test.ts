@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import RaindropService from '../services/raindrop.service';
+import RaindropService from '../src/services/raindrop.service';
 
 // Use valid options for RaindropService.exportBookmarks
 const exportOptions = {
