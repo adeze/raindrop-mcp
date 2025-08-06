@@ -31,6 +31,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -52,11 +53,12 @@ jobs:
       - name: Bump version (manual trigger only)
         if: github.event_name == 'workflow_dispatch'
         run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           bun run bump:${{ github.event.inputs.version }}
           NEW_VERSION=$(jq -r .version package.json)
           echo "New version: $NEW_VERSION"
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
           git add package.json
           if ! git diff --cached --quiet; then
             git commit -m "chore: bump version to $NEW_VERSION"
