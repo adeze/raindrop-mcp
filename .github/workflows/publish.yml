@@ -71,7 +71,7 @@ jobs:
 
       - name: Set up npm authentication
         run: |
-          echo "@adeze:registry=https://registry.npmjs.org/" > $HOME/.npmrc
+          echo "registry=https://registry.npmjs.org/" > $HOME/.npmrc
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> $HOME/.npmrc
 
       - name: Publish to npm
