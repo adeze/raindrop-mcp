@@ -58,6 +58,10 @@ jobs:
           default_bump: patch
           tag_prefix: v
 
+      - name: Set up npm authentication
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish to npm
         run: npm publish --provenance --access public
 
