@@ -51,26 +51,26 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add package.json
-          git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
-          git tag v$(node -p "require('./package.json').version")
+          git commit -m "chore: bump version to $(bun run --silent version)"
+          git tag v$(bun run --silent version)
           git push origin main --tags
 
-      - name: Setup npm registry
+      - name: Setup npm authentication
         run: |
           echo "registry=https://registry.npmjs.org/" > ~/.npmrc
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to npm
-        run: bun run bun:publish:npm
+        run: bun publish --registry https://registry.npmjs.org/ --access public
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Setup GitHub Packages registry
+      - name: Setup GitHub Packages authentication
         run: |
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to GitHub Packages
-        run: bun run bun:publish:github
+        run: bun publish --registry https://npm.pkg.github.com/ --access public
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
