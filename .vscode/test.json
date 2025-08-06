@@ -23,5 +23,16 @@
         "**/*.spec.js"
     ],
     "testTimeout": 30000,
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "tasks": {
+        "version": "0.1.0",
+        "configurations": [
+            {
+                "label": "Tag and Push Version",
+                "type": "shell",
+                "command": "bun run tag:version",
+                "group": "build"
+            }
+        ]
+    }
 }
