@@ -12,7 +12,7 @@
         "@modelcontextprotocol/inspector",
         "node",
         "--inspect-brk",
-        "build/cli.js"
+        "build/index.js"
       ],
       "preLaunchTask": "Build Project",
       "console": "integratedTerminal"

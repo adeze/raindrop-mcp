@@ -22,7 +22,7 @@ npx @adeze/raindrop-mcp
 - **HTTP Server**: `bun run start:http` (starts HTTP transport on port 3002)
 - **Type checking**: `bun run type-check`
 - **Testing**: `bun run test` or `bun run test:coverage`
-- **Building**: `bun run build` (creates build/ directory with cli.js and server.js)
+- **Building**: `bun run build` (creates build/ directory with index.js and server.js)
 - **Debugging**: 
   - MCP Inspector STDIO: `bun run inspector`
   - MCP Inspector HTTP: `bun run inspector:http-server`
@@ -83,7 +83,7 @@ The `RaindropService` has been significantly refactored to reduce code duplicati
   - `types/` - TypeScript type definitions
   - `utils/` - Utilities (logger, etc.)
 - **Tests**: `tests/` directory with comprehensive test coverage
-- **Build output**: `build/` directory (cli.js, server.js)
+- **Build output**: `build/` directory (index.js, server.js)
 - **Configuration**: 
   - `.env` - Environment variables
   - `raindrop.yaml` - OpenAPI specification

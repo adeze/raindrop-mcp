@@ -12,7 +12,7 @@
     "raindrop": {
       "type": "stdio",
       "command": "node",
-      "args": ["build/cli.js"],
+      "args": ["build/index.js"],
       "envFile": "${workspaceFolder}/.env",
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${input:raindrop-key}"
