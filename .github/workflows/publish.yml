@@ -65,7 +65,9 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> $HOME/.npmrc
 
       - name: Publish to npm
-        run: bun run bun:publish:npm
+        run: bun publish --access public
+        env:
+          NPM_CONFIG_PROVENANCE: true
 
       - name: Publish to GitHub Packages
         run: bun run bun:publish:github
