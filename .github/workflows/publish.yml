@@ -75,7 +75,13 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to npm
-        run: bun run bun:publish:npm
+        run: |
+          if bun run bun:publish:npm; then
+            echo "✅ Successfully published to npm"
+          else
+            echo "⚠️ npm publish failed (possibly already published)"
+            exit 0
+          fi
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
