@@ -74,8 +74,8 @@ jobs:
           echo "registry=https://registry.npmjs.org/" > $HOME/.npmrc
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> $HOME/.npmrc
 
-      - name: Show npm user (debug)
-        run: npm whoami
+      - name: Show Bun user (debug)
+        run: bun whoami
 
       - name: Publish to npm
         run: bun run bun:publish:npm
