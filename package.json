@@ -1,12 +1,12 @@
 {
     "name": "@adeze/raindrop-mcp",
-    "version": "2.0.7",
+    "version": "2.0.8",
     "description": "MCP Server for Raindrop.io bookmark management",
     "main": "build/index.js",
     "module": "build/index.js",
     "type": "module",
     "bin": {
-        "raindrop-mcp": "./build/cli.js"
+        "raindrop-mcp": "./build/index.js"
     },
     "files": [
         "build"
@@ -20,9 +20,9 @@
         "type-check": "tsc --noEmit",
         "test": "bun  --env-file .env test",
         "test:coverage": "bun test --coverage",
-        "run": "bun run build/cli.js",
-        "build": "bun build --target=node --format=esm --bundle --outdir=build ./src/cli.ts ./src/server.ts",
-        "start:prod": "bun run build/cli.js",
+        "run": "bun run build/index.js",
+        "build": "bun build --target=node --format=esm --bundle --outdir=build ./src/index.ts ./src/server.ts",
+        "start:prod": "bun run build/index.js",
         "start:http": "bun run src/server.ts",
         "clean": "rm -rf build",
         "bump:patch": "npm version patch",

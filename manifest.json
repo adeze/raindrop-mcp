@@ -1,7 +1,7 @@
 {
   "dxt_version": "0.1",
   "name": "@adeze/raindrop-mcp",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "MCP Server for Raindrop.io",
   "author": {
     "name": "Adam E"
@@ -10,11 +10,11 @@
   "icon": "icon_128.png",
   "server": {
     "type": "node",
-    "entry_point": "build/cli.js",
+    "entry_point": "build/index.js",
     "mcp_config": {
       "command": "node",
       "args": [
-        "${__dirname}/build/cli.js"
+        "${__dirname}/build/index.js"
       ],
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${user_config.api_key}"
