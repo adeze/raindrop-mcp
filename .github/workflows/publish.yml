@@ -55,22 +55,25 @@ jobs:
           git tag v$(bun run --silent version)
           git push origin main --tags
 
-      - name: Setup npm authentication
+      - name: Setup npm registry and authentication
         run: |
           echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "@adeze:registry=https://registry.npmjs.org/" >> ~/.npmrc
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to npm
-        run: bun publish --registry https://registry.npmjs.org/ --access public
+        run: bun run bun:publish:npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Setup GitHub Packages authentication
+      - name: Setup GitHub Packages registry and authentication
         run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "@adeze:registry=https://npm.pkg.github.com/" >> ~/.npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to GitHub Packages
-        run: bun publish --registry https://npm.pkg.github.com/ --access public
+        run: bun run bun:publish:github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

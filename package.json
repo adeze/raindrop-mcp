@@ -45,7 +45,8 @@
         "url": "git+https://github.com/adeze/raindrop-mcp.git"
     },
     "publishConfig": {
-        "@adeze:registry": "https://npm.pkg.github.com"
+        "@adeze:registry": "https://registry.npmjs.org/",
+        "access": "public"
     },
     "keywords": [
         "mcp",
