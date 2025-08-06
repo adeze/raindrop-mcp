@@ -70,9 +70,6 @@ jobs:
       - name: Publish to npm
         run: npm publish --provenance --access public
 
-      - name: Publish to GitHub Packages
-        run: bun run bun:publish:github
-
       - name: Pack DXT manifest
         run: bun run dxt:pack
 
