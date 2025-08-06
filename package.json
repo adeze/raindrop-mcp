@@ -1,5 +1,5 @@
 {
-    "name": "raindrop-mcp",
+    "name": "@adeze/raindrop-mcp",
     "version": "2.0.9",
     "description": "MCP Server for Raindrop.io bookmark management",
     "main": "build/index.js",

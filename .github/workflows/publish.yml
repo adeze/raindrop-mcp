@@ -70,7 +70,9 @@ jobs:
           fi
 
       - name: Set up npm authentication
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > $HOME/.npmrc
+        run: |
+          echo "@adeze:registry=https://registry.npmjs.org/" > $HOME/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> $HOME/.npmrc
 
       - name: Publish to npm
         run: bun run bun:publish:npm
