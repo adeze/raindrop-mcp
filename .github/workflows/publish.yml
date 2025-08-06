@@ -59,9 +59,7 @@ jobs:
           tag_prefix: v
 
       - name: Publish to npm
-        run: bun publish
-        env:
-          NPM_CONFIG_PROVENANCE: true
+        run: npm publish --provenance --access public
 
       - name: Publish to GitHub Packages
         run: bun run bun:publish:github
