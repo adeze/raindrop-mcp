@@ -35,6 +35,9 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install jq (for version extraction)
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Install dependencies
         run: bun install
 
@@ -55,10 +58,9 @@ jobs:
           git tag v$(bun run --silent version)
           git push origin main --tags
 
-      - name: Setup npm registry and authentication
+      - name: Setup npm authentication
         run: |
           echo "registry=https://registry.npmjs.org/" > ~/.npmrc
-          echo "@adeze:registry=https://registry.npmjs.org/" >> ~/.npmrc
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to npm
@@ -66,16 +68,17 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Setup GitHub Packages registry and authentication
+      - name: Setup GitHub Packages authentication
         run: |
-          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
-          echo "@adeze:registry=https://npm.pkg.github.com/" >> ~/.npmrc
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to GitHub Packages
         run: bun run bun:publish:github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pack DXT manifest
+        run: bun run dxt:pack
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')

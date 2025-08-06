@@ -1,5 +1,5 @@
 {
-    "name": "@adeze/raindrop-mcp",
+    "name": "raindrop-mcp",
     "version": "2.0.8",
     "description": "MCP Server for Raindrop.io bookmark management",
     "main": "build/index.js",
@@ -32,21 +32,19 @@
         "dxt:pack": "npx @anthropic-ai/dxt@latest pack && dxt clean raindrop-mcp.dxt",
         "generate:schema": "npx openapi-typescript ./raindrop-complete.yaml -o ./src/types/raindrop.schema.d.ts",
         "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop.yaml -g typescript-axios -o ./src/server/generated-client",
-        "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/",
-        "bun:publish:npm": "bun publish",
+        "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/ --access public",
+        "bun:publish:npm": "bun publish --access public",
         "tag:version": "git tag v$(jq -r .version package.json) && git push origin v$(jq -r .version package.json)",
         "release:dxt": "gh release create v$(jq -r .version package.json) raindrop-mcp.dxt --title \"Release v$(jq -r .version package.json)\" --notes \"DXT manifest for MCP\"",
-        "publish:all": "bun run bun:publish:github && bun run bun:publish:npm",
-        "release:complete": "bun run build && bun run tag:version && bun run publish:all && bun run release:dxt",
-        "version": "node -p \"require('./package.json').version\""
+        "version": "jq -r .version package.json"
     },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/adeze/raindrop-mcp.git"
     },
     "publishConfig": {
-        "@adeze:registry": "https://registry.npmjs.org/",
-        "access": "public"
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
     },
     "keywords": [
         "mcp",
