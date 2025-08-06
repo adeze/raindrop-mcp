@@ -64,12 +64,6 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> $HOME/.npmrc
           echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> $HOME/.npmrc
 
-      - name: Commit version bump
-        uses: EndBug/add-and-commit@v9
-        with:
-          message: "chore: bump version"
-          add: "package.json"
-
       - name: Publish to npm
         run: bun run bun:publish:npm
 
