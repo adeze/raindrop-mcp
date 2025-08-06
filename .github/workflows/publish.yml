@@ -52,12 +52,13 @@ jobs:
         run: |
           bun run bump:${{ github.event.inputs.version }}
           NEW_VERSION=$(jq -r .version package.json)
+          echo "New version: $NEW_VERSION"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add package.json
           git commit -m "chore: bump version to $NEW_VERSION"
           git tag v$NEW_VERSION
-          git push origin main --tags
+          git push origin master --tags
 
       - name: Setup npm authentication
         run: |

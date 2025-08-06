@@ -35,8 +35,7 @@
         "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/ --access public",
         "bun:publish:npm": "bun publish --access public",
         "tag:version": "git tag v$(jq -r .version package.json) && git push origin v$(jq -r .version package.json)",
-        "release:dxt": "bun run dxt:pack && gh release create v$(jq -r .version package.json) raindrop-mcp.dxt --title \"Release v$(jq -r .version package.json)\" --notes \"DXT manifest for MCP\"",
-        "version": "jq -r .version package.json"
+        "release:dxt": "bun run dxt:pack && gh release create v$(jq -r .version package.json) raindrop-mcp.dxt --title \"Release v$(jq -r .version package.json)\" --notes \"DXT manifest for MCP\""
     },
     "repository": {
         "type": "git",
