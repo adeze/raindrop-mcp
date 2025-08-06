@@ -86,10 +86,9 @@ jobs:
         run: bun run dxt:pack
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         run: |
           CURRENT_VERSION=$(jq -r .version package.json)
-          bun run dxt:pack
           gh release create v$CURRENT_VERSION raindrop-mcp.dxt --title "Release v$CURRENT_VERSION" --notes "DXT manifest for MCP"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
