@@ -50,43 +50,31 @@ jobs:
       - name: Build package
         run: bun run build
 
-      - name: Bump version (manual trigger only)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          bun run bump:${{ github.event.inputs.version }}
-          NEW_VERSION=$(jq -r .version package.json)
-          echo "New version: $NEW_VERSION"
-          git add package.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: bump version to $NEW_VERSION"
-            git tag v$NEW_VERSION
-            git push origin master
-            git push origin v$NEW_VERSION
-          else
-            echo "No changes to commit."
-          fi
+      - name: Create tag and bump version
+        uses: mathieudutour/github-tag-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: master
+          default_bump: patch
+          tag_prefix: v
 
-      - name: Set up npm authentication
+      - name: Set up npm and GitHub Packages authentication
         run: |
           echo "registry=https://registry.npmjs.org/" > $HOME/.npmrc
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> $HOME/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> $HOME/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> $HOME/.npmrc
 
-      - name: Show Bun user (debug)
-        run: bun whoami
+      - name: Commit version bump
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: "chore: bump version"
+          add: "package.json"
 
       - name: Publish to npm
         run: bun run bun:publish:npm
 
-      - name: Set up GitHub Packages authentication
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> $HOME/.npmrc
-
       - name: Publish to GitHub Packages
         run: bun run bun:publish:github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pack DXT manifest
         run: bun run dxt:pack
