@@ -1,32 +1,81 @@
-name: Publish Package to GitHub Packages
+name: Publish Package
+
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
-    steps:
-      - uses: actions/checkout@v3
+      id-token: write
 
-      # Set up Bun
-      - name: Set up Bun
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 'latest'
+          bun-version: latest
 
-      # Install dependencies
       - name: Install dependencies
         run: bun install
 
-      # Build the project
-      - name: Build the project
+      - name: Run tests
+        run: bun test
+
+      - name: Build package
         run: bun run build
 
-      # Publish to GitHub Packages
-      - name: Publish to GitHub Packages
-        run: bun publish
+      - name: Bump version (manual trigger only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          bun run bump:${{ github.event.inputs.version }}
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "chore: bump version to $(node -p "require('./package.json').version")"
+          git tag v$(node -p "require('./package.json').version")
+          git push origin main --tags
+
+      - name: Setup npm registry
+        run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
+
+      - name: Publish to npm
+        run: bun run bun:publish:npm
         env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Setup GitHub Packages registry
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+
+      - name: Publish to GitHub Packages
+        run: bun run bun:publish:github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: bun run release:dxt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
