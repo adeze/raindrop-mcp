@@ -193,7 +193,17 @@ This project uses Bun scripts and GitHub CLI to automate version tagging and DXT
 Tags the current commit with the version from `package.json` and pushes it to GitHub:
 
 ```bash
-bun run tag:version
+# Bump version locally
+bun run bump:patch  # 2.0.10 → 2.0.11
+
+# Then either:
+# Option A: Let workflow handle publishing
+bun run tag:version  # Creates tag, triggers workflow
+
+# Option B: Publish manually  
+bun run build
+bun run bun:publish:npm
+bun run bun:publish:github
 ```
 
 ### Publishing the DXT Manifest to GitHub Releases

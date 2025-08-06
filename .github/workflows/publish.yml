@@ -69,25 +69,16 @@ jobs:
             echo "No changes to commit."
           fi
 
-      - name: Setup npm authentication
-        run: |
-          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
+      - name: Set up npm authentication
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
       - name: Publish to npm
-        run: |
-          if bun run bun:publish:npm; then
-            echo "✅ Successfully published to npm"
-          else
-            echo "⚠️ npm publish failed (possibly already published)"
-            exit 0
-          fi
+        run: bun run bun:publish:npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Setup GitHub Packages authentication
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+      - name: Set up GitHub Packages authentication
+        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Publish to GitHub Packages
         run: bun run bun:publish:github
