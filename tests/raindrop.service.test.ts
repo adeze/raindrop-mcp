@@ -1,6 +1,11 @@
 import { config } from 'dotenv';
 import { beforeEach, describe, expect, it } from 'vitest';
 import RaindropService from '../src/services/raindrop.service.js';
+import type { components } from '../src/types/raindrop.schema.js';
+type Collection = components['schemas']['Collection'];
+type Bookmark = components['schemas']['Bookmark'];
+type Highlight = components['schemas']['Highlight'];
+type Tag = components['schemas']['Tag'];
 config();
 
 describe('RaindropService Read-Only API Integration', () => {

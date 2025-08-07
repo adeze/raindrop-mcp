@@ -1,57 +1,41 @@
+
+// External imports
+import createClient from 'openapi-fetch';
+import { z } from 'zod';
+
+// Internal imports
+import type { components, paths } from '../types/raindrop.schema';
+
+type Bookmark = components['schemas']['Bookmark'];
+type Collection = components['schemas']['Collection'];
+type Highlight = components['schemas']['Highlight'];
+type SearchParams = { [key: string]: any }; // Replace with strict type if available
+
+
+
+
 // Helper to map API bookmark objects to strict Bookmark type
 function mapApiBookmark(apiBookmark: any): Bookmark {
   return {
     _id: apiBookmark._id,
+    link: apiBookmark.link ?? '',
     title: apiBookmark.title ?? '',
     excerpt: apiBookmark.excerpt ?? '',
     note: apiBookmark.note ?? '',
     type: apiBookmark.type ?? 'link',
-    tags: Array.isArray(apiBookmark.tags) ? apiBookmark.tags : [],
     cover: apiBookmark.cover ?? '',
-    link: apiBookmark.link ?? '',
-    domain: apiBookmark.domain ?? '',
+    tags: Array.isArray(apiBookmark.tags) ? apiBookmark.tags : [],
+    important: apiBookmark.important ?? false,
+    reminder: apiBookmark.reminder,
+    removed: apiBookmark.removed ?? false,
     created: apiBookmark.created ?? '',
     lastUpdate: apiBookmark.lastUpdate ?? '',
-    removed: apiBookmark.removed ?? false,
-    media: apiBookmark.media ?? [],
-    user: apiBookmark.user ?? { $id: 0 },
+    domain: apiBookmark.domain ?? '',
     collection: apiBookmark.collection ?? { $id: 0 },
-    html: apiBookmark.html ?? '',
-    important: apiBookmark.important ?? false,
     highlights: apiBookmark.highlights ?? [],
-    reminder: apiBookmark.reminder,
-    broken: apiBookmark.broken ?? false,
-    duplicate: apiBookmark.duplicate ?? false,
-    sort: apiBookmark.sort,
-    cache: apiBookmark.cache,
   };
 }
-/**
- * RaindropService: Integration layer for Raindrop.io REST API.
- *
- * Provides methods for managing collections, bookmarks, highlights, and tags using the official Raindrop.io API.
- * All methods use openapi-fetch with generated TypeScript types for complete type safety.
- *
- * Throws descriptive errors for API failures and validation issues.
- */
-import createClient from 'openapi-fetch';
-import { z } from 'zod';
-import type { Bookmark, Collection, Highlight, SearchParams } from '../types/raindrop.js';
-import { CollectionSchema } from '../types/raindrop.js';
-import type { paths } from '../types/raindrop.schema.js';
 
-
-// Check if the token exists
-const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
-if (!raindropAccessToken) {
-  // Use more graceful handling in production
-  throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
-}
-
-/**
- * Service class for interacting with the Raindrop.io API.
- * Handles authentication, request/response validation, and error handling.
- */
 // Discriminated union for API responses
 export type ApiSuccess<T> = {
   status: 'success';
@@ -78,16 +62,71 @@ export function isApiError<T>(response: ApiResponse<T>): response is ApiError {
 const collectionLevels = ['view', 'edit', 'remove'] as const;
 export type CollectionLevel = typeof collectionLevels[number];
 
+/**
+ * Service class for interacting with the Raindrop.io API.
+ * Handles authentication, request/response validation, and error handling.
+ */
 export default class RaindropService {
   private client: ReturnType<typeof createClient<paths>>;
+  private requestInterceptors: Array<(options: any) => any> = [];
+  private responseInterceptors: Array<(response: any) => any> = [];
 
   constructor() {
     this.client = createClient<paths>({
       baseUrl: 'https://api.raindrop.io/rest/v1',
-      headers: {
-        Authorization: `Bearer ${raindropAccessToken}`,
-      },
     });
+    
+    // Add default auth interceptor
+    this.addRequestInterceptor((options) => {
+      const token = process.env.RAINDROP_ACCESS_TOKEN;
+      if (token) {
+        options.headers = {
+          ...options.headers,
+          'Authorization': `Bearer ${token}`,
+        };
+      }
+      return options;
+    });
+  }
+
+  // Simple interceptor implementation
+  addRequestInterceptor(interceptor: (options: any) => any) {
+    this.requestInterceptors.push(interceptor);
+  }
+
+  addResponseInterceptor(interceptor: (response: any) => any) {
+    this.responseInterceptors.push(interceptor);
+  }
+
+  // Generic API call helper with interceptor support - eliminates duplication across all methods
+  private async apiCall<P extends keyof paths, M extends keyof paths[P]>(
+    method: M,
+    path: P,
+    options: any = {}
+  ): Promise<ApiResponse<any>> {
+    try {
+      // Apply request interceptors
+      let processedOptions = options;
+      for (const interceptor of this.requestInterceptors) {
+        processedOptions = interceptor(processedOptions);
+      }
+      
+      const { data, error } = await (this.client as any)[method](path, processedOptions);
+      
+      if (error) {
+        return this.handleApiError(error, `${String(method)} ${String(path)}`);
+      }
+      
+      // Apply response interceptors
+      let processedData = data;
+      for (const interceptor of this.responseInterceptors) {
+        processedData = interceptor(processedData);
+      }
+      
+      return { status: 'success', result: true, data: processedData };
+    } catch (err) {
+      return this.handleApiError(err, `${String(method)} ${String(path)}`);
+    }
   }
 
   // Type-safe API error handler
@@ -109,148 +148,95 @@ export default class RaindropService {
   }
 
 
-  // Collections - Type-safe with openapi-fetch
+  // Collections - Simplified with generic helper
   async getCollections(): Promise<ApiResponse<Collection[]>> {
-    try {
-      const { data, error } = await this.client.GET('/collections');
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.items) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      const processedCollections = data.items.map((collection: any) => ({
-        ...collection,
-        sort: typeof collection.sort === 'number' ? collection.sort.toString() : collection.sort,
-        parent: collection.parent === null ? undefined : collection.parent,
-        description: typeof collection.description === 'string' ? collection.description : ''
-      }));
-      const parsed = CollectionSchema.array().safeParse(
-        processedCollections.map(col => ({
-          ...col,
-          description: typeof col.description === 'string' ? col.description : ''
-        }))
-      );
-      if (!parsed.success) {
-        return { status: 'error', result: false, error: parsed.error.message };
-      }
-      // Ensure all collections have description: string
-      const collectionsStrict = parsed.data.map(col => ({
-        ...col,
-        description: typeof col.description === 'string' ? col.description : '',
-        color: typeof col.color === 'string' ? col.color : '',
-        public: typeof col.public === 'boolean' ? col.public : false,
-        cover: Array.isArray(col.cover) ? col.cover : [],
-        expanded: typeof col.expanded === 'boolean' ? col.expanded : false,
-        parent: col.parent
-          ? { $id: col.parent.$id, title: typeof col.parent.title === 'string' ? col.parent.title : '' }
-          : { $id: 0, title: '' },
-        creatorRef: col.creatorRef
-          ? { _id: col.creatorRef._id, name: typeof col.creatorRef.name === 'string' ? col.creatorRef.name : '' }
-          : { _id: 0, name: '' },
-        collaborators: Array.isArray(col.collaborators)
-          ? col.collaborators.map((c: any) => ({
-            ...c,
-            name: typeof c.name === 'string' ? c.name : ''
-          }))
-          : []
-      }));
-      return { status: 'success', result: true, data: collectionsStrict };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to get collections');
+    const response = await this.apiCall('get', '/collections');
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.items) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    
+    // Ensure all collections have proper types
+    const collectionsStrict = (data.items as Collection[]).map((col: Collection) => ({
+      ...col,
+      description: typeof col.description === 'string' ? col.description : '',
+      color: typeof col.color === 'string' ? col.color : '',
+      public: typeof col.public === 'boolean' ? col.public : false,
+      expanded: typeof col.expanded === 'boolean' ? col.expanded : false,
+      parent: col.parent ? { $id: col.parent.$id ?? 0 } : { $id: 0 },
+    }));
+    return { status: 'success', result: true, data: collectionsStrict };
   }
 
   async getCollection(id: number): Promise<ApiResponse<Collection>> {
-    try {
-      const { data, error } = await this.client.GET('/collection/{id}', {
-        params: { path: { id } }
-      });
-      if (error) {
-        return this.handleApiError(error, `API Error`);
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: data.item as Collection };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to get collection ${id}`);
+    const response = await this.apiCall('get', '/collection/{id}', {
+      params: { path: { id } }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: data.item as Collection };
   }
 
   async getChildCollections(parentId: number): Promise<ApiResponse<Collection[]>> {
-    try {
-      const { data, error } = await this.client.GET('/collections/{parentId}/childrens', {
-        params: { path: { parentId } }
-      });
-      if (error) {
-        return this.handleApiError(error, `API Error`);
-      }
-      if (!data?.result || !data.items) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: data.items as Collection[] };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to get child collections for ${parentId}`);
+    const response = await this.apiCall('get', '/collections/{parentId}/childrens', {
+      params: { path: { parentId } }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.items) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: data.items as Collection[] };
   }
 
   async createCollection(title: string, isPublic = false): Promise<ApiResponse<Collection>> {
-    try {
-      const body: { title: string; public: boolean } = {
-        title,
-        public: isPublic
-      };
-      const { data, error } = await this.client.POST('/collection', { body });
-      if (error) {
-        return this.handleApiError(error, `API Error`);
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: data.item as Collection };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to create collection');
+    const response = await this.apiCall('post', '/collection', {
+      body: { title, public: isPublic }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: data.item as Collection };
   }
 
   async updateCollection(id: number, updates: Partial<Collection>): Promise<ApiResponse<Collection>> {
-    try {
-      const body: Partial<Collection> = {};
-      (Object.keys(updates) as (keyof Collection)[]).forEach(key => {
-        const value = updates[key];
-        if (value !== undefined) {
-          (body as any)[key] = value;
-        }
-      });
-      const { data, error } = await this.client.PUT('/collection/{id}', {
-        params: { path: { id } },
-        body
-      });
-      if (error) {
-        return this.handleApiError(error, `API Error`);
+    const body: Partial<Collection> = {};
+    (Object.keys(updates) as (keyof Collection)[]).forEach(key => {
+      const value = updates[key];
+      if (value !== undefined) {
+        (body as any)[key] = value;
       }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: data.item as Collection };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to update collection ${id}`);
+    });
+    
+    const response = await this.apiCall('put', '/collection/{id}', {
+      params: { path: { id } },
+      body
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: data.item as Collection };
   }
 
   async deleteCollection(id: number): Promise<ApiResponse<null>> {
-    try {
-      const { error } = await this.client.DELETE('/collection/{id}', {
-        params: { path: { id } }
-      });
-      if (error) {
-        return this.handleApiError(error, `API Error`);
-      }
-      return { status: 'success', result: true, data: null };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to delete collection ${id}`);
-    }
+    const response = await this.apiCall('delete', '/collection/{id}', {
+      params: { path: { id } }
+    });
+    if (response.status === 'error') return response;
+    return { status: 'success', result: true, data: null };
   }
 
   async shareCollection(
@@ -258,230 +244,182 @@ export default class RaindropService {
     level: CollectionLevel,
     emails?: string[]
   ): Promise<ApiResponse<{ link: string; access: any[] }>> {
-    try {
-      const body: { level: CollectionLevel; emails?: string[] } = { level };
-      if (emails !== undefined) {
-        body.emails = emails;
-      }
-      const { data, error } = await this.client.PUT('/collection/{id}/sharing', {
-        params: { path: { id } },
-        body
-      });
-      if (error) {
-        return this.handleApiError(error, `API Error`);
-      }
-      if (!data?.result) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: { link: data.link, access: data.access || [] } };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to share collection ${id}`);
+    const body: { level: CollectionLevel; emails?: string[] } = { level };
+    if (emails !== undefined) {
+      body.emails = emails;
     }
+    
+    const response = await this.apiCall('put', '/collection/{id}/sharing', {
+      params: { path: { id } },
+      body
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
+    }
+    return { status: 'success', result: true, data: { link: data.link, access: (data.access ? data.access.slice() : []) } };
   }
 
-  // Bookmarks - Type-safe with openapi-fetch
+  // Bookmarks - Simplified with helper
   async getBookmarks(params: SearchParams = {}): Promise<ApiResponse<{ items: Bookmark[]; count: number }>> {
-    try {
-      let response;
-      const query: Record<string, any> = {};
-      if (params.search !== undefined) query.search = params.search;
-      if (params.sort !== undefined) query.sort = params.sort;
-      if (params.tag !== undefined) query.tag = params.tag;
-      if (params.important !== undefined) query.important = params.important;
-      if (params.duplicates !== undefined) query.duplicates = params.duplicates;
-      if (params.broken !== undefined) query.broken = params.broken;
-      if (params.highlight !== undefined) query.highlight = params.highlight;
-      if (params.domain !== undefined) query.domain = params.domain;
-      if (params.perPage !== undefined) query.perpage = params.perPage;
-      if (params.page !== undefined) query.page = params.page;
-      if (params.collection !== undefined) {
-        response = await this.client.GET('/raindrops/{collectionId}', {
-          params: {
-            path: { id: params.collection },
-            query
-          }
-        });
-      } else {
-        response = await this.client.GET('/raindrops/0', {
+    const query: Record<string, any> = {};
+    if (params.search !== undefined) query.search = params.search;
+    if (params.sort !== undefined) query.sort = params.sort;
+    if (params.tag !== undefined) query.tag = params.tag;
+    if (params.important !== undefined) query.important = params.important;
+    if (params.duplicates !== undefined) query.duplicates = params.duplicates;
+    if (params.broken !== undefined) query.broken = params.broken;
+    if (params.highlight !== undefined) query.highlight = params.highlight;
+    if (params.domain !== undefined) query.domain = params.domain;
+    if (params.perPage !== undefined) query.perpage = params.perPage;
+    if (params.page !== undefined) query.page = params.page;
+    
+    const response = params.collection !== undefined
+      ? await this.apiCall('get', '/raindrops/{collectionId}', {
+          params: { path: { id: params.collection }, query }
+        })
+      : await this.apiCall('get', '/raindrops/0', {
           params: { query }
         });
-      }
-      const { data, error } = response;
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !Array.isArray(data.items)) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return {
-        status: 'success',
-        result: true,
-        data: {
-          items: Array.isArray(data.items) ? data.items.map(mapApiBookmark) : [],
-          count: data.count ?? 0
-        }
-      };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to get bookmarks');
+        
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !Array.isArray(data.items)) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    
+    return {
+      status: 'success',
+      result: true,
+      data: {
+        items: Array.isArray(data.items) ? data.items.map(mapApiBookmark) : [],
+        count: data.count ?? 0
+      }
+    };
   }
 
   async getBookmark(id: number): Promise<ApiResponse<Bookmark>> {
-    try {
-      const { data, error } = await this.client.GET('/raindrop/{id}', {
-        params: { path: { id } }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: mapApiBookmark(data.item) };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to get bookmark ${id}`);
+    const response = await this.apiCall('get', '/raindrop/{id}', {
+      params: { path: { id } }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: mapApiBookmark(data.item) };
   }
 
   async createBookmark(collectionId: number, bookmark: Partial<Bookmark>): Promise<ApiResponse<Bookmark>> {
-    try {
-      const body: {
-        link: string;
-        title?: string;
-        excerpt?: string;
-        tags?: string[];
-        important: boolean;
-        collection: { $id: number };
-        pleaseParse: Record<string, never>;
-      } = {
-        link: bookmark.link!,
-        important: bookmark.important ?? false,
-        collection: { $id: collectionId },
-        pleaseParse: {} as Record<string, never>
-      };
-      if (bookmark.title !== undefined) body.title = bookmark.title;
-      if (bookmark.excerpt !== undefined) body.excerpt = bookmark.excerpt;
-      if (bookmark.tags !== undefined) body.tags = bookmark.tags;
-      const { data, error } = await this.client.POST('/raindrop', { body });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: mapApiBookmark(data.item) };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to create bookmark');
+    const body: {
+      link: string;
+      title?: string;
+      excerpt?: string;
+      tags?: string[];
+      important: boolean;
+      collection: { $id: number };
+      pleaseParse: Record<string, never>;
+    } = {
+      link: bookmark.link!,
+      important: bookmark.important ?? false,
+      collection: { $id: collectionId },
+      pleaseParse: {} as Record<string, never>
+    };
+    if (bookmark.title !== undefined) body.title = bookmark.title;
+    if (bookmark.excerpt !== undefined) body.excerpt = bookmark.excerpt;
+    if (bookmark.tags !== undefined) body.tags = Array.isArray(bookmark.tags) ? [...bookmark.tags] : [];
+    
+    const response = await this.apiCall('post', '/raindrop', { body });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: mapApiBookmark(data.item) };
   }
 
   async updateBookmark(id: number, updates: Partial<Bookmark>): Promise<ApiResponse<Bookmark>> {
-    try {
-      const body: Record<string, any> = {};
-      if (updates.link !== undefined) body.link = updates.link;
-      if (updates.title !== undefined) body.title = updates.title;
-      if (updates.excerpt !== undefined) body.excerpt = updates.excerpt;
-      if (updates.note !== undefined) body.note = updates.note;
-      if (updates.tags !== undefined) body.tags = updates.tags;
-      if (updates.important !== undefined) body.important = updates.important;
-      if (updates.collection !== undefined) body.collection = { $id: updates.collection.$id };
-      if (updates.cover !== undefined) body.cover = updates.cover;
-      const { data, error } = await this.client.PUT('/raindrop/{id}', {
-        params: { path: { id } },
-        body
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: mapApiBookmark(data.item) };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to update bookmark ${id}`);
+    const body: Record<string, any> = {};
+    if (updates.link !== undefined) body.link = updates.link;
+    if (updates.title !== undefined) body.title = updates.title;
+    if (updates.excerpt !== undefined) body.excerpt = updates.excerpt;
+    if (updates.note !== undefined) body.note = updates.note;
+    if (updates.tags !== undefined) body.tags = updates.tags;
+    if (updates.important !== undefined) body.important = updates.important;
+    if (updates.collection !== undefined) body.collection = { $id: updates.collection.$id };
+    if (updates.cover !== undefined) body.cover = updates.cover;
+    
+    const response = await this.apiCall('put', '/raindrop/{id}', {
+      params: { path: { id } },
+      body
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: mapApiBookmark(data.item) };
   }
 
   async deleteBookmark(id: number): Promise<ApiResponse<null>> {
-    try {
-      const { error } = await this.client.DELETE('/raindrop/{id}', {
-        params: { path: { id } }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      return { status: 'success', result: true, data: null };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to delete bookmark ${id}`);
-    }
+    const response = await this.apiCall('delete', '/raindrop/{id}', {
+      params: { path: { id } }
+    });
+    if (response.status === 'error') return response;
+    return { status: 'success', result: true, data: null };
   }
 
   async permanentDeleteBookmark(id: number): Promise<ApiResponse<null>> {
-    try {
-      const { error } = await this.client.DELETE('/raindrop/{id}/permanent', {
-        params: { path: { id } }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      return { status: 'success', result: true, data: null };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to permanently delete bookmark ${id}`);
-    }
+    const response = await this.apiCall('delete', '/raindrop/{id}/permanent', {
+      params: { path: { id } }
+    });
+    if (response.status === 'error') return response;
+    return { status: 'success', result: true, data: null };
   }
 
   async batchUpdateBookmarks(
     ids: number[],
     updates: { tags?: string[]; collection?: number; important?: boolean; broken?: boolean; }
   ): Promise<{ result: boolean }> {
-    try {
-      const body: {
-        ids: number[];
-        tags?: string[];
-        collection?: { $id: number };
-        important?: boolean;
-        broken?: boolean;
-      } = {
-        ids
-      };
-      if (updates.tags !== undefined) body.tags = updates.tags;
-      if (updates.collection !== undefined) body.collection = { $id: updates.collection };
-      if (updates.important !== undefined) body.important = updates.important;
-      if (updates.broken !== undefined) body.broken = updates.broken;
-      const { data, error } = await this.client.PUT('/raindrops', { body });
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      return { result: data?.result || false };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to batch update bookmarks');
-    }
+    const body: {
+      ids: number[];
+      tags?: string[];
+      collection?: { $id: number };
+      important?: boolean;
+      broken?: boolean;
+    } = { ids };
+    
+    if (updates.tags !== undefined) body.tags = updates.tags;
+    if (updates.collection !== undefined) body.collection = { $id: updates.collection };
+    if (updates.important !== undefined) body.important = updates.important;
+    if (updates.broken !== undefined) body.broken = updates.broken;
+    
+    const response = await this.apiCall('put', '/raindrops', { body });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    return { result: data?.result || false };
   }
 
-  // Tags - Type-safe with openapi-fetch
+  // Tags - Simplified
   async getTags(collectionId?: number): Promise<ApiResponse<{ _id: string; count: number }[]>> {
-    try {
-      let response;
-      if (collectionId !== undefined) {
-        response = await this.client.GET('/tags/{collectionId}', {
-          params: { path: { id: collectionId } }
-        });
-      } else {
-        response = await this.client.GET('/tags/0');
-      }
-      const { data, error } = response;
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.items) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: data.items as { _id: string; count: number }[] };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to get tags');
+    const response = collectionId !== undefined 
+      ? await this.apiCall('get', '/tags/{collectionId}', { params: { path: { id: collectionId } } })
+      : await this.apiCall('get', '/tags/0');
+      
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.items) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: data.items as { _id: string; count: number }[] };
   }
 
   async getTagsByCollection(collectionId: number): Promise<ApiResponse<{ _id: string; count: number }[]>> {
@@ -489,232 +427,138 @@ export default class RaindropService {
   }
 
   async deleteTags(collectionId: number | undefined, tags: string[]): Promise<ApiResponse<{ result: boolean }>> {
-    try {
-      let response;
-      if (collectionId !== undefined) {
-        response = await this.client.DELETE('/tags/{collectionId}', {
-          params: { path: { id: collectionId } },
-          body: { tags: tags ?? [] }
-        });
-      } else {
-        response = await this.client.DELETE('/tags/0', {
-          body: { tags: tags ?? [] }
-        });
-      }
-      const { data, error } = response;
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      return { status: 'success', result: true, data: { result: data?.result ?? false } };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to delete tags');
-    }
+    const response = collectionId !== undefined
+      ? await this.apiCall('delete', '/tags/{collectionId}', { params: { path: { id: collectionId } }, body: { tags: tags ?? [] } })
+      : await this.apiCall('delete', '/tags/0', { body: { tags: tags ?? [] } });
+      
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    return { status: 'success', result: true, data: { result: data?.result ?? false } };
   }
 
   async renameTag(collectionId: number | undefined, oldName: string, newName: string): Promise<ApiResponse<{ result: boolean }>> {
-    try {
-      let response;
-      if (collectionId !== undefined) {
-        response = await this.client.PUT('/tags/{collectionId}', {
-          params: { path: { id: collectionId } },
-          body: { from: oldName, to: newName }
-        });
-      } else {
-        response = await this.client.PUT('/tags/0', {
-          body: { from: oldName, to: newName }
-        });
-      }
-      const { data, error } = response;
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      return { status: 'success', result: true, data: { result: data?.result ?? false } };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to rename tag');
-    }
+    const response = collectionId !== undefined
+      ? await this.apiCall('put', '/tags/{collectionId}', { params: { path: { id: collectionId } }, body: { from: oldName, to: newName } })
+      : await this.apiCall('put', '/tags/0', { body: { from: oldName, to: newName } });
+      
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    return { status: 'success', result: true, data: { result: data?.result ?? false } };
   }
 
   async mergeTags(collectionId: number | undefined, tags: string[], newName: string): Promise<ApiResponse<{ result: boolean }>> {
-    try {
-      let response;
-      if (collectionId !== undefined) {
-        response = await this.client.PUT('/tags/{collectionId}', {
-          params: { path: { id: collectionId } },
-          body: { tags: tags ?? [], to: newName }
-        });
-      } else {
-        response = await this.client.PUT('/tags/0', {
-          body: { tags: tags ?? [], to: newName }
-        });
-      }
-      const { data, error } = response;
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      return { status: 'success', result: true, data: { result: data?.result ?? false } };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to merge tags');
-    }
+    const response = collectionId !== undefined
+      ? await this.apiCall('put', '/tags/{collectionId}', { params: { path: { id: collectionId } }, body: { tags: tags ?? [], to: newName } })
+      : await this.apiCall('put', '/tags/0', { body: { tags: tags ?? [], to: newName } });
+      
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    return { status: 'success', result: true, data: { result: data?.result ?? false } };
   }
 
-  // User - Type-safe with openapi-fetch
+  // User - Simplified with helper
   async getUserInfo() {
-    try {
-      const { data, error } = await this.client.GET('/user');
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      if (!data?.result || !data.user) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-
-      return data.user;
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to get user info');
+    const response = await this.apiCall('get', '/user');
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.user) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return data.user;
   }
 
   async getUserStats() {
-    try {
-      const { data, error } = await this.client.GET('/user/stats');
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      if (!data?.result || !data.stats) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-
-      return data.stats;
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to get user stats');
+    const response = await this.apiCall('get', '/user/stats');
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.stats) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return data.stats;
   }
 
   async getCollectionStats(collectionId: number) {
-    try {
-      const { data, error } = await this.client.GET('/collection/{id}/stats', {
-        params: { path: { id: collectionId } }
-      });
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      if (!data?.result || !data.stats) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-
-      return data.stats;
-    } catch (error) {
-      return this.handleApiError(error, `Failed to get collection stats for ${collectionId}`);
+    const response = await this.apiCall('get', '/collection/{id}/stats', {
+      params: { path: { id: collectionId } }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.stats) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return data.stats;
   }
 
-  // Collections management - Type-safe with openapi-fetch
+  // Collections management - Simplified
   async reorderCollections(sort: string): Promise<{ result: boolean }> {
-    try {
-      const { data, error } = await this.client.PUT('/collections/sort', {
-        body: { sort }
-      });
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      return { result: data?.result || false };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to reorder collections');
-    }
+    const response = await this.apiCall('put', '/collections/sort', { body: { sort } });
+    if (response.status === 'error') return response;
+    const { data } = response;
+    return { result: data?.result || false };
   }
 
   async toggleCollectionsExpansion(expand: boolean): Promise<{ result: boolean }> {
-    try {
-      const { data, error } = await this.client.PUT('/collections/collapsed', {
-        body: { collapsed: !expand }
-      });
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      return { result: data?.result || false };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to toggle collections expansion');
-    }
+    const response = await this.apiCall('put', '/collections/collapsed', { body: { collapsed: !expand } });
+    if (response.status === 'error') return response;
+    const { data } = response;
+    return { result: data?.result || false };
   }
 
   async mergeCollections(targetCollectionId: number, collectionIds: number[]): Promise<{ result: boolean }> {
-    try {
-      const { data, error } = await this.client.PUT('/collection/{id}/merge', {
-        params: { path: { id: targetCollectionId } },
-        body: { with: collectionIds }
-      });
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      return { result: data?.result || false };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to merge collections');
-    }
+    const response = await this.apiCall('put', '/collection/{id}/merge', {
+      params: { path: { id: targetCollectionId } },
+      body: { with: collectionIds }
+    });
+    if (response.status === 'error') return response;
+    const { data } = response;
+    return { result: data?.result || false };
   }
 
   async removeEmptyCollections(): Promise<{ count: number }> {
-    try {
-      const { data, error } = await this.client.PUT('/collections/clean');
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      return { count: data?.count || 0 };
-    } catch (error) {
-      return { count: 0 };
-    }
+    const response = await this.apiCall('put', '/collections/clean');
+    if (response.status === 'error') return { count: 0 };
+    const { data } = response;
+    return { count: data?.count || 0 };
   }
 
   async emptyTrash(): Promise<{ result: boolean }> {
-    try {
-      const { data, error } = await this.client.PUT('/collection/-99/clear');
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      return { result: data?.result || false };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to empty trash');
-    }
+    const response = await this.apiCall('put', '/collection/-99/clear');
+    if (response.status === 'error') return response;
+    const { data } = response;
+    return { result: data?.result || false };
   }
 
-  // Highlights - Type-safe with openapi-fetch
+  // Highlights - Simplified
   async getHighlights(raindropId: number): Promise<ApiResponse<Highlight[]>> {
-    try {
-      const { data, error } = await this.client.GET('/raindrop/{id}/highlights', {
-        params: { path: { id: raindropId } }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.items) {
+    const response = await this.apiCall('get', '/raindrop/{id}/highlights', {
+      params: { path: { id: raindropId } }
+    });
+    
+    if (response.status === 'error') {
+      // Handle 404 as empty array
+      if (response.error.includes('404')) {
         return { status: 'success', result: true, data: [] };
       }
-      const highlights = data.items.map((item: any) => this.mapHighlightData({
-        ...item,
-        raindrop: item.raindrop || { _id: raindropId }
-      })).filter((h): h is Highlight => h !== null);
-      return { status: 'success', result: true, data: highlights };
-    } catch (error) {
-      if ((error as any)?.status === 404) {
-        return { status: 'success', result: true, data: [] };
-      }
-      return this.handleApiError(error, `Failed to get highlights for raindrop ${raindropId}`);
+      return response;
     }
+    
+    const { data } = response;
+    if (!data?.result || !data.items) {
+      return { status: 'success', result: true, data: [] };
+    }
+    
+    const highlights = data.items.map((item: any) => this.mapHighlightData({
+      ...item,
+      raindrop: item.raindrop || { _id: raindropId }
+    })).filter((h: Highlight | null): h is Highlight => h !== null);
+    
+    return { status: 'success', result: true, data: highlights };
   }
 
   /**
@@ -853,118 +697,94 @@ export default class RaindropService {
   }
 
   async getHighlightsByCollection(collectionId: number): Promise<ApiResponse<Highlight[]>> {
-    try {
-      if (typeof collectionId !== 'number' || collectionId <= 0) {
-        return { status: 'error', result: false, error: 'Invalid collection id' };
-      }
-      const { data: bookmarksRes, error: bookmarksError } = await this.client.GET('/raindrops/{collectionId}', {
-        params: { path: { id: collectionId } }
-      });
-      if (bookmarksError) {
-        return this.handleApiError(bookmarksError, 'API Error');
-      }
-      if (!bookmarksRes?.result || !Array.isArray(bookmarksRes.items)) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      const highlights: Highlight[] = [];
-      for (const bookmark of bookmarksRes.items) {
-        if (Array.isArray(bookmark.highlights)) {
-          for (const h of bookmark.highlights) {
-            highlights.push(this.mapHighlightData({
-              ...h,
-              _id: typeof h._id === 'string' ? Number(h._id) : h._id,
-              raindrop: {
-                _id: typeof bookmark._id === 'string' ? Number(bookmark._id) : bookmark._id,
-                title: bookmark.title || '',
-                link: bookmark.link || '',
-                collection: bookmark.collection || { $id: collectionId }
-              }
-            }) as Highlight);
-          }
+    if (typeof collectionId !== 'number' || collectionId <= 0) {
+      return { status: 'error', result: false, error: 'Invalid collection id' };
+    }
+    
+    const response = await this.apiCall('get', '/raindrops/{collectionId}', {
+      params: { path: { id: collectionId } }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data: bookmarksRes } = response;
+    if (!bookmarksRes?.result || !Array.isArray(bookmarksRes.items)) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
+    }
+    
+    const highlights: Highlight[] = [];
+    for (const bookmark of bookmarksRes.items) {
+      if (Array.isArray(bookmark.highlights)) {
+        for (const h of bookmark.highlights) {
+          highlights.push(this.mapHighlightData({
+            ...h,
+            _id: typeof h._id === 'string' ? Number(h._id) : h._id,
+            raindrop: {
+              _id: typeof bookmark._id === 'string' ? Number(bookmark._id) : bookmark._id,
+              title: bookmark.title || '',
+              link: bookmark.link || '',
+              collection: bookmark.collection || { $id: collectionId }
+            }
+          }) as Highlight);
         }
       }
-      return { status: 'success', result: true, data: highlights.filter((h): h is Highlight => h !== null) };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to get highlights for collection ${collectionId}`);
     }
+    return { status: 'success', result: true, data: highlights.filter((h): h is Highlight => h !== null) };
   }
 
   async createHighlight(raindropId: number, highlightData: { text: string; note?: string; color?: string }): Promise<ApiResponse<Highlight>> {
-    try {
-      const allowedColors = [
-        'yellow', 'blue', 'brown', 'cyan', 'gray', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal'
-      ] as const;
-      let color: typeof allowedColors[number] = 'yellow';
-      if (highlightData.color && allowedColors.includes(highlightData.color as any)) {
-        color = highlightData.color as typeof allowedColors[number];
-      }
-      const body: { raindrop: { $id: number }; text: string; color: typeof allowedColors[number]; note?: string } = {
-        raindrop: { $id: raindropId },
-        text: highlightData.text,
-        color
-      };
-      if (highlightData.note) body.note = highlightData.note;
-      const { data, error } = await this.client.POST('/highlights', { body });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      const highlight = this.mapHighlightData({
-        ...data.item,
-        raindrop: data.item.raindrop || { _id: raindropId }
-      });
-      if (!highlight) {
-        return { status: 'error', result: false, error: 'Failed to create highlight: Invalid response data' };
-      }
-      return { status: 'success', result: true, data: highlight };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to create highlight');
+    const allowedColors = ['yellow', 'blue', 'brown', 'cyan', 'gray', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal'] as const;
+    const color: typeof allowedColors[number] = (highlightData.color && allowedColors.includes(highlightData.color as any)) 
+      ? highlightData.color as typeof allowedColors[number] : 'yellow';
+    
+    const body: { raindrop: { $id: number }; text: string; color: typeof allowedColors[number]; note?: string } = {
+      raindrop: { $id: raindropId },
+      text: highlightData.text,
+      color
+    };
+    if (highlightData.note) body.note = highlightData.note;
+    
+    const response = await this.apiCall('post', '/highlights', { body });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    
+    const highlight = this.mapHighlightData({ ...data.item, raindrop: data.item.raindrop || { _id: raindropId } });
+    if (!highlight) {
+      return { status: 'error', result: false, error: 'Failed to create highlight: Invalid response data' };
+    }
+    return { status: 'success', result: true, data: highlight };
   }
 
   async updateHighlight(id: number, updates: { text?: string; note?: string; color?: string }): Promise<ApiResponse<Highlight>> {
-    try {
-      const allowedColors = [
-        'yellow', 'blue', 'brown', 'cyan', 'gray', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal'
-      ] as const;
-      const body: { text?: string; note?: string; color?: typeof allowedColors[number] } = {};
-      if (updates.text) body.text = updates.text;
-      if (updates.note) body.note = updates.note;
-      if (updates.color && allowedColors.includes(updates.color as any)) body.color = updates.color as typeof allowedColors[number];
-      const { data, error } = await this.client.PUT('/highlights/{id}', {
-        params: { path: { id } },
-        body
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      const highlight = this.mapHighlightData(data.item);
-      if (!highlight) {
-        return { status: 'error', result: false, error: 'Failed to update highlight: Invalid response data' };
-      }
-      return { status: 'success', result: true, data: highlight };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to update highlight ${id}`);
+    const allowedColors = ['yellow', 'blue', 'brown', 'cyan', 'gray', 'green', 'indigo', 'orange', 'pink', 'purple', 'red', 'teal'] as const;
+    const body: { text?: string; note?: string; color?: typeof allowedColors[number] } = {};
+    
+    if (updates.text) body.text = updates.text;
+    if (updates.note) body.note = updates.note;
+    if (updates.color && allowedColors.includes(updates.color as any)) body.color = updates.color as typeof allowedColors[number];
+    
+    const response = await this.apiCall('put', '/highlights/{id}', { params: { path: { id } }, body });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    
+    const highlight = this.mapHighlightData(data.item);
+    if (!highlight) {
+      return { status: 'error', result: false, error: 'Failed to update highlight: Invalid response data' };
+    }
+    return { status: 'success', result: true, data: highlight };
   }
 
   async deleteHighlight(id: number): Promise<ApiResponse<null>> {
-    try {
-      const { error } = await this.client.DELETE('/highlights/{id}', {
-        params: { path: { id } }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      return { status: 'success', result: true, data: null };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to delete highlight ${id}`);
-    }
+    const response = await this.apiCall('delete', '/highlights/{id}', { params: { path: { id } } });
+    if (response.status === 'error') return response;
+    return { status: 'success', result: true, data: null };
   }
 
   // Search - Type-safe with openapi-fetch
@@ -972,159 +792,106 @@ export default class RaindropService {
     return this.getBookmarks(params);
   }
 
-  // Advanced search with filters
+  // Advanced search - Simplified
   async searchRaindrops(params: {
-    search?: string;
-    collection?: number;
-    tags?: string[];
-    createdStart?: string;
-    createdEnd?: string;
-    important?: boolean;
-    media?: string;
-    page?: number;
-    perPage?: number;
-    sort?: string;
+    search?: string; collection?: number; tags?: string[]; createdStart?: string; 
+    createdEnd?: string; important?: boolean; media?: string; page?: number; 
+    perPage?: number; sort?: string;
   }): Promise<ApiResponse<{ items: Bookmark[]; count: number }>> {
-    try {
-      const query: Record<string, any> = {};
-      if (params.search) query.search = params.search;
-      if (params.collection) query.collection = params.collection;
-      if (params.tags) query.tags = params.tags;
-      if (params.createdStart) query.createdStart = params.createdStart;
-      if (params.createdEnd) query.createdEnd = params.createdEnd;
-      if (params.important) query.important = params.important;
-      if (params.media) query.media = params.media;
-      if (params.page) query.page = params.page;
-      if (params.perPage) query.perpage = params.perPage;
-      if (params.sort) query.sort = params.sort;
-      const { data, error } = await this.client.GET('/raindrops', {
-        params: { query }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !Array.isArray(data.items)) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      // Map API items to Bookmark shape if needed
-      const items: Bookmark[] = Array.isArray(data.items)
-        ? data.items.map((item: any) => ({
-          ...item,
-          user: item.user ?? { _id: 0, name: '', email: '' } // fallback for missing user
-        }))
-        : [];
-      return {
-        status: 'success',
-        result: true,
-        data: {
-          items,
-          count: data.count ?? 0
-        }
-      };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to search raindrops');
+    const query: Record<string, any> = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) query[key === 'perPage' ? 'perpage' : key] = value;
+    });
+    
+    const response = await this.apiCall('get', '/raindrops', { params: { query } });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !Array.isArray(data.items)) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    
+    const items: Bookmark[] = data.items.map((item: any) => ({
+      ...item,
+      user: item.user ?? { _id: 0, name: '', email: '' }
+    }));
+    
+    return { status: 'success', result: true, data: { items, count: data.count ?? 0 } };
   }
 
-  // Upload file - Type-safe with openapi-fetch
+  // Upload file - Simplified
   async uploadFile(collectionId: number, file: any): Promise<ApiResponse<Bookmark>> {
-    try {
-      const { data, error } = await this.client.PUT('/raindrop/file', {
-        body: {
-          file: file,
-          collectionId: collectionId.toString()
-        }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: mapApiBookmark(data.item) };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to upload file');
+    const response = await this.apiCall('put', '/raindrop/file', {
+      body: { file, collectionId: collectionId.toString() }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: mapApiBookmark(data.item) };
   }
 
-  // Reminder management - Type-safe with openapi-fetch
+  // Reminder management - Simplified
   async setReminder(raindropId: number, reminder: { date: string; note?: string }): Promise<ApiResponse<Bookmark>> {
-    try {
-      const body: { date: string; note?: string } = { date: reminder.date };
-      if (reminder.note) body.note = reminder.note;
-      const { data, error } = await this.client.PUT('/raindrop/{id}/reminder', {
-        params: { path: { id: raindropId } },
-        body
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: mapApiBookmark(data.item) };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to set reminder for bookmark ${raindropId}`);
+    const body: { date: string; note?: string } = { date: reminder.date };
+    if (reminder.note) body.note = reminder.note;
+    
+    const response = await this.apiCall('put', '/raindrop/{id}/reminder', {
+      params: { path: { id: raindropId } }, body
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: mapApiBookmark(data.item) };
   }
 
   async deleteReminder(raindropId: number): Promise<ApiResponse<Bookmark>> {
-    try {
-      const { data, error } = await this.client.DELETE('/raindrop/{id}/reminder', {
-        params: { path: { id: raindropId } }
-      });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result || !data.item) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return { status: 'success', result: true, data: mapApiBookmark(data.item) };
-    } catch (error) {
-      return this.handleApiError(error, `Failed to delete reminder for bookmark ${raindropId}`);
+    const response = await this.apiCall('delete', '/raindrop/{id}/reminder', {
+      params: { path: { id: raindropId } }
+    });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result || !data.item) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    return { status: 'success', result: true, data: mapApiBookmark(data.item) };
   }
 
-  // Import functionality - Type-safe with openapi-fetch
+  // Import functionality - Simplified
   async importBookmarks(collectionId: number, file: any, options: {
     format?: 'html' | 'csv' | 'pocket' | 'instapaper' | 'netscape' | 'readwise';
     mode?: 'add' | 'replace';
   } = {}): Promise<ApiResponse<{ imported: number; duplicates: number }>> {
-    try {
-      const body: {
-        file: any;
-        collection?: string;
-        format?: 'html' | 'csv' | 'pocket' | 'instapaper' | 'netscape' | 'readwise';
-        mode: 'add' | 'replace';
-        parse: boolean;
-      } = {
-        file,
-        mode: options.mode ?? 'add',
-        parse: true
-      };
-      if (collectionId) body.collection = collectionId.toString();
-      if (options.format) body.format = options.format;
-      const { data, error } = await this.client.POST('/import', { body });
-      if (error) {
-        return this.handleApiError(error, 'API Error');
-      }
-      if (!data?.result) {
-        return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
-      }
-      return {
-        status: 'success',
-        result: true,
-        data: {
-          imported: data.imported ?? 0,
-          duplicates: data.duplicates ?? 0
-        }
-      };
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to import bookmarks');
+    const body = {
+      file,
+      mode: options.mode ?? 'add',
+      parse: true,
+      ...(collectionId && { collection: collectionId.toString() }),
+      ...(options.format && { format: options.format })
+    };
+    
+    const response = await this.apiCall('post', '/import', { body });
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result) {
+      return { status: 'error', result: false, error: 'Invalid response structure from Raindrop.io API' };
     }
+    
+    return {
+      status: 'success',
+      result: true,
+      data: { imported: data.imported ?? 0, duplicates: data.duplicates ?? 0 }
+    };
   }
 
-  // Check import status
+  // Check import status - Simplified
   async getImportStatus(): Promise<{
     status: 'in-progress' | 'ready' | 'error';
     progress?: number;
@@ -1132,34 +899,21 @@ export default class RaindropService {
     duplicates?: number;
     error?: string;
   }> {
-    try {
-      const { data, error } = await this.client.GET('/import/status');
-
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
-      }
-
-      if (!data?.result) {
-        throw new Error('Invalid response structure from Raindrop.io API');
-      }
-
-      const result: {
-        status: 'in-progress' | 'ready' | 'error';
-        progress?: number;
-        imported?: number;
-        duplicates?: number;
-        error?: string;
-      } = {
-        status: data.status
-      };
-      if (typeof data.progress === 'number') result.progress = data.progress;
-      if (typeof data.imported === 'number') result.imported = data.imported;
-      if (typeof data.duplicates === 'number') result.duplicates = data.duplicates;
-      if (typeof data.error === 'string') result.error = data.error;
-      return result;
-    } catch (error) {
-      return this.handleApiError(error, 'Failed to get import status');
+    const response = await this.apiCall('get', '/import/status');
+    if (response.status === 'error') return response;
+    
+    const { data } = response;
+    if (!data?.result) {
+      throw new Error('Invalid response structure from Raindrop.io API');
     }
+    
+    return {
+      status: data.status,
+      ...(typeof data.progress === 'number' && { progress: data.progress }),
+      ...(typeof data.imported === 'number' && { imported: data.imported }),
+      ...(typeof data.duplicates === 'number' && { duplicates: data.duplicates }),
+      ...(typeof data.error === 'string' && { error: data.error })
+    };
   }
 
 

@@ -7,10 +7,13 @@ function isBookmarkSuccess(
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import pkg from '../../package.json';
-import type { Collection } from "../types/raindrop";
-import { BookmarkSchema, CollectionSchema, HighlightSchema, TagSchema } from "../types/raindrop";
+import type { components } from '../types/raindrop.schema.js';
 import type { ApiResponse } from "./raindrop.service.js";
 import RaindropService, { isApiError, isApiSuccess } from "./raindrop.service.js";
+type Collection = components['schemas']['Collection'];
+type Bookmark = components['schemas']['Bookmark'];
+type Highlight = components['schemas']['Highlight'];
+type Tag = components['schemas']['Tag'];
 
 // Tool configuration types
 interface ToolConfig<T = { content: McpContent[] }> {
@@ -268,7 +271,18 @@ export class RaindropMCPService {
                 "List all Raindrop collections for the authenticated user.",
                 () => this.raindropService.getCollections(),
                 (items) => this.mapCollections(items),
-                CollectionSchema
+                z.object({
+                    _id: z.number(),
+                    title: z.string(),
+                    description: z.string().optional(),
+                    count: z.number().optional(),
+                    parent: z.any().optional(),
+                    color: z.string().optional(),
+                    created: z.string().optional(),
+                    lastUpdate: z.string().optional(),
+                    expanded: z.boolean().optional(),
+                    access: z.any().optional(),
+                })
             ),
 
             // Collection management tool
@@ -283,7 +297,20 @@ export class RaindropMCPService {
                     color: z.string().optional(),
                     description: z.string().optional()
                 },
-                z.object({ result: CollectionSchema.nullable() }),
+                z.object({
+                    result: z.object({
+                        _id: z.number(),
+                        title: z.string(),
+                        description: z.string().optional(),
+                        count: z.number().optional(),
+                        parent: z.any().optional(),
+                        color: z.string().optional(),
+                        created: z.string().optional(),
+                        lastUpdate: z.string().optional(),
+                        expanded: z.boolean().optional(),
+                        access: z.any().optional(),
+                    }).nullable()
+                }),
                 {
                     create: async (args) => {
                         if (!args.title) throw new Error("title is required for create");
@@ -319,7 +346,20 @@ export class RaindropMCPService {
                     offset: z.number().min(0).optional().default(0),
                     sample: z.number().min(1).max(100).optional()
                 }),
-                outputSchema: z.object({ bookmarks: z.array(BookmarkSchema) }),
+                outputSchema: z.object({
+                    bookmarks: z.array(z.object({
+                        _id: z.number(),
+                        title: z.string(),
+                        link: z.string(),
+                        excerpt: z.string().optional(),
+                        tags: z.array(z.string()).optional(),
+                        created: z.string().optional(),
+                        lastUpdate: z.string().optional(),
+                        important: z.boolean().optional(),
+                        collection: z.any().optional(),
+                    })
+                    )
+                }),
                 handler: this.asyncHandler(async (args) => {
                     const params: any = {};
                     if (args.query) params.search = args.query;
@@ -359,7 +399,19 @@ export class RaindropMCPService {
                     important: z.boolean().optional(),
                     data: z.any().optional()
                 },
-                z.object({ result: BookmarkSchema.nullable() }),
+                z.object({
+                    result: z.object({
+                        _id: z.number(),
+                        title: z.string(),
+                        link: z.string(),
+                        excerpt: z.string().optional(),
+                        tags: z.array(z.string()).optional(),
+                        created: z.string().optional(),
+                        lastUpdate: z.string().optional(),
+                        important: z.boolean().optional(),
+                        collection: z.any().optional(),
+                    }).nullable()
+                }),
                 {
                     create: async (args) => {
                         if (!args.collectionId) throw new Error("collectionId is required for create");
@@ -402,8 +454,16 @@ export class RaindropMCPService {
                 }),
                 outputSchema: z.object({
                     result: z.union([
-                        TagSchema,
-                        z.array(TagSchema),
+                        z.object({
+                            _id: z.string(),
+                            count: z.number().optional(),
+                            name: z.string().optional(),
+                        }),
+                        z.array(z.object({
+                            _id: z.string(),
+                            count: z.number().optional(),
+                            name: z.string().optional(),
+                        })),
                         z.object({ deleted: z.boolean() })
                     ]).nullable()
                 }),
@@ -441,7 +501,17 @@ export class RaindropMCPService {
                     note: z.string().optional(),
                     color: z.string().optional()
                 },
-                z.object({ result: HighlightSchema.nullable() }),
+                z.object({
+                    result: z.object({
+                        _id: z.number(),
+                        text: z.string(),
+                        note: z.string().optional(),
+                        color: z.string().optional(),
+                        created: z.string().optional(),
+                        lastUpdate: z.string().optional(),
+                        bookmarkId: z.number().optional(),
+                    }).nullable()
+                }),
                 {
                     create: async (args) => {
                         if (!args.bookmarkId || !args.text) throw new Error("bookmarkId and text required for create");
