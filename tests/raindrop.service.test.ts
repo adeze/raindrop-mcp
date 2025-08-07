@@ -22,8 +22,10 @@ describe('RaindropService Read-Only API Integration', () => {
 
   it('fetches all collections', async () => {
     const collections = await service.getCollections();
+    expect(collections).toBeDefined();
+    expect(collections).toHaveProperty('result');
     expect(Array.isArray(collections.result)).toBe(true);
-    if (Array.isArray(collections.result) && collections.result.length > 0) {
+    if (collections.result.length > 0) {
       expect(collections.result[0]).toHaveProperty('_id');
     }
   });
@@ -72,4 +74,3 @@ describe('RaindropService Read-Only API Integration', () => {
     await expect(service.getHighlightsByCollection(-1)).rejects.toBeInstanceOf(Error);
   });
 });
-// No changes needed here. The test is correct.

@@ -54,8 +54,6 @@ export class RaindropMCPService {
     private server: McpServer;
     public raindropService: RaindropService;
 
-    private resources: Record<string, any> = {};
-
     /**
      * Expose the MCP server instance for external control (e.g., connect, close).
      */
@@ -110,7 +108,6 @@ export class RaindropMCPService {
             }
         });
         this.registerTools();
-        this.listResources();
     }
 
     private asyncHandler<T extends (...args: any[]) => Promise<any>>(fn: T): T {
@@ -761,16 +758,12 @@ export class RaindropMCPService {
      * @returns The resource contents as an array of objects with uri and text.
      * @throws Error if the resource is not found or not readable.
      */
-    public async readResource(uri: string): Promise<{ contents: any[] }> {
-        // Defensive: Check if resource exists
-        if (!this.resources[uri]) {
+    public async readResource(uri: string): Promise<any> {
+        const resource = (this.server as any)._resources?.find((r: any) => r.uri === uri || r.id === uri);
+        if (!resource || typeof resource.handler !== 'function') {
             throw new Error(`Resource with uri "${uri}" not found or not readable.`);
         }
-        // Defensive: Ensure contents is an array
-        const resource = this.resources[uri];
-        return {
-            contents: Array.isArray(resource.contents) ? resource.contents : [resource.contents]
-        };
+        return await resource.handler(uri);
     }
 
     /**
@@ -805,3 +798,4 @@ export class RaindropMCPService {
         };
     }
 }
+

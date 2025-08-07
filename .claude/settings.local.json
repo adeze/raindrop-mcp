@@ -19,7 +19,8 @@
       "Bash(npm view:*)",
       "Bash(cp:*)",
       "Bash(rm:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
