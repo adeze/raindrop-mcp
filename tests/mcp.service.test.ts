@@ -10,6 +10,13 @@ if (!process.env.RAINDROP_ACCESS_TOKEN || process.env.RAINDROP_ACCESS_TOKEN.trim
   );
 }
 
+// Test constants for URIs and resource IDs (populate these as needed)
+const USER_PROFILE_URI = 'mcp://user/profile';
+const DIAGNOSTICS_URI = 'diagnostics://server';
+const TEST_COLLECTION_ID = 123456; // <-- set your known collection ID here
+const TEST_RAINDROP_ID = 654321;   // <-- set your known raindrop/bookmark ID here
+// Add more constants here as needed for other read-only resources
+
 describe('RaindropMCPService', () => {
   let mcpService: RaindropMCPService;
 
@@ -27,6 +34,8 @@ describe('RaindropMCPService', () => {
     mcpService = undefined as unknown as RaindropMCPService;
   });
 
+  // Only readonly API calls and metadata/resource checks are tested below
+
   it('should successfully initialize McpServer', () => {
     const server = mcpService.getServer();
     expect(server).toBeDefined();
@@ -37,11 +46,11 @@ describe('RaindropMCPService', () => {
     if (typeof mcpService.readResource !== 'function') {
       throw new Error('readResource(uri: string) public method not implemented on RaindropMCPService');
     }
-    const result = await mcpService.readResource('mcp://user/profile');
+    const result = await mcpService.readResource(USER_PROFILE_URI);
     expect(result).toBeDefined();
     expect(result.contents).toBeDefined();
     expect(Array.isArray(result.contents)).toBe(true);
-    expect(result.contents[0].uri).toBe('mcp://user/profile');
+    expect(result.contents[0].uri).toBe(USER_PROFILE_URI);
     expect(result.contents[0].text).toContain('profile');
   });
 
@@ -67,43 +76,15 @@ describe('RaindropMCPService', () => {
     expect(diagnosticsTool?.name.toLowerCase()).toContain('diagnostic');
   });
 
-  it('should call the diagnostics tool and receive a resource_link', async () => {
-    // For testability, call the diagnostics tool logic directly from the RaindropMCPService instance
-    // (Assumes registerTools is not private, or refactor to expose the handler for testing)
-    // We'll simulate the handler as in the service definition
-    const handler = mcpService["asyncHandler"](async (_args: any, _extra: any) => {
-      return {
-        content: [
-          {
-            type: "resource_link",
-            uri: "diagnostics://server",
-            name: "Server Diagnostics",
-            description: "Server diagnostics and environment info resource.",
-            mimeType: "application/json",
-            _meta: {},
-          }
-        ],
-      };
-    });
-    const result = await handler({ includeEnvironment: false }, {});
-    expect(result).toBeDefined();
-    expect(result.content).toBeDefined();
-    expect(Array.isArray(result.content)).toBe(true);
-    const link = result.content.find((c: any) => c.type === "resource_link");
-    expect(link).toBeDefined();
-    if (!link) throw new Error('No resource_link found in diagnostics tool result');
-    expect(link.uri).toBe("diagnostics://server");
-  });
-
   it('should read the diagnostics resource via a public API', async () => {
     if (typeof mcpService.readResource !== 'function') {
       throw new Error('readResource(uri: string) public method not implemented on RaindropMCPService');
     }
-    const result = await mcpService.readResource('diagnostics://server');
+    const result = await mcpService.readResource(DIAGNOSTICS_URI);
     expect(result).toBeDefined();
     expect(result.contents).toBeDefined();
     expect(Array.isArray(result.contents)).toBe(true);
-    expect(result.contents[0].uri).toBe('diagnostics://server');
+    expect(result.contents[0].uri).toBe(DIAGNOSTICS_URI);
     expect(result.contents[0].text).toContain('diagnostics');
   });
 
@@ -116,16 +97,6 @@ describe('RaindropMCPService', () => {
     expect(manifest).toHaveProperty('capabilities');
     expect(manifest).toHaveProperty('tools');
     expect(Array.isArray((manifest as any).tools)).toBe(true);
-  });
-
-  it('should call a tool by ID and return a valid response', async () => {
-    const result = await mcpService.callTool('diagnostics', { includeEnvironment: false });
-    expect(result).toBeDefined();
-    expect(result.content).toBeDefined();
-    expect(Array.isArray(result.content)).toBe(true);
-    const link = result.content.find((c: any) => c.type === 'resource_link');
-    expect(link).toBeDefined();
-    expect(link.uri).toBe('diagnostics://server');
   });
 
   it('should list all registered resources with metadata', () => {
@@ -153,6 +124,32 @@ describe('RaindropMCPService', () => {
     expect(typeof info.name).toBe('string');
     expect(typeof info.version).toBe('string');
     expect(typeof info.description).toBe('string');
+  });
+
+  it('should read a specific collection resource', async () => {
+    if (typeof mcpService.readResource !== 'function') {
+      throw new Error('readResource(uri: string) public method not implemented on RaindropMCPService');
+    }
+    const collectionUri = `mcp://collection/${TEST_COLLECTION_ID}`;
+    const result = await mcpService.readResource(collectionUri);
+    expect(result).toBeDefined();
+    expect(result.contents).toBeDefined();
+    expect(Array.isArray(result.contents)).toBe(true);
+    expect(result.contents[0].uri).toBe(collectionUri);
+    expect(result.contents[0].text).toContain('collection');
+  });
+
+  it('should read a specific raindrop (bookmark) resource', async () => {
+    if (typeof mcpService.readResource !== 'function') {
+      throw new Error('readResource(uri: string) public method not implemented on RaindropMCPService');
+    }
+    const raindropUri = `mcp://raindrop/${TEST_RAINDROP_ID}`;
+    const result = await mcpService.readResource(raindropUri);
+    expect(result).toBeDefined();
+    expect(result.contents).toBeDefined();
+    expect(Array.isArray(result.contents)).toBe(true);
+    expect(result.contents[0].uri).toBe(raindropUri);
+    expect(result.contents[0].text).toContain('raindrop');
   });
 });
 

@@ -6,12 +6,6 @@ type Bookmark = components['schemas']['Bookmark'];
 type Collection = components['schemas']['Collection'];
 type Highlight = components['schemas']['Highlight'];
 
-// Remove backward compatibility types and helpers
-// type ApiSuccess<T> = ...
-// type ApiError = ...
-// type ApiResponse<T> = ...
-// export function isApiSuccess<T>(...) {...}
-// export function isApiError<T>(...) {...}
 
 export default class RaindropService {
   private client;
@@ -308,5 +302,88 @@ export default class RaindropService {
     };
     const { data } = await (this.client as any).PUT(endpoint, options);
     return !!data?.result;
+  }
+
+  /**
+   * Fetch user info
+   * Raindrop.io API: GET /user
+   */
+  async getUserInfo(): Promise<{ email: string;[key: string]: any }> {
+    const { data } = await this.client.GET('/user');
+    if (!data?.user) throw new Error('User not found');
+    return data.user;
+  }
+
+  /**
+   * Fetch highlights for a specific bookmark
+   * Raindrop.io API: GET /raindrop/{id}/highlights
+   */
+  async getHighlights(raindropId: number): Promise<Highlight[]> {
+    const { data } = await this.client.GET('/raindrop/{id}/highlights', {
+      params: { path: { id: raindropId } }
+    });
+    if (!data?.items) throw new Error('No highlights found');
+    return [...data.items];
+  }
+
+  /**
+   * Fetch all highlights across all bookmarks
+   * Raindrop.io API: GET /raindrops/0
+   */
+  async getAllHighlights(): Promise<Highlight[]> {
+    const { data } = await this.client.GET('/raindrops/0');
+    if (!data?.items) return [];
+    return data.items.flatMap((bookmark: any) => Array.isArray(bookmark.highlights) ? bookmark.highlights : []);
+  }
+
+  /**
+   * Create a highlight for a bookmark
+   * Raindrop.io API: POST /highlights
+   */
+  async createHighlight(bookmarkId: number, highlight: {
+    text: string;
+    note?: string;
+    color?: string;
+  }): Promise<Highlight> {
+    const { data } = await this.client.POST('/highlights', {
+      body: {
+        ...highlight,
+        raindrop: { $id: bookmarkId },
+        color: (highlight.color as any) || 'yellow'
+      }
+    });
+    if (!data?.item) throw new Error('Failed to create highlight');
+    return data.item;
+  }
+
+  /**
+   * Update a highlight
+   * Raindrop.io API: PUT /highlights/{id}
+   */
+  async updateHighlight(id: number, updates: {
+    text?: string;
+    note?: string;
+    color?: string;
+  }): Promise<Highlight> {
+    const { data } = await this.client.PUT('/highlights/{id}', {
+      params: { path: { id } },
+      body: {
+        ...(updates.text && { text: updates.text }),
+        ...(updates.note && { note: updates.note }),
+        ...(updates.color && { color: updates.color as any })
+      }
+    });
+    if (!data?.item) throw new Error('Failed to update highlight');
+    return data.item;
+  }
+
+  /**
+   * Delete a highlight
+   * Raindrop.io API: DELETE /highlights/{id}
+   */
+  async deleteHighlight(id: number): Promise<void> {
+    await this.client.DELETE('/highlights/{id}', {
+      params: { path: { id } }
+    });
   }
 }

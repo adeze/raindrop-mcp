@@ -1,15 +1,8 @@
-// Local type guard for bookmark_search response
-function isBookmarkSuccess(
-    response: ApiResponse<{ items: unknown[]; count: number }>
-): response is { status: 'success'; result: true; data: { items: unknown[]; count: number } } {
-    return response.status === 'success' && response.result === true;
-}
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import pkg from '../../package.json';
 import type { components } from '../types/raindrop.schema.js';
-import type { ApiResponse } from "./raindrop.service.js";
-import RaindropService, { isApiError, isApiSuccess } from "./raindrop.service.js";
+import RaindropService from "./raindrop.service.js";
 type Collection = components['schemas']['Collection'];
 type Bookmark = components['schemas']['Bookmark'];
 type Highlight = components['schemas']['Highlight'];
@@ -50,10 +43,250 @@ type McpContent =
 
 const SERVER_VERSION = pkg.version;
 
+// --- Declarative schemas ---
+const collectionSchema = z.object({
+    _id: z.number(),
+    title: z.string(),
+    description: z.string().optional(),
+    count: z.number().optional(),
+    parent: z.any().optional(),
+    color: z.string().optional(),
+    created: z.string().optional(),
+    lastUpdate: z.string().optional(),
+    expanded: z.boolean().optional(),
+    access: z.any().optional(),
+});
+
+const bookmarkSchema = z.object({
+    _id: z.number(),
+    title: z.string(),
+    link: z.string(),
+    excerpt: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    created: z.string().optional(),
+    lastUpdate: z.string().optional(),
+    important: z.boolean().optional(),
+    collection: z.any().optional(),
+});
+
+const highlightSchema = z.object({
+    _id: z.string(),
+    text: z.string(),
+    note: z.string().optional(),
+    color: z.string().optional(),
+    created: z.string().optional(),
+    lastUpdate: z.string().optional(),
+    bookmarkId: z.number().optional(),
+});
+
+const tagSchema = z.object({
+    _id: z.string(),
+    count: z.number().optional(),
+    name: z.string().optional(),
+});
+
+// --- Declarative tool configs ---
+const toolConfigs: ToolConfig[] = [
+    {
+        name: 'diagnostics',
+        description: 'Server diagnostics and environment info. Use includeEnvironment param for detailed info.',
+        inputSchema: z.object({
+            includeEnvironment: z.boolean().optional().describe('Include environment info')
+        }),
+        outputSchema: z.object({
+            content: z.array(z.object({
+                type: z.string(),
+                uri: z.string(),
+                name: z.string(),
+                description: z.string(),
+                mimeType: z.string(),
+                _meta: z.record(z.any()),
+            }))
+        }),
+        handler: async (_args) => ({
+            content: [{
+                type: 'resource_link',
+                uri: 'diagnostics://server',
+                name: 'Server Diagnostics',
+                description: 'Server diagnostics and environment info resource.',
+                mimeType: 'application/json',
+                _meta: {},
+            }]
+        })
+    },
+    {
+        name: 'collection_list',
+        description: 'List all Raindrop collections for the authenticated user.',
+        inputSchema: z.object({}),
+        outputSchema: z.array(collectionSchema),
+        handler: async (_args, { raindropService }) => {
+            const items = await raindropService.getCollections();
+            return items;
+        }
+    },
+    {
+        name: 'collection_manage',
+        description: 'Create, update, or delete a collection. Use operation parameter.',
+        inputSchema: z.object({
+            operation: z.enum(['create', 'update', 'delete']),
+            id: z.number().optional(),
+            title: z.string().optional(),
+            parentId: z.number().optional(),
+            color: z.string().optional(),
+            description: z.string().optional()
+        }),
+        outputSchema: collectionSchema,
+        handler: async (args, { raindropService }) => {
+            switch (args.operation) {
+                case 'create':
+                    if (!args.title) throw new Error('title is required for create');
+                    return await raindropService.createCollection(args.title);
+                case 'update':
+                    if (!args.id) throw new Error('id is required for update');
+                    return await raindropService.updateCollection(args.id, {
+                        title: args.title,
+                        color: args.color,
+                        description: args.description
+                    });
+                case 'delete':
+                    if (!args.id) throw new Error('id is required for delete');
+                    await raindropService.deleteCollection(args.id);
+                    return { deleted: true };
+            }
+        }
+    },
+    {
+        name: 'bookmark_search',
+        description: 'Search bookmarks with advanced filters, tags, and full-text.',
+        inputSchema: z.object({
+            query: z.string().optional(),
+            collectionId: z.number().optional(),
+            tags: z.array(z.string()).optional(),
+            important: z.boolean().optional(),
+            limit: z.number().min(1).max(100).optional().default(25),
+            offset: z.number().min(0).optional().default(0),
+            sample: z.number().min(1).max(100).optional()
+        }),
+        outputSchema: z.array(bookmarkSchema),
+        handler: async (args, { raindropService }) => {
+            const params: any = {};
+            if (args.query) params.search = args.query;
+            if (args.collectionId) params.collection = args.collectionId;
+            if (args.tags) params.tags = args.tags;
+            if (args.important !== undefined) params.important = args.important;
+            if (args.limit) params.perPage = args.limit;
+            if (args.offset) params.page = Math.floor(args.offset / (args.limit || 25)) + 1;
+            const result = await raindropService.getBookmarks(params);
+            return result.items;
+        }
+    },
+    {
+        name: 'bookmark_manage',
+        description: 'Create, update, or delete bookmarks. Use operation parameter.',
+        inputSchema: z.object({
+            operation: z.enum(['create', 'update', 'delete']),
+            id: z.number().optional(),
+            collectionId: z.number().optional(),
+            url: z.string().url().optional(),
+            title: z.string().optional(),
+            description: z.string().optional(),
+            tags: z.array(z.string()).optional(),
+            important: z.boolean().optional(),
+            data: z.any().optional()
+        }),
+        outputSchema: bookmarkSchema,
+        handler: async (args, { raindropService }) => {
+            switch (args.operation) {
+                case 'create':
+                    if (!args.collectionId) throw new Error('collectionId is required for create');
+                    return await raindropService.createBookmark(args.collectionId, {
+                        link: args.url,
+                        title: args.title,
+                        excerpt: args.description,
+                        tags: args.tags,
+                        important: args.important
+                    });
+                case 'update':
+                    if (!args.id) throw new Error('id is required for update');
+                    return await raindropService.updateBookmark(args.id, {
+                        link: args.url,
+                        title: args.title,
+                        excerpt: args.description,
+                        tags: args.tags,
+                        important: args.important
+                    });
+                case 'delete':
+                    if (!args.id) throw new Error('id is required for delete');
+                    await raindropService.deleteBookmark(args.id);
+                    return { deleted: true };
+            }
+        }
+    },
+    {
+        name: 'tag_manage',
+        description: 'Rename, merge, or delete tags. Use operation parameter.',
+        inputSchema: z.object({
+            operation: z.enum(['rename', 'merge', 'delete']),
+            tagNames: z.array(z.string()).optional(),
+            newName: z.string().optional(),
+            collectionId: z.number().optional()
+        }),
+        outputSchema: z.array(tagSchema),
+        handler: async (args, { raindropService }) => {
+            switch (args.operation) {
+                case 'rename':
+                    if (!args.tagNames || !args.newName) throw new Error('tagNames and newName required for rename');
+                    return await raindropService.renameTag(args.collectionId, args.tagNames[0], args.newName);
+                case 'merge':
+                    if (!args.tagNames || !args.newName) throw new Error('tagNames and newName required for merge');
+                    return await raindropService.mergeTags(args.collectionId, args.tagNames, args.newName);
+                case 'delete':
+                    if (!args.tagNames) throw new Error('tagNames required for delete');
+                    return await raindropService.deleteTags(args.collectionId, args.tagNames);
+            }
+        }
+    },
+    {
+        name: 'highlight_manage',
+        description: 'Create, update, or delete highlights. Use operation parameter.',
+        inputSchema: z.object({
+            operation: z.enum(['create', 'update', 'delete']),
+            id: z.number().optional(),
+            bookmarkId: z.number().optional(),
+            text: z.string().optional(),
+            note: z.string().optional(),
+            color: z.string().optional()
+        }),
+        outputSchema: highlightSchema,
+        handler: async (args, { raindropService }) => {
+            switch (args.operation) {
+                case 'create':
+                    if (!args.bookmarkId || !args.text) throw new Error('bookmarkId and text required for create');
+                    return await raindropService.createHighlight(args.bookmarkId, {
+                        text: args.text,
+                        note: args.note,
+                        color: args.color
+                    });
+                case 'update':
+                    if (!args.id) throw new Error('id required for update');
+                    return await raindropService.updateHighlight(args.id, {
+                        text: args.text,
+                        note: args.note,
+                        color: args.color
+                    });
+                case 'delete':
+                    if (!args.id) throw new Error('id required for delete');
+                    await raindropService.deleteHighlight(args.id);
+                    return { deleted: true };
+            }
+        }
+    },
+];
+
+// --- MCP Server class ---
 export class RaindropMCPService {
     private server: McpServer;
     public raindropService: RaindropService;
-
     private resources: Record<string, any> = {};
 
     /**
@@ -81,7 +314,7 @@ export class RaindropMCPService {
         }
         // Fallback: build manifest manually
         return {
-            name: "raindrop-mcp-server",
+            name: "raindrop-mcp",
             version: SERVER_VERSION,
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
             capabilities: (this.server as any).capabilities,
@@ -93,7 +326,7 @@ export class RaindropMCPService {
     constructor() {
         this.raindropService = new RaindropService();
         this.server = new McpServer({
-            name: "raindrop-mcp-server",
+            name: "raindrop-mcp",
             version: SERVER_VERSION,
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
             capabilities: {
@@ -109,7 +342,7 @@ export class RaindropMCPService {
                 elicitation: { supported: true, description: "Destructive and ambiguous actions require confirmation or clarification." }
             }
         });
-        this.registerTools();
+        this.registerDeclarativeTools();
         this.listResources();
     }
 
@@ -118,13 +351,21 @@ export class RaindropMCPService {
             try {
                 return await fn(...args);
             } catch (err) {
-                // Let MCP handle errors properly by re-throwing instead of wrapping
-                if (err instanceof Error) {
-                    throw err;
-                }
+                if (err instanceof Error) throw err;
                 throw new Error(String(err));
             }
         }) as T;
+    }
+
+    private registerDeclarativeTools() {
+        for (const config of toolConfigs) {
+            this.server.tool(
+                config.name,
+                (config.inputSchema as z.ZodObject<any>).shape,
+                { description: config.description },
+                this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
+            );
+        }
     }
 
     // Helper methods for building responses
@@ -155,7 +396,7 @@ export class RaindropMCPService {
     private createListTool<T>(
         name: string,
         description: string,
-        serviceMethod: () => Promise<ApiResponse<T[]>>,
+        serviceMethod: () => Promise<T[]>,
         mapper: (items: T[]) => unknown[],
         schema: z.ZodType
     ): ToolConfig {
@@ -168,26 +409,20 @@ export class RaindropMCPService {
             }),
             outputSchema: z.object({ [name.split('_')[0] + 's']: z.array(schema) }),
             handler: this.asyncHandler(async (args: { limit?: number; offset?: number }) => {
-                const response = await serviceMethod();
-                if (isApiSuccess(response)) {
-                    let items = response.data as T[];
-                    if (!Array.isArray(items)) {
-                        throw new Error(`${name} service returned invalid data`);
-                    }
-                    if (typeof args.offset === 'number') {
-                        items = items.slice(args.offset);
-                    }
-                    if (typeof args.limit === 'number') {
-                        items = items.slice(0, args.limit);
-                    }
-                    const mapped = mapper(items);
-                    const resultKey = name.split('_')[0] + 's'; // collection_list -> collections
-                    return this.createTextResponse({ [resultKey]: mapped });
+                const items = await serviceMethod();
+                if (!Array.isArray(items)) {
+                    throw new Error(`${name} service returned invalid data`);
                 }
-                if (isApiError(response)) {
-                    throw new Error(`${name} service error: ${response.error}`);
+                let resultItems = items;
+                if (typeof args.offset === 'number') {
+                    resultItems = resultItems.slice(args.offset);
                 }
-                throw new Error(`${name} service returned unknown error`);
+                if (typeof args.limit === 'number') {
+                    resultItems = resultItems.slice(0, args.limit);
+                }
+                const mapped = mapper(resultItems);
+                const resultKey = name.split('_')[0] + 's';
+                return this.createTextResponse({ [resultKey]: mapped });
             })
         };
     }
@@ -248,380 +483,6 @@ export class RaindropMCPService {
 
         this.server.registerResource(config.id, config.uri, options, config.handler);
     }
-
-    private registerTools() {
-        // Define tool configurations declaratively
-        const toolConfigs: ToolConfig[] = [
-            // Diagnostics tool
-            {
-                name: 'diagnostics',
-                description: 'Server diagnostics and environment info. Use includeEnvironment param for detailed info.',
-                inputSchema: z.object({
-                    includeEnvironment: z.boolean().optional().describe('Include environment info')
-                }),
-                handler: this.asyncHandler(async (_args: { includeEnvironment?: boolean }) => {
-                    return this.createResourceLinkResponse(
-                        "diagnostics://server",
-                        "Server Diagnostics",
-                        "Server diagnostics and environment info resource."
-                    );
-                })
-            },
-
-            // Collection list tool
-            this.createListTool<Collection>(
-                "collection_list",
-                "List all Raindrop collections for the authenticated user.",
-                () => this.raindropService.getCollections(),
-                (items) => this.mapCollections(items),
-                z.object({
-                    _id: z.number(),
-                    title: z.string(),
-                    description: z.string().optional(),
-                    count: z.number().optional(),
-                    parent: z.any().optional(),
-                    color: z.string().optional(),
-                    created: z.string().optional(),
-                    lastUpdate: z.string().optional(),
-                    expanded: z.boolean().optional(),
-                    access: z.any().optional(),
-                })
-            ),
-
-            // Collection management tool
-            this.createCrudTool(
-                "collection_manage",
-                "Create, update, or delete a collection. Use operation parameter.",
-                {
-                    operation: z.enum(["create", "update", "delete"]),
-                    id: z.number().optional(),
-                    title: z.string().optional(),
-                    parentId: z.number().optional(),
-                    color: z.string().optional(),
-                    description: z.string().optional()
-                },
-                z.object({
-                    result: z.object({
-                        _id: z.number(),
-                        title: z.string(),
-                        description: z.string().optional(),
-                        count: z.number().optional(),
-                        parent: z.any().optional(),
-                        color: z.string().optional(),
-                        created: z.string().optional(),
-                        lastUpdate: z.string().optional(),
-                        expanded: z.boolean().optional(),
-                        access: z.any().optional(),
-                    }).nullable()
-                }),
-                {
-                    create: async (args) => {
-                        if (!args.title) throw new Error("title is required for create");
-                        return await this.raindropService.createCollection(args.title);
-                    },
-                    update: async (args) => {
-                        if (!args.id) throw new Error("id is required for update");
-                        return await this.raindropService.updateCollection(args.id, {
-                            title: args.title,
-                            color: args.color,
-                            description: args.description
-                        });
-                    },
-                    delete: async (args) => {
-                        if (!args.id) throw new Error("id is required for delete");
-                        await this.raindropService.deleteCollection(args.id);
-                        return { deleted: true };
-                    }
-                },
-                (items) => this.mapCollections(items)
-            ),
-
-            // Bookmark search tool
-            {
-                name: "bookmark_search",
-                description: "Search bookmarks with advanced filters, tags, and full-text. Supports resource URIs, pagination, and sampling.",
-                inputSchema: z.object({
-                    query: z.string().optional(),
-                    collectionId: z.number().optional(),
-                    tags: z.array(z.string()).optional(),
-                    important: z.boolean().optional(),
-                    limit: z.number().min(1).max(100).optional().default(25),
-                    offset: z.number().min(0).optional().default(0),
-                    sample: z.number().min(1).max(100).optional()
-                }),
-                outputSchema: z.object({
-                    bookmarks: z.array(z.object({
-                        _id: z.number(),
-                        title: z.string(),
-                        link: z.string(),
-                        excerpt: z.string().optional(),
-                        tags: z.array(z.string()).optional(),
-                        created: z.string().optional(),
-                        lastUpdate: z.string().optional(),
-                        important: z.boolean().optional(),
-                        collection: z.any().optional(),
-                    })
-                    )
-                }),
-                handler: this.asyncHandler(async (args) => {
-                    const params: any = {};
-                    if (args.query) params.search = args.query;
-                    if (args.collectionId) params.collection = args.collectionId;
-                    if (args.tags) params.tags = args.tags;
-                    if (args.important !== undefined) params.important = args.important;
-                    if (args.limit) params.perPage = args.limit;
-                    if (args.offset) params.page = Math.floor(args.offset / (args.limit || 25)) + 1;
-                    const response = await this.raindropService.getBookmarks(params);
-                    if (isBookmarkSuccess(response)) {
-                        const data = response.data;
-                        if (!('items' in data) || !Array.isArray(data.items)) {
-                            throw new Error('bookmark_search service returned invalid data');
-                        }
-                        const mapped = this.mapBookmarks(data.items);
-                        return this.createTextResponse({ bookmarks: mapped });
-                    }
-                    if (isApiError(response)) {
-                        throw new Error('Failed to fetch bookmarks: ' + response.error);
-                    }
-                    throw new Error('Failed to fetch bookmarks: Unknown error');
-                })
-            },
-
-            // Bookmark management tool
-            this.createCrudTool(
-                "bookmark_manage",
-                "Create, update, or delete bookmarks. Use operation parameter.",
-                {
-                    operation: z.enum(["create", "update", "delete"]),
-                    id: z.number().optional(),
-                    collectionId: z.number().optional(),
-                    url: z.string().url().optional(),
-                    title: z.string().optional(),
-                    description: z.string().optional(),
-                    tags: z.array(z.string()).optional(),
-                    important: z.boolean().optional(),
-                    data: z.any().optional()
-                },
-                z.object({
-                    result: z.object({
-                        _id: z.number(),
-                        title: z.string(),
-                        link: z.string(),
-                        excerpt: z.string().optional(),
-                        tags: z.array(z.string()).optional(),
-                        created: z.string().optional(),
-                        lastUpdate: z.string().optional(),
-                        important: z.boolean().optional(),
-                        collection: z.any().optional(),
-                    }).nullable()
-                }),
-                {
-                    create: async (args) => {
-                        if (!args.collectionId) throw new Error("collectionId is required for create");
-                        return await this.raindropService.createBookmark(args.collectionId, {
-                            link: args.url,
-                            title: args.title,
-                            excerpt: args.description,
-                            tags: args.tags,
-                            important: args.important
-                        });
-                    },
-                    update: async (args) => {
-                        if (!args.id) throw new Error("id is required for update");
-                        return await this.raindropService.updateBookmark(args.id, {
-                            link: args.url,
-                            title: args.title,
-                            excerpt: args.description,
-                            tags: args.tags,
-                            important: args.important
-                        });
-                    },
-                    delete: async (args) => {
-                        if (!args.id) throw new Error("id is required for delete");
-                        await this.raindropService.deleteBookmark(args.id);
-                        return { deleted: true };
-                    }
-                },
-                (items) => this.mapBookmarks(items)
-            ),
-
-            // Tag management tool  
-            {
-                name: "tag_manage",
-                description: "Rename, merge, or delete tags. Use operation parameter.",
-                inputSchema: z.object({
-                    operation: z.enum(["rename", "merge", "delete"]),
-                    tagNames: z.array(z.string()).optional(),
-                    newName: z.string().optional(),
-                    collectionId: z.number().optional()
-                }),
-                outputSchema: z.object({
-                    result: z.union([
-                        z.object({
-                            _id: z.string(),
-                            count: z.number().optional(),
-                            name: z.string().optional(),
-                        }),
-                        z.array(z.object({
-                            _id: z.string(),
-                            count: z.number().optional(),
-                            name: z.string().optional(),
-                        })),
-                        z.object({ deleted: z.boolean() })
-                    ]).nullable()
-                }),
-                handler: this.asyncHandler(async (args) => {
-                    let result = null;
-                    switch (args.operation) {
-                        case "rename":
-                            if (!args.tagNames || !args.newName) throw new Error("tagNames and newName required for rename");
-                            result = await this.raindropService.renameTag(args.collectionId, args.tagNames[0], args.newName);
-                            break;
-                        case "merge":
-                            if (!args.tagNames || !args.newName) throw new Error("tagNames and newName required for merge");
-                            result = await this.raindropService.mergeTags(args.collectionId, args.tagNames, args.newName);
-                            break;
-                        case "delete":
-                            if (!args.tagNames) throw new Error("tagNames required for delete");
-                            result = await this.raindropService.deleteTags(args.collectionId, args.tagNames);
-                            break;
-                        default:
-                            throw new Error("Unsupported operation for tag_manage");
-                    }
-                    return this.createTextResponse({ result });
-                })
-            },
-
-            // Highlight management tool
-            this.createCrudTool(
-                "highlight_manage",
-                "Create, update, or delete highlights. Use operation parameter.",
-                {
-                    operation: z.enum(["create", "update", "delete"]),
-                    id: z.number().optional(),
-                    bookmarkId: z.number().optional(),
-                    text: z.string().optional(),
-                    note: z.string().optional(),
-                    color: z.string().optional()
-                },
-                z.object({
-                    result: z.object({
-                        _id: z.number(),
-                        text: z.string(),
-                        note: z.string().optional(),
-                        color: z.string().optional(),
-                        created: z.string().optional(),
-                        lastUpdate: z.string().optional(),
-                        bookmarkId: z.number().optional(),
-                    }).nullable()
-                }),
-                {
-                    create: async (args) => {
-                        if (!args.bookmarkId || !args.text) throw new Error("bookmarkId and text required for create");
-                        return await this.raindropService.createHighlight(args.bookmarkId, {
-                            text: args.text,
-                            note: args.note,
-                            color: args.color
-                        });
-                    },
-                    update: async (args) => {
-                        if (!args.id) throw new Error("id required for update");
-                        return await this.raindropService.updateHighlight(args.id, {
-                            text: args.text,
-                            note: args.note,
-                            color: args.color
-                        });
-                    },
-                    delete: async (args) => {
-                        if (!args.id) throw new Error("id required for delete");
-                        await this.raindropService.deleteHighlight(args.id);
-                        return { deleted: true };
-                    }
-                },
-                (items) => this.mapHighlights(items)
-            ),
-
-        ];
-
-        // Register all tools
-        toolConfigs.forEach(config => {
-            const inputSchema = config.inputSchema as z.ZodObject<any>;
-            this.server.tool(config.name, inputSchema.shape, { description: config.description }, config.handler);
-        });
-
-        // Define resource configurations
-        const resourceConfigs: ResourceConfig[] = [
-            {
-                id: "user_profile",
-                uri: "user_profile",
-                description: "User profile resource. Get user account information including name, email, subscription status, and registration date.",
-                inputSchema: z.object({}),
-                outputSchema: z.object({
-                    profile: z.object({ error: z.string() })
-                }),
-                handler: async (_params: any, _context: any) => {
-                    const profile = { error: "Not implemented: user_profile" };
-                    return {
-                        contents: [{
-                            text: JSON.stringify({ profile }, null, 2),
-                            uri: "user_profile",
-                            _meta: {},
-                            mimeType: "application/json"
-                        }]
-                    };
-                }
-            },
-            {
-                id: "user_statistics",
-                uri: "user_statistics",
-                description: "User or collection statistics resource. Includes bookmark counts, collection counts, and usage metrics.",
-                inputSchema: z.object({
-                    collectionId: z.number().optional()
-                }),
-                outputSchema: z.object({
-                    stats: z.any()
-                }),
-                handler: async (params: any, _context: any) => {
-                    let stats = null;
-                    if (params.collectionId) {
-                        stats = await this.raindropService.getCollectionStats(params.collectionId);
-                    } else {
-                        stats = await this.raindropService.getUserStats();
-                    }
-                    return {
-                        contents: [{
-                            text: JSON.stringify({ stats }, null, 2),
-                            uri: "user_statistics",
-                            _meta: {},
-                            mimeType: "application/json"
-                        }]
-                    };
-                }
-            },
-            {
-                id: "diagnostics",
-                uri: "diagnostics://server",
-                title: "Server Diagnostics",
-                description: "Server diagnostics and environment info resource.",
-                mimeType: "application/json",
-                handler: async (_uri) => {
-                    const diagnostics = { error: "Not implemented: diagnostics" };
-                    return {
-                        contents: [{
-                            uri: "diagnostics://server",
-                            text: JSON.stringify(diagnostics, null, 2),
-                            mimeType: "application/json",
-                            _meta: {},
-                        }]
-                    };
-                }
-            }
-        ];
-
-        // Register all resources
-        resourceConfigs.forEach(config => this.registerResourceFromConfig(config));
-    }
-
 
     // Helper methods (mapCollections, mapBookmarks, mapTags, mapHighlights, requestConfirmation, cleanup, getMimeTypeFromUrl)
 
