@@ -35,6 +35,7 @@ function mapApiBookmark(apiBookmark: any): Bookmark {
  * Throws descriptive errors for API failures and validation issues.
  */
 import createClient from 'openapi-fetch';
+import { z } from 'zod';
 import type { Bookmark, Collection, Highlight, SearchParams } from '../types/raindrop.js';
 import { CollectionSchema } from '../types/raindrop.js';
 import type { paths } from '../types/raindrop.schema.js';
@@ -77,7 +78,7 @@ export function isApiError<T>(response: ApiResponse<T>): response is ApiError {
 const collectionLevels = ['view', 'edit', 'remove'] as const;
 export type CollectionLevel = typeof collectionLevels[number];
 
-class RaindropService {
+export default class RaindropService {
   private client: ReturnType<typeof createClient<paths>>;
 
   constructor() {
@@ -775,28 +776,50 @@ class RaindropService {
    * Fetch all highlights across all bookmarks (paginated).
    * Returns a flat array of all highlights.
    */
-  static async getAllHighlights(): Promise<Highlight[]> {
-    const service = new RaindropService();
-    let page = 0;
-    const perPage = 50;
-    let allHighlights: Highlight[] = [];
-    let total = 0;
+  static async getAllHighlights(): Promise<any[]> {
+    try {
+      // Defensive: Use a timeout for the fetch
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
 
-    do {
-      const bookmarksRes = await service.getBookmarks({ page, perPage });
-      if (!isApiSuccess(bookmarksRes)) break;
-      const { items, count } = bookmarksRes.data;
-      total = count;
-      for (const bookmark of items) {
-        const highlightsRes = await service.getHighlights(bookmark._id);
-        if (isApiSuccess(highlightsRes)) {
-          allHighlights.push(...highlightsRes.data);
-        }
+      // Use Raindrop.io API endpoint for highlights
+      const accessToken = process.env.RAINDROP_ACCESS_TOKEN;
+      if (!accessToken) throw new Error('RAINDROP_ACCESS_TOKEN is missing');
+
+      const res = await fetch('https://api.raindrop.io/rest/v1/highlight', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch highlights: ${res.status} ${res.statusText}`);
       }
-      page++;
-    } while (page * perPage < total);
 
-    return allHighlights;
+      const data = await res.json();
+
+      // Defensive: Validate response shape
+      const highlightsSchema = z.object({
+        items: z.array(z.any())
+      });
+
+      const parsed = highlightsSchema.safeParse(data);
+      if (!parsed.success) {
+        throw new Error('Invalid highlights response format');
+      }
+
+      return parsed.data.items;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        throw new Error('Timeout while fetching highlights');
+      }
+      throw new Error(`Error in getAllHighlights: ${err.message}`);
+    }
   }
 
   // Helper method to map highlight data consistently
@@ -1141,5 +1164,3 @@ class RaindropService {
 
 
 }
-
-export default RaindropService;

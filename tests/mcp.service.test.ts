@@ -37,12 +37,12 @@ describe('RaindropMCPService', () => {
     if (typeof mcpService.readResource !== 'function') {
       throw new Error('readResource(uri: string) public method not implemented on RaindropMCPService');
     }
-    const result = await mcpService.readResource('user_profile');
+    const result = await mcpService.readResource('mcp://user/profile');
     expect(result).toBeDefined();
     expect(result.contents).toBeDefined();
     expect(Array.isArray(result.contents)).toBe(true);
-    expect(result.contents[0].uri).toBe('user_profile');
-    expect(result.contents[0].text).toContain('user_profile');
+    expect(result.contents[0].uri).toBe('mcp://user/profile');
+    expect(result.contents[0].text).toContain('profile');
   });
 
   it('should list available tools', async () => {

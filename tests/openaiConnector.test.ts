@@ -55,13 +55,16 @@ describe('sendChatMessage', () => {
     }
   });
 
-  it('returns MCPError on invalid input', async () => {
-    const request = { model: 'gpt-3.5-turbo', messages: [] };
-    const result = await sendChatMessage(request as any, apiKey);
-    if (result.success === false) {
-      expect(result.error).toContain('OpenAI API error');
-    } else {
-      throw new Error('Expected MCPError, got MCPResponse');
+  it('throws MCPError on invalid input', async () => {
+    try {
+      await sendChatMessage({ model: '', messages: [] }, apiKey);
+      throw new Error('Expected MCPError to be thrown');
+    } catch (err) {
+      if (err && typeof err === 'object' && 'name' in err) {
+        expect((err as any).name).toBe('MCPError');
+      } else {
+        throw err;
+      }
     }
   });
 

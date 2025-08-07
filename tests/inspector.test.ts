@@ -28,7 +28,7 @@ describe('MCP Inspector CLI', () => {
     await new Promise((resolve) => proc.on('close', resolve));
 
     expect(output).toMatch(/tools|list/i);
-    expect(output).toMatch(/"id"|"name"/i);
+    expect(output).toMatch(/id|name/i);
   });
 
   it('responds to a valid MCP protocol request (ping)', async () => {

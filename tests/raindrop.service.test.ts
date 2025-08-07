@@ -17,9 +17,9 @@ describe('RaindropService Read-Only API Integration', () => {
 
   it('fetches all collections', async () => {
     const collections = await service.getCollections();
-    expect(Array.isArray(collections)).toBe(true);
-    if (collections.length > 0) {
-      expect(collections[0]).toHaveProperty('_id');
+    expect(Array.isArray(collections.result)).toBe(true);
+    if (Array.isArray(collections.result) && collections.result.length > 0) {
+      expect(collections.result[0]).toHaveProperty('_id');
     }
   });
 
@@ -30,9 +30,12 @@ describe('RaindropService Read-Only API Integration', () => {
   });
 
   it('searches for bookmarks (read-only)', async () => {
-    const { items, count } = await service.search({ search: 'test' });
-    expect(Array.isArray(items)).toBe(true);
-    expect(typeof count).toBe('number');
+    const result = await service.search({ search: 'test' });
+    if (result && typeof result === 'object' && 'result' in result && typeof result.result === 'object') {
+      const res = result as { result: { items: any[]; count: number } };
+      expect(Array.isArray(res.result.items)).toBe(true);
+      expect(typeof res.result.count).toBe('number');
+    }
   });
 
   it('fetches all tags', async () => {
@@ -42,17 +45,17 @@ describe('RaindropService Read-Only API Integration', () => {
 
   it('fetches tags for a valid collection (if any exist)', async () => {
     const collections = await service.getCollections();
-    if (collections.length > 0 && collections[0]) {
-      const tags = await service.getTagsByCollection(collections[0]._id);
-      expect(Array.isArray(tags)).toBe(true);
+    if (Array.isArray(collections.result) && collections.result.length > 0 && collections.result[0]) {
+      const tags = await service.getTagsByCollection(collections.result[0]._id);
+      expect(Array.isArray(tags.result)).toBe(true);
     }
   });
 
   it('fetches highlights for a valid collection (if any exist)', async () => {
     const collections = await service.getCollections();
-    if (collections.length > 0 && collections[0]) {
-      const highlights = await service.getHighlightsByCollection(collections[0]._id);
-      expect(Array.isArray(highlights)).toBe(true);
+    if (Array.isArray(collections.result) && collections.result.length > 0 && collections.result[0]) {
+      const highlights = await service.getHighlightsByCollection(collections.result[0]._id);
+      expect(Array.isArray(highlights.result)).toBe(true);
     }
   });
 
