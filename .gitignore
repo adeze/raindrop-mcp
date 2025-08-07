@@ -58,3 +58,6 @@ raindrop-mcp.code-workspace
 
 **/CLAUDE.local.md
 
+# Ignore backup files
+**/*.backup
+
