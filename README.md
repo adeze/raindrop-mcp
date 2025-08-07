@@ -164,6 +164,46 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+
+## Architecture Overview
+
+### Project Structure
+
+- **Source:** `src/`
+  - `index.ts`, `server.ts`: Entrypoints for STDIO and HTTP MCP servers.
+  - `connectors/`: External service connectors (e.g., OpenAI).
+  - `services/`: Business logic for Raindrop.io and MCP protocol (`raindrop.service.ts`, `raindropmcp.service.ts`).
+  - `types/`: TypeScript types and schemas (MCP, Raindrop, OAuth, Zod).
+  - `utils/`: Logging and shared utilities.
+- **Build:** `build/`
+  - Compiled output for deployment and inspection.
+- **Tests:** `tests/`
+  - All Vitest test files for services, connectors, and protocol compliance.
+
+### Key Technologies & Patterns
+
+- **TypeScript:** Type-safe, modular codebase.
+- **Zod:** Schema validation for all API inputs/outputs.
+- **Bun:** Package management, scripts, and runtime.
+- **Vitest:** Testing framework for all logic and integration tests.
+- **MCP Protocol:** Implements Model Context Protocol via STDIO and HTTP, exposing Raindrop.io as MCP resources and tools.
+- **Inspector Tool:** Integrated for protocol debugging and inspection.
+- **Defensive Programming:** Centralized error handling, explicit types, and robust validation.
+- **Declarative Tooling:** Tools and resources are defined with clear schemas and documentation, following MCP and DXT specifications.
+
+### Tool & Resource Design
+
+- **Resources:** Exposed as MCP URIs (e.g., `collections://all`, `tags://all`, `highlights://raindrop/{id}`).
+- **Tools:** Modular, context-aware, and AI-friendly. Reduced redundancy and grouped by category/action.
+- **Service Layer:** Centralized business logic, endpoint construction, and error handling.
+- **Connector Layer:** Handles external integrations (e.g., OpenAI).
+
+### Development & Release
+
+- **Scripts:** All build, test, and release scripts use Bun.
+- **DXT Manifest:** Automated packaging and release via GitHub CLI.
+- **Continuous Integration:** Version tagging and manifest publishing are fully automated.
+
 ## 📋 Recent Enhancements (v2.0.0)
 
 ### **Service Layer Refactoring**

@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 import { beforeEach, describe, expect, it } from 'vitest';
-import RaindropService from '../src/services/raindrop.service.js';
+import RaindropService, { isApiError } from '../src/services/raindrop.service.js';
 import type { components } from '../src/types/raindrop.schema.js';
 type Collection = components['schemas']['Collection'];
 type Bookmark = components['schemas']['Bookmark'];
@@ -16,7 +16,7 @@ describe('RaindropService Read-Only API Integration', () => {
   });
 
   it('fetches all highlights', async () => {
-    const highlights = await RaindropService.getAllHighlights();
+    const highlights = await service.getAllHighlights();
     expect(Array.isArray(highlights)).toBe(true);
   });
 
@@ -72,5 +72,121 @@ describe('RaindropService Read-Only API Integration', () => {
 
   it('handles error for invalid collection id in getHighlightsByCollection', async () => {
     await expect(service.getHighlightsByCollection(-1)).rejects.toBeInstanceOf(Error);
+  });
+
+  // it('creates, updates, and deletes a collection', async () => {
+  //   const created = await service.createCollection('Test Collection', false);
+  //   expect(created).toBeDefined();
+  //   expect(isApiSuccess(created)).toBe(true);
+  //   if (isApiSuccess(created)) {
+  //     const collectionId = created.data._id;
+  //     expect(typeof collectionId).toBe('number');
+  //     const updated = await service.updateCollection(collectionId, { title: 'Updated Title' });
+  //     expect(updated).toBeDefined();
+  //     expect(isApiSuccess(updated)).toBe(true);
+  //     if (isApiSuccess(updated)) {
+  //       expect(updated.data.title).toBe('Updated Title');
+  //     }
+  //     const deleted = await service.deleteCollection(collectionId);
+  //     expect(deleted).toBeDefined();
+  //     expect(isApiSuccess(deleted)).toBe(true);
+  //   }
+  // });
+
+  // it('creates, updates, and deletes a bookmark', async () => {
+  //   const collections = await service.getCollections();
+  //   expect(isApiSuccess(collections)).toBe(true);
+  //   if (isApiSuccess(collections) && Array.isArray(collections.data) && collections.data.length > 0 && collections.data[0]) {
+  //     const collectionId = collections.data[0]._id;
+  //     expect(typeof collectionId).toBe('number');
+  //     const created = await service.createBookmark(collectionId, {
+  //       link: 'https://example.com',
+  //       title: 'Example',
+  //       tags: ['test'],
+  //       important: true
+  //     });
+  //     expect(created).toBeDefined();
+  //     expect(isApiSuccess(created)).toBe(true);
+  //     if (isApiSuccess(created)) {
+  //       const bookmarkId = created.data._id;
+  //       expect(typeof bookmarkId).toBe('number');
+  //       const updated = await service.updateBookmark(bookmarkId, { title: 'Updated Example' });
+  //       expect(updated).toBeDefined();
+  //       expect(isApiSuccess(updated)).toBe(true);
+  //       if (isApiSuccess(updated)) {
+  //         expect(updated.data.title).toBe('Updated Example');
+  //       }
+  //       const deleted = await service.deleteBookmark(bookmarkId);
+  //       expect(deleted).toBeDefined();
+  //       expect(isApiSuccess(deleted)).toBe(true);
+  //     }
+  //   }
+  // });
+
+  // it('renames, merges, and deletes tags', async () => {
+  //   const collections = await service.getCollections();
+  //   expect(isApiSuccess(collections)).toBe(true);
+  //   if (isApiSuccess(collections) && Array.isArray(collections.data) && collections.data.length > 0 && collections.data[0]) {
+  //     const collectionId = collections.data[0]._id;
+  //     expect(typeof collectionId).toBe('number');
+  //     const rename = await service.renameTag(collectionId, 'test', 'test-renamed');
+  //     expect(rename).toBeDefined();
+  //     expect(isApiSuccess(rename)).toBe(true);
+  //     const merge = await service.mergeTags(collectionId, ['test-renamed'], 'merged-tag');
+  //     expect(merge).toBeDefined();
+  //     expect(isApiSuccess(merge)).toBe(true);
+  //     const del = await service.deleteTags(collectionId, ['merged-tag']);
+  //     expect(del).toBeDefined();
+  //     expect(isApiSuccess(del)).toBe(true);
+  //   }
+  // });
+
+  // it('creates, updates, and deletes a highlight', async () => {
+  //   const collections = await service.getCollections();
+  //   expect(isApiSuccess(collections)).toBe(true);
+  //   if (isApiSuccess(collections) && Array.isArray(collections.data) && collections.data.length > 0 && collections.data[0]) {
+  //     const collectionId = collections.data[0]._id;
+  //     expect(typeof collectionId).toBe('number');
+  //     const bookmarks = await service.getBookmarks({ collection: collectionId });
+  //     expect(isApiSuccess(bookmarks)).toBe(true);
+  //     if (isApiSuccess(bookmarks) && Array.isArray(bookmarks.data.items) && bookmarks.data.items.length > 0 && bookmarks.data.items[0]) {
+  //       const bookmarkId = bookmarks.data.items[0]._id;
+  //       expect(typeof bookmarkId).toBe('number');
+  //       const created = await service.createHighlight(bookmarkId, {
+  //         text: 'Highlight text',
+  //         color: 'yellow'
+  //       });
+  //       expect(created).toBeDefined();
+  //       expect(isApiSuccess(created)).toBe(true);
+  //       if (isApiSuccess(created)) {
+  //         const highlightId = created.data._id;
+  //         expect(typeof highlightId).toBe('number');
+  //         const updated = await service.updateHighlight(Number(highlightId), { text: 'Updated highlight' });
+  //         expect(updated).toBeDefined();
+  //         expect(isApiSuccess(updated)).toBe(true);
+  //         if (isApiSuccess(updated)) {
+  //           expect(updated.data.text).toBe('Updated highlight');
+  //         }
+  //         const deleted = await service.deleteHighlight(Number(highlightId));
+  //         expect(deleted).toBeDefined();
+  //         expect(isApiSuccess(deleted)).toBe(true);
+  //       }
+  //     }
+  //   }
+  // });
+
+  it('handles error for invalid bookmark id in getHighlights', async () => {
+    const result = await service.getHighlights(-1);
+    expect(isApiError(result)).toBe(true);
+  });
+
+  it('handles error for invalid highlight id in updateHighlight', async () => {
+    const result = await service.updateHighlight(-1, { text: 'fail' });
+    expect(isApiError(result)).toBe(true);
+  });
+
+  it('handles error for invalid highlight id in deleteHighlight', async () => {
+    const result = await service.deleteHighlight(-1);
+    expect(isApiError(result)).toBe(true);
   });
 });

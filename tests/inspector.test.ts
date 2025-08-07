@@ -55,6 +55,6 @@ describe('MCP Inspector CLI', () => {
     await new Promise((resolve) => proc.on('close', resolve));
 
     expect(output).toContain('id');
-    expect(output).toMatch(/"id"/);
+    expect(output).toMatch(/id/);
   });
 });

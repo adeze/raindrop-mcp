@@ -2,64 +2,60 @@
 applyTo: "**"
 ---
 
-# Instructions for GitHub Copilot and other AI assistants
+# GitHub Copilot & AI Assistant Instructions
 
-- Keep your code modular, well-documented, and easy to maintain.
-- Prefer modern, type-safe, and idiomatic TypeScript. Use zod for schema validation where appropriate.
-- Use async/await consistently for asynchronous code.
+## General Coding Principles
+
+- Write modular, well-documented, and maintainable code.
+- Use modern, type-safe, idiomatic TypeScript. Prefer interfaces for object types and camelCase/PascalCase naming conventions.
+- Use zod for schema validation where appropriate.
+- Use async/await for all asynchronous code.
 - Group imports by type (external, then internal).
-- Use camelCase for variables/functions, PascalCase for classes/types.
-- Use try/catch for error handling with descriptive error messages.
-- Prefer interfaces for object types.
-- If you encounter ambiguity, prefer explicitness and reference the relevant documentation or example repositories.
-- For project-wide conventions, detailed documentation, and tool usage, see the #.github/copilot.prompt.md file.
--
+- Use try/catch for error handling with descriptive messages.
+- Prefer explicitness and reference documentation or example repos if ambiguous.
 
-## Coding Conventions
+## Raindrop.io & MCP API Coverage
 
-- Ensure complete API coverage for Raindrop.io and MCP endpoints.
-- Prefer modern, type-safe, and idiomatic TypeScript. Use zod for schema validation where appropriate.
-- Keep code modular, well-documented, and easy to maintain.
-- If you encounter ambiguity, prefer explicitness and reference the relevant documentation or example repositories.
-- the buld diretory is `build` and the source directory is `src`.
+- Ensure complete coverage for Raindrop.io and MCP endpoints.
+- Reference [Raindrop.io API docs](https://developer.raindrop.io) for endpoints, authentication, and data models.
+- Reference [`raindropio/app`](https://github.com/raindropio/app) for implementation details and usage patterns.
+- Reference [Model Context Protocol docs](https://modelcontextprotocol.io/) and [LLMs integration guide](https://modelcontextprotocol.io/llms-full.txt) for MCP compliance.
+- Reference [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) for usage patterns.
 
-  **Follow best development practices:**
+## Project Structure
 
-- Implement proper MCP protocol communication via stdio transport
-- Structure tools with clear schemas, validation, and consistent JSON responses
-- Make use of the fact that this extension will be running locally
-- Add appropriate logging and debugging capabilities
-- Include proper documentation and setup instructions
+- Source: `src/`
+- Build: `build/`
+- Tests: `tests/` (all test files must be here)
 
-**Test considerations:**
+## Development Best Practices
 
-- Validate that all tool calls return properly structured responses
-- Verify manifest loads correctly and host integration works
+- Structure tools with clear schemas, validation, and consistent JSON responses.
+- Include documentation and setup instructions.
+- Use design patterns for maintainability and scalability.
+- Use helper functions to reduce duplication.
+- Prefer declarative programming styles and common libraries/utilities.
+- Use `bun` for package management/scripts (not npm).
 
-## Documentation and References
+## Testing
 
-- `#fetch` [Raindrop.io API documentation](https://developer.raindrop.io) for all Raindrop-related endpoints, authentication, and data models.
-- `#fetch` [Model Context Protocol documentation](https://modelcontextprotocol.io/) and specifically [LLMs integration guide](https://modelcontextprotocol.io/llms-full.txt) to ensure MCP compliance and best practices.
-- `#githubRepo` [Model Context Protocol TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) for implementation details and usage patterns.
+- Use [Vitest](https://vitest.dev/) for all tests.
+- Validate tool calls return properly structured responses.
+- Verify manifest loads and host integration works.
 
-## Tooling
+## Tooling & References
 
-- Do NOT use console.log for STDIO-based local servers, as it may interfere with protocol communication.
-- For debugging MCP servers, `#fetch` the [MCP Debugging Instructions](https://modelcontextprotocol.io/docs/tools/debugging).
-- Use the [Inspector tool](https://modelcontextprotocol.io/docs/tools/inspector) and its repository at https://github.com/modelcontextprotocol/inspector for protocol inspection and debugging.
-- Use [Vitest](https://vitest.dev/) for all tests. Place tests in the appropriate src/tests/ directory.
-- Always place all test files in the `tests/` directory at the project root. Do not use any other location for tests.
-- Use `bun` for package management and scripts, not npm. All install, build, and run commands should use Bun syntax.
-- Use tools `#concept7` for documentation access and reference whenever possible, especially for SDKs, APIs, and protocol details.
+- For debugging MCP servers, see [MCP Debugging Instructions](https://modelcontextprotocol.io/docs/tools/debugging).
+- Use [Inspector tool](https://modelcontextprotocol.io/docs/tools/inspector) and [repo](https://github.com/modelcontextprotocol/inspector) for protocol inspection.
+- Use `#concept7` for documentation access and reference for SDKs, APIs, and protocol details.
+- MCP Protocol spec: [specification](https://github.com/modelcontextprotocol/specification)
+- MCP server examples: [`modelcontextprotocol/serverstypescript-sdk/src/examples/README.md`](https://github.com/modelcontextprotocol/serverstypescript-sdk/src/examples/README.md)
+- LLM-friendly docs: [context7.com/context7/developer_raindrop_io/llms.txt](https://context7.com/context7/developer_raindrop_io/llms.txt)
+- MCP boilerplate: [`cyanheads/mcp-ts-template`](https://github.com/cyanheads/mcp-ts-template)
 
-- MCP Protocol specification use `#fetch` at `https://github.com/modelcontextprotocol/specification`
+## Output Requirements
 
-- For MCP server implementations, use the `#githubRepo` tool to access `modelcontextprotocol/serverstypescript-sdk/src/examples/README.md`
-- LLM friendly documentation is `https://context7.com/context7/developer_raindrop_io/llms.txt`
-- Best practice boilerplate is available at `#githubRepo` [ MCP Boilerplate](https://github.com/cyanheads/mcp-ts-template
-
-Generate complete, production-ready code that can be immediately tested. Focus on defensive programming, clear error messages, and following the exact
-DXT specifications to ensure compatibility with the ecosystem.
-
-LLM friendly documentation is `https://context7.com/context7/developer_raindrop_io/llms.txt`
-Best practice boilerplate is available at `#githubRepo` [ MCP Boilerplate](https://github.com/cyanheads/mcp-ts-template
+- Generate complete, production-ready code that can be immediately tested.
+- Focus on defensive programming, clear error messages, MCP Protocol and DXT specification compatibility.
+- always consider the simplest solution that meets the requirements that leveragees existing libraries and patterns.
+- configuration and declarative programming should be preferred over imperative programming.
