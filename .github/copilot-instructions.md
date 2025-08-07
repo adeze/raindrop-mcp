@@ -48,7 +48,8 @@ applyTo: "**"
 - For debugging MCP servers, `#fetch` the [MCP Debugging Instructions](https://modelcontextprotocol.io/docs/tools/debugging).
 - Use the [Inspector tool](https://modelcontextprotocol.io/docs/tools/inspector) and its repository at https://github.com/modelcontextprotocol/inspector for protocol inspection and debugging.
 - Use [Vitest](https://vitest.dev/) for all tests. Place tests in the appropriate src/tests/ directory.
-- Use `Bun` for package management and scripts, not npm. All install, build, and run commands should use Bun syntax.
+- Always place all test files in the `tests/` directory at the project root. Do not use any other location for tests.
+- Use `bun` for package management and scripts, not npm. All install, build, and run commands should use Bun syntax.
 - Use tools `#concept7` for documentation access and reference whenever possible, especially for SDKs, APIs, and protocol details.
 
 - MCP Protocol specification use `#fetch` at `https://github.com/modelcontextprotocol/specification`

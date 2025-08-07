@@ -1,5 +1,3 @@
-
-
 import { config } from 'dotenv';
 import { beforeEach, describe, expect, it } from 'vitest';
 import RaindropService from '../src/services/raindrop.service.js';
@@ -66,3 +64,4 @@ describe('RaindropService Read-Only API Integration', () => {
     await expect(service.getHighlightsByCollection(-1)).rejects.toBeInstanceOf(Error);
   });
 });
+// No changes needed here. The test is correct.

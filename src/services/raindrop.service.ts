@@ -777,24 +777,47 @@ class RaindropService {
 
   async getHighlightsByCollection(collectionId: number): Promise<Highlight[]> {
     try {
-      const { data, error } = await this.client.GET('/highlights/{collectionId}', {
-        params: { path: { collectionId } }
+      // Validate collection ID
+      if (typeof collectionId !== 'number' || collectionId <= 0) {
+        throw new Error('Invalid collection id');
+      }
+      
+      // Fetch all bookmarks in the collection
+      const { data: bookmarksRes, error: bookmarksError } = await this.client.GET('/raindrops/{collectionId}', {
+        params: { path: { id: collectionId } }
       });
       
-      if (error) {
-        throw new Error(`API Error: ${JSON.stringify(error) || 'Unknown error'}`);
+      if (bookmarksError) {
+        throw new Error(`API Error: ${JSON.stringify(bookmarksError) || 'Unknown error'}`);
       }
       
-      if (!data?.result || !data.items) {
-        return [];
+      if (!bookmarksRes?.result || !Array.isArray(bookmarksRes.items)) {
+        throw new Error('Invalid response structure from Raindrop.io API');
       }
       
-      return data.items.map((item: any) => this.mapHighlightData(item)).filter((h): h is Highlight => h !== null);
+      // Aggregate highlights from each bookmark, mapping _id to number and formatting
+      const highlights: Highlight[] = [];
+      for (const bookmark of bookmarksRes.items) {
+        if (Array.isArray(bookmark.highlights)) {
+          for (const h of bookmark.highlights) {
+            // Ensure _id is a number and format highlight
+            highlights.push(this.mapHighlightData({
+              ...h,
+              _id: typeof h._id === 'string' ? Number(h._id) : h._id,
+              raindrop: {
+                _id: typeof bookmark._id === 'string' ? Number(bookmark._id) : bookmark._id,
+                title: bookmark.title || '',
+                link: bookmark.link || '',
+                collection: bookmark.collection || { $id: collectionId }
+              }
+            }) as Highlight);
+          }
+        }
+      }
+      
+      // Filter out any nulls from mapHighlightData
+      return highlights.filter((h): h is Highlight => h !== null);
     } catch (error) {
-      // Return empty array for highlights since they might not exist
-      if ((error as any)?.status === 404) {
-        return [];
-      }
       return this.handleApiError(error, `Failed to get highlights for collection ${collectionId}`);
     }
   }
