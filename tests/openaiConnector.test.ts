@@ -36,8 +36,7 @@ describe('sendChatMessage', () => {
       ],
     };
     const result = await sendChatMessage(request, apiKey);
-    if ('data' in result) {
-      expect(result.success).toBe(true);
+    if (result.success === true) {
       expect(result.data).toBeDefined();
       // Assert result.data is defined before accessing properties
       if (result.data) {
@@ -52,15 +51,14 @@ describe('sendChatMessage', () => {
         }
       }
     } else {
-      throw new Error('Expected MCPError, got MCPResponse');
+      throw new Error('Expected MCPResponse, got MCPError');
     }
   });
 
   it('returns MCPError on invalid input', async () => {
     const request = { model: 'gpt-3.5-turbo', messages: [] };
     const result = await sendChatMessage(request as any, apiKey);
-    if ('error' in result) {
-      expect(result.success).toBe(false);
+    if (result.success === false) {
       expect(result.error).toContain('OpenAI API error');
     } else {
       throw new Error('Expected MCPError, got MCPResponse');
@@ -82,8 +80,7 @@ describe('sendChatMessage', () => {
       ],
     };
     const result = await sendChatMessage(request, apiKey);
-    if ('error' in result) {
-      expect(result.success).toBe(false);
+    if (result.success === false) {
       expect(result.error).toContain('API failure');
     } else {
       throw new Error('Expected MCPError, got MCPResponse');
