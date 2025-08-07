@@ -26,6 +26,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
     // Vitest support
     "types": ["vitest/globals", "node", "bun-types"]
   },

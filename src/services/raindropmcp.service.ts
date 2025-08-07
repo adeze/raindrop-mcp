@@ -1,16 +1,24 @@
+// Local type guard for bookmark_search response
+function isBookmarkSuccess(
+    response: ApiResponse<{ items: unknown[]; count: number }>
+): response is { status: 'success'; result: true; data: { items: unknown[]; count: number } } {
+    return response.status === 'success' && response.result === true;
+}
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import pkg from '../../package.json';
+import type { Collection } from "../types/raindrop";
 import { BookmarkSchema, CollectionSchema, HighlightSchema, TagSchema } from "../types/raindrop";
-import RaindropService from "./raindrop.service.js";
+import type { ApiResponse } from "./raindrop.service.js";
+import RaindropService, { isApiError, isApiSuccess } from "./raindrop.service.js";
 
 // Tool configuration types
-interface ToolConfig {
+interface ToolConfig<T = { content: McpContent[] }> {
     name: string;
     description: string;
     inputSchema: z.ZodType;
     outputSchema?: z.ZodType;
-    handler: (args: any, extra: any) => Promise<any>;
+    handler: (args: any, extra: any) => Promise<T>;
 }
 
 interface ResourceConfig {
@@ -33,15 +41,9 @@ type CrudHandler<T> = {
 };
 
 // Response content type
-interface McpContent {
-    type: "text" | "resource_link";
-    text?: string;
-    uri?: string;
-    name?: string;
-    description?: string;
-    mimeType?: string;
-    _meta: Record<string, unknown>;
-}
+type McpContent =
+    | { type: "text"; text: string; _meta?: Record<string, unknown> }
+    | { type: "resource_link"; name: string; uri: string; description: string; mimeType: string; _meta?: Record<string, unknown> };
 
 const SERVER_VERSION = pkg.version;
 
@@ -147,7 +149,7 @@ export class RaindropMCPService {
     private createListTool<T>(
         name: string,
         description: string,
-        serviceMethod: () => Promise<T[]>,
+        serviceMethod: () => Promise<ApiResponse<T[]>>,
         mapper: (items: T[]) => unknown[],
         schema: z.ZodType
     ): ToolConfig {
@@ -160,22 +162,26 @@ export class RaindropMCPService {
             }),
             outputSchema: z.object({ [name.split('_')[0] + 's']: z.array(schema) }),
             handler: this.asyncHandler(async (args: { limit?: number; offset?: number }) => {
-                const items = await serviceMethod();
-                if (!Array.isArray(items)) {
-                    throw new Error(`${name} service returned invalid data`);
+                const response = await serviceMethod();
+                if (isApiSuccess(response)) {
+                    let items = response.data as T[];
+                    if (!Array.isArray(items)) {
+                        throw new Error(`${name} service returned invalid data`);
+                    }
+                    if (typeof args.offset === 'number') {
+                        items = items.slice(args.offset);
+                    }
+                    if (typeof args.limit === 'number') {
+                        items = items.slice(0, args.limit);
+                    }
+                    const mapped = mapper(items);
+                    const resultKey = name.split('_')[0] + 's'; // collection_list -> collections
+                    return this.createTextResponse({ [resultKey]: mapped });
                 }
-                
-                let sliced = items;
-                if (typeof args.offset === 'number') {
-                    sliced = sliced.slice(args.offset);
+                if (isApiError(response)) {
+                    throw new Error(`${name} service error: ${response.error}`);
                 }
-                if (typeof args.limit === 'number') {
-                    sliced = sliced.slice(0, args.limit);
-                }
-                
-                const mapped = mapper(sliced);
-                const resultKey = name.split('_')[0] + 's'; // collection_list -> collections
-                return this.createTextResponse({ [resultKey]: mapped });
+                throw new Error(`${name} service returned unknown error`);
             })
         };
     }
@@ -196,7 +202,7 @@ export class RaindropMCPService {
             outputSchema,
             handler: this.asyncHandler(async (args: any) => {
                 let result: T | { deleted: boolean } | void;
-                
+
                 switch (args.operation) {
                     case "create":
                         if (!handlers.create) throw new Error(`Create operation not supported for ${name}`);
@@ -214,10 +220,10 @@ export class RaindropMCPService {
                         throw new Error(`Unsupported operation for ${name}: ${args.operation}`);
                 }
 
-                const mappedResult = result && mapper && typeof result === 'object' && !('deleted' in result) 
-                    ? mapper([result as T])[0] 
+                const mappedResult = result && mapper && typeof result === 'object' && !('deleted' in result)
+                    ? mapper([result as T])[0]
                     : result;
-                
+
                 return this.createTextResponse({ result: mappedResult });
             })
         };
@@ -233,7 +239,7 @@ export class RaindropMCPService {
             ...(config.inputSchema && { input: config.inputSchema }),
             ...(config.outputSchema && { output: config.outputSchema })
         };
-        
+
         this.server.registerResource(config.id, config.uri, options, config.handler);
     }
 
@@ -250,14 +256,14 @@ export class RaindropMCPService {
                 handler: this.asyncHandler(async (_args: { includeEnvironment?: boolean }) => {
                     return this.createResourceLinkResponse(
                         "diagnostics://server",
-                        "Server Diagnostics", 
+                        "Server Diagnostics",
                         "Server diagnostics and environment info resource."
                     );
                 })
             },
 
             // Collection list tool
-            this.createListTool(
+            this.createListTool<Collection>(
                 "collection_list",
                 "List all Raindrop collections for the authenticated user.",
                 () => this.raindropService.getCollections(),
@@ -322,9 +328,19 @@ export class RaindropMCPService {
                     if (args.important !== undefined) params.important = args.important;
                     if (args.limit) params.perPage = args.limit;
                     if (args.offset) params.page = Math.floor(args.offset / (args.limit || 25)) + 1;
-                    const { items } = await this.raindropService.getBookmarks(params);
-                    const mapped = this.mapBookmarks(items);
-                    return this.createTextResponse({ bookmarks: mapped });
+                    const response = await this.raindropService.getBookmarks(params);
+                    if (isBookmarkSuccess(response)) {
+                        const data = response.data;
+                        if (!('items' in data) || !Array.isArray(data.items)) {
+                            throw new Error('bookmark_search service returned invalid data');
+                        }
+                        const mapped = this.mapBookmarks(data.items);
+                        return this.createTextResponse({ bookmarks: mapped });
+                    }
+                    if (isApiError(response)) {
+                        throw new Error('Failed to fetch bookmarks: ' + response.error);
+                    }
+                    throw new Error('Failed to fetch bookmarks: Unknown error');
                 })
             },
 
@@ -457,7 +473,7 @@ export class RaindropMCPService {
         // Register all tools
         toolConfigs.forEach(config => {
             const inputSchema = config.inputSchema as z.ZodObject<any>;
-            this.server.tool(config.name, config.description, inputSchema.shape, config.handler);
+            this.server.tool(config.name, inputSchema.shape, { description: config.description }, config.handler);
         });
 
         // Define resource configurations
@@ -484,7 +500,7 @@ export class RaindropMCPService {
             },
             {
                 id: "user_statistics",
-                uri: "user_statistics", 
+                uri: "user_statistics",
                 description: "User or collection statistics resource. Includes bookmark counts, collection counts, and usage metrics.",
                 inputSchema: z.object({
                     collectionId: z.number().optional()
@@ -601,51 +617,51 @@ export class RaindropMCPService {
      * Returns a list of all registered MCP tools with their metadata.
      */
     public async listTools(): Promise<Array<{
-      id: string;
-      name: string;
-      description: string;
-      inputSchema: unknown;
-      outputSchema: unknown;
+        id: string;
+        name: string;
+        description: string;
+        inputSchema: unknown;
+        outputSchema: unknown;
     }>> {
-      // Ensure tools are registered and have all required fields
-      return [
-        {
-          id: 'diagnostics',
-          name: 'Diagnostics Tool',
-          description: 'Provides server diagnostics and environment info.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              includeEnvironment: { type: 'boolean', description: 'Include environment info' }
-            },
-            required: [],
-            additionalProperties: false
-          },
-          outputSchema: {
-            type: 'object',
-            properties: {
-              content: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    type: { type: 'string' },
-                    uri: { type: 'string' },
-                    name: { type: 'string' },
-                    description: { type: 'string' },
-                    mimeType: { type: 'string' },
-                    _meta: { type: 'object' }
-                  },
-                  required: ['type', 'uri', 'name', 'description', 'mimeType', '_meta']
+        // Ensure tools are registered and have all required fields
+        return [
+            {
+                id: 'diagnostics',
+                name: 'Diagnostics Tool',
+                description: 'Provides server diagnostics and environment info.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        includeEnvironment: { type: 'boolean', description: 'Include environment info' }
+                    },
+                    required: [],
+                    additionalProperties: false
+                },
+                outputSchema: {
+                    type: 'object',
+                    properties: {
+                        content: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    type: { type: 'string' },
+                                    uri: { type: 'string' },
+                                    name: { type: 'string' },
+                                    description: { type: 'string' },
+                                    mimeType: { type: 'string' },
+                                    _meta: { type: 'object' }
+                                },
+                                required: ['type', 'uri', 'name', 'description', 'mimeType', '_meta']
+                            }
+                        }
+                    },
+                    required: ['content'],
+                    additionalProperties: false
                 }
-              }
-            },
-            required: ['content'],
-            additionalProperties: false
-          }
-        }
-        // ...add other tools here as needed...
-      ];
+            }
+            // ...add other tools here as needed...
+        ];
     }
 
     /**
@@ -697,19 +713,19 @@ export class RaindropMCPService {
      * Returns true if the MCP server is healthy and ready.
      */
     public async healthCheck(): Promise<boolean> {
-      // Optionally, check connectivity to Raindrop.io or other dependencies
-      return true;
+        // Optionally, check connectivity to Raindrop.io or other dependencies
+        return true;
     }
 
     /**
      * Returns basic server info (name, version, description).
      */
     public getInfo(): { name: string; version: string; description: string } {
-      return {
-        name: "raindrop-mcp-server",
-        version: SERVER_VERSION,
-        description: "MCP Server for Raindrop.io with advanced interactive capabilities"
-      };
+        return {
+            name: "raindrop-mcp-server",
+            version: SERVER_VERSION,
+            description: "MCP Server for Raindrop.io with advanced interactive capabilities"
+        };
     }
 }
 
