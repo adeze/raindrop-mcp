@@ -156,6 +156,16 @@
       "options": {
         "cwd": "${workspaceFolder}"
       }
+    },
+    {
+      "label": "Push Version and Tag",
+      "type": "shell",
+      "command": "bun pm version patch && git add package.json && git commit -m 'chore: bump version' && git tag v$(jq -r .version package.json) && git push origin master && git push origin v$(jq -r .version package.json)",
+      "group": "build",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
     }
   ]
 }

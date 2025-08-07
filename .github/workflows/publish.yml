@@ -70,6 +70,10 @@ jobs:
       - name: Publish to npm
         run: npm publish --provenance --access public
 
+      - name: Sync manifest.json version with package.json
+        run: |
+          PKG_VERSION=$(jq -r .version package.json)
+          jq ".version = \"$PKG_VERSION\"" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
       - name: Pack DXT manifest
         run: bun run dxt:pack
 
