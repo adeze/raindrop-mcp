@@ -16,7 +16,10 @@
       "Bash(timeout:*)",
       "WebFetch(domain:developer.raindrop.io)",
       "Bash(bun add:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(pkill:*)"
     ],
     "deny": []
   }
