@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * @file src/index.ts
   * @description
@@ -9,16 +10,7 @@
   * where STDIO communication is preferred.
  */
 
-"use strict";
 
-/**
- * Entrypoint for the MCP STDIO server.
- *
- * This file launches the optimized Raindrop MCP server using STDIO transport only.
- * No HTTP or SSE endpoints are exposed here.
- *
- * All logging is sent to stderr to avoid polluting the STDIO protocol stream.
- */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { config } from 'dotenv';
 import { RaindropMCPService } from './services/raindropmcp.service.js';

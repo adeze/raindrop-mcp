@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import pkg from '../../package.json';
-import { bookmarkManageInputSchema, bookmarkSchema, bookmarkSearchInputSchema, collectionManageInputSchema, collectionSchema, highlightManageInputSchema, highlightSchema, tagManageInputSchema, tagSchema } from "../types/raindrop-zod.schemas.js";
+import { BookmarkInputSchema, BookmarkOutputSchema, CollectionManageInputSchema, CollectionOutputSchema, HighlightInputSchema, HighlightOutputSchema, TagInputSchema, TagOutputSchema } from "../types/raindrop-zod.schemas.js";
 import type { components } from '../types/raindrop.schema.js';
 import RaindropService from "./raindrop.service.js";
 type Collection = components['schemas']['Collection'];
@@ -9,35 +9,66 @@ type Bookmark = components['schemas']['Bookmark'];
 type Highlight = components['schemas']['Highlight'];
 type Tag = components['schemas']['Tag'];
 
-// Tool configuration types
+/**
+ * Configuration for an MCP tool.
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
+ */
 interface ToolConfig<T = { content: McpContent[] }> {
+    /** Tool name (unique identifier) */
     name: string;
+    /** Human-readable description of the tool */
     description: string;
+    /** Zod schema for tool input */
     inputSchema: z.ZodType;
+    /** Zod schema for tool output */
     outputSchema?: z.ZodType;
+    /** Tool handler function */
     handler: (args: any, extra: any) => Promise<T>;
 }
 
+/**
+ * Configuration for an MCP resource.
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
+ */
 interface ResourceConfig {
+    /** Resource ID */
     id: string;
+    /** Resource URI */
     uri: string;
+    /** Optional resource title */
     title?: string;
+    /** Resource description */
     description: string;
+    /** MIME type of the resource */
     mimeType?: string;
+    /** Zod schema for resource input */
     inputSchema?: z.ZodType;
+    /** Zod schema for resource output */
     outputSchema?: z.ZodType;
+    /** Resource handler function */
     handler: (params: any, context: any) => Promise<any>;
 }
 
-// Operation types for CRUD tools
+/**
+ * Supported CRUD operations for tools.
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
+ */
 type CrudOperation = "create" | "update" | "delete";
+
+/**
+ * Handler functions for CRUD tools.
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
+ */
 type CrudHandler<T> = {
     create?: (args: any) => Promise<T>;
     update?: (args: any) => Promise<T>;
     delete?: (args: any) => Promise<{ deleted: boolean } | void>;
 };
 
-// Response content type
+/**
+ * MCP protocol content type for tool/resource responses.
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
+ */
 type McpContent =
     | { type: "text"; text: string; _meta?: Record<string, unknown> }
     | { type: "resource_link"; name: string; uri: string; description: string; mimeType: string; _meta?: Record<string, unknown> };
@@ -79,7 +110,7 @@ const toolConfigs: ToolConfig[] = [
         name: 'collection_list',
         description: 'Lists all Raindrop collections for the authenticated user.',
         inputSchema: z.object({}),
-        outputSchema: z.array(collectionSchema),
+        outputSchema: z.array(CollectionOutputSchema),
         handler: async (_args, { raindropService }) => {
             // Instead of returning all collections directly, return a resource_link
             return {
@@ -97,8 +128,8 @@ const toolConfigs: ToolConfig[] = [
     {
         name: 'collection_manage',
         description: 'Creates, updates, or deletes a collection. Use the operation parameter to specify the action.',
-        inputSchema: collectionManageInputSchema,
-        outputSchema: collectionSchema,
+        inputSchema: CollectionManageInputSchema,
+        outputSchema: CollectionOutputSchema,
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
                 case 'create':
@@ -121,8 +152,8 @@ const toolConfigs: ToolConfig[] = [
     {
         name: 'bookmark_search',
         description: 'Searches bookmarks with advanced filters, tags, and full-text search.',
-        inputSchema: bookmarkSearchInputSchema,
-        outputSchema: z.array(bookmarkSchema),
+        inputSchema: BookmarkInputSchema.partial(), // Make all fields optional for search
+        outputSchema: z.array(BookmarkOutputSchema),
         handler: async (args, { raindropService }) => {
             // Instead of returning all bookmarks directly, return a resource_link
             return {
@@ -140,8 +171,8 @@ const toolConfigs: ToolConfig[] = [
     {
         name: 'bookmark_manage',
         description: 'Creates, updates, or deletes bookmarks. Use the operation parameter to specify the action.',
-        inputSchema: bookmarkManageInputSchema,
-        outputSchema: bookmarkSchema,
+        inputSchema: BookmarkInputSchema.extend({ operation: z.enum(['create', 'update', 'delete']), id: z.number().optional() }),
+        outputSchema: BookmarkOutputSchema,
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
                 case 'create':
@@ -172,8 +203,8 @@ const toolConfigs: ToolConfig[] = [
     {
         name: 'tag_manage',
         description: 'Renames, merges, or deletes tags. Use the operation parameter to specify the action.',
-        inputSchema: tagManageInputSchema,
-        outputSchema: z.array(tagSchema),
+        inputSchema: TagInputSchema,
+        outputSchema: TagOutputSchema,
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
                 case 'rename':
@@ -191,8 +222,8 @@ const toolConfigs: ToolConfig[] = [
     {
         name: 'highlight_manage',
         description: 'Creates, updates, or deletes highlights. Use the operation parameter to specify the action.',
-        inputSchema: highlightManageInputSchema,
-        outputSchema: highlightSchema,
+        inputSchema: HighlightInputSchema.extend({ operation: z.enum(['create', 'update', 'delete']), id: z.number().optional() }),
+        outputSchema: HighlightOutputSchema,
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
                 case 'create':
@@ -216,9 +247,55 @@ const toolConfigs: ToolConfig[] = [
             }
         }
     },
+    {
+        name: 'getRaindrop',
+        description: 'Fetch a single Raindrop.io bookmark by ID.',
+        inputSchema: z.object({
+            id: z.string().min(1, 'Bookmark ID is required'),
+        }),
+        outputSchema: z.object({
+            item: z.object({
+                id: z.string(),
+                title: z.string(),
+                link: z.string().url(),
+                // ...other fields as needed...
+            }),
+        }),
+        handler: function (args: any, extra: any): Promise<{ content: McpContent[]; }> {
+            throw new Error("Function not implemented.");
+        }
+    },
+    {
+        name: 'listRaindrops',
+        description: 'List Raindrop.io bookmarks for a collection.',
+        inputSchema: z.object({
+            collectionId: z.string().min(1, 'Collection ID is required'),
+            limit: z.number().min(1).max(100).optional(),
+        }),
+        outputSchema: z.object({
+            items: z.array(
+                z.object({
+                    id: z.string(),
+                    title: z.string(),
+                    link: z.string().url(),
+                    // ...other fields as needed...
+                })
+            ),
+        }),
+        handler: function (args: any, extra: any): Promise<{ content: McpContent[]; }> {
+            throw new Error("Function not implemented.");
+        }
+    },
+    // ...add more tools as needed, following the same pattern...
 ];
 
 // --- MCP Server class ---
+/**
+ * Main MCP server implementation for Raindrop.io.
+ * Wraps the MCP SDK server and exposes Raindrop tools/resources.
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
+ * @see McpServer
+ */
 export class RaindropMCPService {
     private server: McpServer;
     public raindropService: RaindropService;
@@ -504,7 +581,7 @@ export class RaindropMCPService {
             inputSchema: tool.inputSchema || {},
             outputSchema: tool.outputSchema || {},
         }));
-        return tools;
+        return tools.filter((tool: any) => tool.description && Object.keys(tool.inputSchema).length && Object.keys(tool.outputSchema).length);
     }
 
     /**

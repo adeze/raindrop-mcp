@@ -1,0 +1,43 @@
+{
+    "$schema": "https://developer.microsoft.com/json-schemas/tsdoc/v0/tsdoc.schema.json",
+    "extends": [],
+    "tagDefinitions": [
+        {
+            "tagName": "@public",
+            "syntaxKind": "modifier"
+        },
+        {
+            "tagName": "@private",
+            "syntaxKind": "modifier"
+        },
+        {
+            "tagName": "@internal",
+            "syntaxKind": "modifier"
+        },
+        {
+            "tagName": "@deprecated",
+            "syntaxKind": "modifier"
+        },
+        {
+            "tagName": "@remarks",
+            "syntaxKind": "block"
+        },
+        {
+            "tagName": "@example",
+            "syntaxKind": "block"
+        },
+        {
+            "tagName": "@see",
+            "syntaxKind": "inline"
+        }
+    ],
+    "supportForTags": {
+        "@public": true,
+        "@private": true,
+        "@internal": true,
+        "@deprecated": true,
+        "@remarks": true,
+        "@example": true,
+        "@see": true
+    }
+}

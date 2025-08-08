@@ -1,88 +1,123 @@
 import { z } from "zod";
 
-
-export const collectionManageInputSchema = z.object({
+/**
+ * Input schema for managing Raindrop collections (CRUD).
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const CollectionManageInputSchema = z.object({
     operation: z.enum(['create', 'update', 'delete']),
     id: z.number().optional(),
     title: z.string().optional(),
     parentId: z.number().optional(),
-    color: z.string().optional(),
-    description: z.string().optional()
 });
 
-export const bookmarkManageInputSchema = z.object({
-    operation: z.enum(['create', 'update', 'delete']),
-    id: z.number().optional(),
+/**
+ * Input schema for Raindrop bookmark tools.
+ * @see {@link https://developer.raindrop.io/} for API details.
+ */
+export const BookmarkInputSchema = z.object({
+    url: z.string().url(),
+    title: z.string(),
+    tags: z.array(z.string()).optional(),
+    important: z.boolean().optional(),
     collectionId: z.number().optional(),
-    url: z.string().url().optional(),
-    title: z.string().optional(),
     description: z.string().optional(),
+});
+
+/**
+ * Output schema for Raindrop bookmark tools.
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const BookmarkOutputSchema = z.object({
+    id: z.number(),
+    url: z.string().url(),
+    title: z.string(),
     tags: z.array(z.string()).optional(),
     important: z.boolean().optional(),
-    data: z.any().optional()
-});
-
-export const tagManageInputSchema = z.object({
-    operation: z.enum(['rename', 'merge', 'delete']),
-    tagNames: z.array(z.string()).optional(),
-    newName: z.string().optional(),
-    collectionId: z.number().optional()
-});
-
-export const highlightManageInputSchema = z.object({
-    operation: z.enum(['create', 'update', 'delete']),
-    id: z.number().optional(),
-    bookmarkId: z.number().optional(),
-    text: z.string().optional(),
-    note: z.string().optional(),
-    color: z.string().optional()
-});
-
-export const bookmarkSearchInputSchema = z.object({
-    query: z.string().optional(),
     collectionId: z.number().optional(),
-    tags: z.array(z.string()).optional(),
-    important: z.boolean().optional(),
-    limit: z.number().min(1).max(100).optional().default(25),
-    offset: z.number().min(0).optional().default(0),
-    sample: z.number().min(1).max(100).optional()
+    description: z.string().optional(),
 });
 
-
-export const collectionSchema = z.object({
-    _id: z.number(),
+/**
+ * Input schema for Raindrop collection tools.
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const CollectionInputSchema = z.object({
     title: z.string(),
     description: z.string().optional(),
-    count: z.number().optional(),
-    parent: z.any().optional(),
     color: z.string().optional(),
-    created: z.string().optional(),
-    lastUpdate: z.string().optional(),
-    expanded: z.boolean().optional(),
-    access: z.any().optional(),
+    parentId: z.number().optional(),
 });
 
-export const bookmarkSchema = z.object({
-    _id: z.number(),
+/**
+ * Output schema for Raindrop collection tools.
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const CollectionOutputSchema = z.object({
+    id: z.number(),
     title: z.string(),
-    link: z.string(),
-    excerpt: z.string().optional(),
-    tags: z.array(z.string()).optional(),
-    created: z.string().optional(),
-    lastUpdate: z.string().optional(),
-    important: z.boolean().optional(),
-    collection: z.any().optional(),
+    description: z.string().optional(),
+    color: z.string().optional(),
+    parentId: z.number().optional(),
 });
 
-export const highlightSchema = z.object({
-    _id: z.string(),
+/**
+ * Input schema for Raindrop highlight tools.
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const HighlightInputSchema = z.object({
+    bookmarkId: z.number(),
     text: z.string(),
     note: z.string().optional(),
     color: z.string().optional(),
-    created: z.string().optional(),
-    lastUpdate: z.string().optional(),
-    bookmarkId: z.number().optional(),
 });
+
+/**
+ * Output schema for Raindrop highlight tools.
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const HighlightOutputSchema = z.object({
+    id: z.number(),
+    bookmarkId: z.number(),
+    text: z.string(),
+    note: z.string().optional(),
+    color: z.string().optional(),
+});
+
+/**
+ * Input schema for Raindrop tag tools.
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const TagInputSchema = z.object({
+    collectionId: z.number().optional(),
+    tagNames: z.array(z.string()),
+    newName: z.string().optional(),
+    operation: z.enum(["rename", "merge", "delete"]),
+});
+
+/**
+ * Output schema for Raindrop tag tools.
+ * @see {@link https://developer.raindrop.io/}
+ */
+export const TagOutputSchema = z.object({
+    tagNames: z.array(z.string()),
+    success: z.boolean(),
+});
+
+/**
+ * Output schema for diagnostics tool.
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk}
+ */
+export const DiagnosticsOutputSchema = z.object({
+    status: z.string(),
+    environment: z.record(z.string(), z.any()).optional(),
+});
+
+/**
+ * Schema for Raindrop tag objects.
+ * @see {@link https://developer.raindrop.io/}
+ */
+// ...existing code...
 
 export const tagSchema = z.object({
     _id: z.string(),
