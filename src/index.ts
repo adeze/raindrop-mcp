@@ -1,4 +1,17 @@
 /**
+ * @file src/index.ts
+  * @description
+  * 
+  * This file serves as the entry point for the Raindrop MCP server using STDIO transport.
+  * It initializes the server, sets up logging, and handles graceful shutdown on exit signals.
+  *
+  * The server does not expose HTTP or SSE endpoints and is designed to run in environments
+  * where STDIO communication is preferred.
+ */
+
+"use strict";
+
+/**
  * Entrypoint for the MCP STDIO server.
  *
  * This file launches the optimized Raindrop MCP server using STDIO transport only.

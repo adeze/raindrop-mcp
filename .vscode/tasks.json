@@ -6,7 +6,7 @@
       "type": "shell",
       "command": "bun",
       "args": ["--watch", "src/server.ts"],
-      "group": "build",
+      "group": "test",
       "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}",
@@ -27,7 +27,7 @@
       "type": "shell",
       "command": "bun",
       "args": ["--watch", "src/index.ts"],
-      "group": "build",
+      "group": "test",
       "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}",
@@ -105,20 +105,24 @@
     },
     // Build Tasks
     {
+      "label": "tsc typecheck",
       "type": "typescript",
       "tsconfig": "tsconfig.json",
       "problemMatcher": ["$tsc"],
       "group": {
         "kind": "build",
-        "isDefault": true
+        "isDefault": false
       }
     },
     {
-      "label": "Build Project",
+      "label": "Bun Build",
       "type": "shell",
       "command": "bun",
       "args": ["run", "build"],
-      "group": "build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -136,7 +140,7 @@
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "Type Check",
+      "label": "Bun Type Check",
       "type": "shell",
       "command": "bun",
       "args": ["run", "type-check"],

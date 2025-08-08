@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import pkg from '../../package.json';
+import { bookmarkManageInputSchema, bookmarkSchema, bookmarkSearchInputSchema, collectionManageInputSchema, collectionSchema, highlightManageInputSchema, highlightSchema, tagManageInputSchema, tagSchema } from "../types/raindrop-zod.schemas.js";
 import type { components } from '../types/raindrop.schema.js';
 import RaindropService from "./raindrop.service.js";
 type Collection = components['schemas']['Collection'];
@@ -43,53 +44,13 @@ type McpContent =
 
 const SERVER_VERSION = pkg.version;
 
-// --- Declarative schemas ---
-const collectionSchema = z.object({
-    _id: z.number(),
-    title: z.string(),
-    description: z.string().optional(),
-    count: z.number().optional(),
-    parent: z.any().optional(),
-    color: z.string().optional(),
-    created: z.string().optional(),
-    lastUpdate: z.string().optional(),
-    expanded: z.boolean().optional(),
-    access: z.any().optional(),
-});
 
-const bookmarkSchema = z.object({
-    _id: z.number(),
-    title: z.string(),
-    link: z.string(),
-    excerpt: z.string().optional(),
-    tags: z.array(z.string()).optional(),
-    created: z.string().optional(),
-    lastUpdate: z.string().optional(),
-    important: z.boolean().optional(),
-    collection: z.any().optional(),
-});
-
-const highlightSchema = z.object({
-    _id: z.string(),
-    text: z.string(),
-    note: z.string().optional(),
-    color: z.string().optional(),
-    created: z.string().optional(),
-    lastUpdate: z.string().optional(),
-    bookmarkId: z.number().optional(),
-});
-
-const tagSchema = z.object({
-    _id: z.string(),
-    count: z.number().optional(),
-    name: z.string().optional(),
-});
 
 // --- Declarative tool configs ---
 const toolConfigs: ToolConfig[] = [
     {
         name: 'diagnostics',
-        description: 'Server diagnostics and environment info. Use includeEnvironment param for detailed info.',
+        description: 'Provides server diagnostics and environment info. Use includeEnvironment param for detailed info.',
         inputSchema: z.object({
             includeEnvironment: z.boolean().optional().describe('Include environment info')
         }),
@@ -116,25 +77,27 @@ const toolConfigs: ToolConfig[] = [
     },
     {
         name: 'collection_list',
-        description: 'List all Raindrop collections for the authenticated user.',
+        description: 'Lists all Raindrop collections for the authenticated user.',
         inputSchema: z.object({}),
         outputSchema: z.array(collectionSchema),
         handler: async (_args, { raindropService }) => {
-            const items = await raindropService.getCollections();
-            return items;
+            // Instead of returning all collections directly, return a resource_link
+            return {
+                content: [{
+                    type: 'resource_link',
+                    uri: 'resource://collections',
+                    name: 'Collections',
+                    description: 'All Raindrop collections for the authenticated user.',
+                    mimeType: 'application/json',
+                    _meta: {},
+                }]
+            };
         }
     },
     {
         name: 'collection_manage',
-        description: 'Create, update, or delete a collection. Use operation parameter.',
-        inputSchema: z.object({
-            operation: z.enum(['create', 'update', 'delete']),
-            id: z.number().optional(),
-            title: z.string().optional(),
-            parentId: z.number().optional(),
-            color: z.string().optional(),
-            description: z.string().optional()
-        }),
+        description: 'Creates, updates, or deletes a collection. Use the operation parameter to specify the action.',
+        inputSchema: collectionManageInputSchema,
         outputSchema: collectionSchema,
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
@@ -157,43 +120,27 @@ const toolConfigs: ToolConfig[] = [
     },
     {
         name: 'bookmark_search',
-        description: 'Search bookmarks with advanced filters, tags, and full-text.',
-        inputSchema: z.object({
-            query: z.string().optional(),
-            collectionId: z.number().optional(),
-            tags: z.array(z.string()).optional(),
-            important: z.boolean().optional(),
-            limit: z.number().min(1).max(100).optional().default(25),
-            offset: z.number().min(0).optional().default(0),
-            sample: z.number().min(1).max(100).optional()
-        }),
+        description: 'Searches bookmarks with advanced filters, tags, and full-text search.',
+        inputSchema: bookmarkSearchInputSchema,
         outputSchema: z.array(bookmarkSchema),
         handler: async (args, { raindropService }) => {
-            const params: any = {};
-            if (args.query) params.search = args.query;
-            if (args.collectionId) params.collection = args.collectionId;
-            if (args.tags) params.tags = args.tags;
-            if (args.important !== undefined) params.important = args.important;
-            if (args.limit) params.perPage = args.limit;
-            if (args.offset) params.page = Math.floor(args.offset / (args.limit || 25)) + 1;
-            const result = await raindropService.getBookmarks(params);
-            return result.items;
+            // Instead of returning all bookmarks directly, return a resource_link
+            return {
+                content: [{
+                    type: 'resource_link',
+                    uri: 'resource://bookmarks',
+                    name: 'Bookmarks',
+                    description: 'Search results for bookmarks with applied filters.',
+                    mimeType: 'application/json',
+                    _meta: {},
+                }]
+            };
         }
     },
     {
         name: 'bookmark_manage',
-        description: 'Create, update, or delete bookmarks. Use operation parameter.',
-        inputSchema: z.object({
-            operation: z.enum(['create', 'update', 'delete']),
-            id: z.number().optional(),
-            collectionId: z.number().optional(),
-            url: z.string().url().optional(),
-            title: z.string().optional(),
-            description: z.string().optional(),
-            tags: z.array(z.string()).optional(),
-            important: z.boolean().optional(),
-            data: z.any().optional()
-        }),
+        description: 'Creates, updates, or deletes bookmarks. Use the operation parameter to specify the action.',
+        inputSchema: bookmarkManageInputSchema,
         outputSchema: bookmarkSchema,
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
@@ -224,13 +171,8 @@ const toolConfigs: ToolConfig[] = [
     },
     {
         name: 'tag_manage',
-        description: 'Rename, merge, or delete tags. Use operation parameter.',
-        inputSchema: z.object({
-            operation: z.enum(['rename', 'merge', 'delete']),
-            tagNames: z.array(z.string()).optional(),
-            newName: z.string().optional(),
-            collectionId: z.number().optional()
-        }),
+        description: 'Renames, merges, or deletes tags. Use the operation parameter to specify the action.',
+        inputSchema: tagManageInputSchema,
         outputSchema: z.array(tagSchema),
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
@@ -248,15 +190,8 @@ const toolConfigs: ToolConfig[] = [
     },
     {
         name: 'highlight_manage',
-        description: 'Create, update, or delete highlights. Use operation parameter.',
-        inputSchema: z.object({
-            operation: z.enum(['create', 'update', 'delete']),
-            id: z.number().optional(),
-            bookmarkId: z.number().optional(),
-            text: z.string().optional(),
-            note: z.string().optional(),
-            color: z.string().optional()
-        }),
+        description: 'Creates, updates, or deletes highlights. Use the operation parameter to specify the action.',
+        inputSchema: highlightManageInputSchema,
         outputSchema: highlightSchema,
         handler: async (args, { raindropService }) => {
             switch (args.operation) {
@@ -362,7 +297,11 @@ export class RaindropMCPService {
             this.server.tool(
                 config.name,
                 (config.inputSchema as z.ZodObject<any>).shape,
-                { description: config.description },
+                {
+                    id: config.name,
+                    name: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    description: config.description
+                },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
             );
         }
@@ -557,45 +496,15 @@ export class RaindropMCPService {
         inputSchema: unknown;
         outputSchema: unknown;
     }>> {
-        // Ensure tools are registered and have all required fields
-        return [
-            {
-                id: 'diagnostics',
-                name: 'Diagnostics Tool',
-                description: 'Provides server diagnostics and environment info.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        includeEnvironment: { type: 'boolean', description: 'Include environment info' }
-                    },
-                    required: [],
-                    additionalProperties: false
-                },
-                outputSchema: {
-                    type: 'object',
-                    properties: {
-                        content: {
-                            type: 'array',
-                            items: {
-                                type: 'object',
-                                properties: {
-                                    type: { type: 'string' },
-                                    uri: { type: 'string' },
-                                    name: { type: 'string' },
-                                    description: { type: 'string' },
-                                    mimeType: { type: 'string' },
-                                    _meta: { type: 'object' }
-                                },
-                                required: ['type', 'uri', 'name', 'description', 'mimeType', '_meta']
-                            }
-                        }
-                    },
-                    required: ['content'],
-                    additionalProperties: false
-                }
-            }
-            // ...add other tools here as needed...
-        ];
+        // Return all registered tools from the MCP server, ensuring each has a description
+        const tools = ((this.server as any)._tools || []).map((tool: any) => ({
+            id: tool.id || tool.name,
+            name: tool.name,
+            description: tool.description || '',
+            inputSchema: tool.inputSchema || {},
+            outputSchema: tool.outputSchema || {},
+        }));
+        return tools;
     }
 
     /**

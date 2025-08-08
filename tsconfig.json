@@ -34,5 +34,5 @@
     "types": ["vitest/globals", "node", "bun-types"]
   },
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "**/.*/"]
 }

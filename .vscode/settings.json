@@ -71,5 +71,6 @@
     "smithery.yaml": "yaml",
     "raindrop.yaml": "yaml"
   },
-  "testing.automaticallyOpenTestResults": "neverOpen"
+  "testing.automaticallyOpenTestResults": "neverOpen",
+  "github-actions.workflows.pinned.workflows": [".github/workflows/publish.yml"]
 }

@@ -19,6 +19,7 @@ applyTo: "**"
 - Ensure complete coverage for Raindrop.io and MCP endpoints.
 - Reference [Raindrop.io API docs](https://developer.raindrop.io) for endpoints, authentication, and data models.
 - Reference [`raindropio/app`](https://github.com/raindropio/app) for implementation details and usage patterns.
+- LLM friendly documentation is `https://context7.com/context7/developer_raindrop_io/llms.txt`
 - Reference [Model Context Protocol docs](https://modelcontextprotocol.io/) and [LLMs integration guide](https://modelcontextprotocol.io/llms-full.txt) for MCP compliance.
 - Reference [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) for usage patterns.
 
