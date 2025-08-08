@@ -1,6 +1,9 @@
 {
-  "entryPoints": ["src/index.ts"],
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src"],
+  "entryPointStrategy": "expand",
   "out": "docs",
+
   "tsconfig": "tsconfig.json",
   "includeVersion": true,
   "excludePrivate": true,

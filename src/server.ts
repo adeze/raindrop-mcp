@@ -29,12 +29,6 @@ const activeSessions = new Map();
  */
 const sessionMetadata = new Map();
 /**
- * Stores HTTP transports for each session.
- * @type {Record<string, StreamableHTTPServerTransport>}
- */
-const transports: Record<string, StreamableHTTPServerTransport> = {};
-
-/**
  * Checks if a request body is an MCP initialization request.
  * @param body - The request body to check.
  * @returns True if the request is an MCP initialize call.
@@ -43,79 +37,88 @@ function isInitializeRequest(body: any): boolean {
     return body && body.method === 'initialize' && body.jsonrpc === '2.0';
 }
 
-// Start HTTP server with CORS and session management
-const app = express();
-
 // Raindrop.io OAuth endpoints
-const RAINDROP_CLIENT_ID = process.env.RAINDROP_CLIENT_ID;
+/**
+ * Express application instance for the MCP HTTP server.
+ */
+const app = express();
 const RAINDROP_CLIENT_SECRET = process.env.RAINDROP_CLIENT_SECRET;
 const RAINDROP_REDIRECT_URI = process.env.RAINDROP_REDIRECT_URI || `http://localhost:${PORT}/auth/raindrop/callback`;
 
 const oauthClient = new AuthorizationCode({
-  client: {
-    id: RAINDROP_CLIENT_ID,
-    secret: RAINDROP_CLIENT_SECRET,
-  },
-  auth: {
-    tokenHost: 'https://raindrop.io',
-    authorizePath: '/oauth/authorize',
-    tokenPath: '/oauth/access_token',
-  },
+    client: {
+        id: process.env.RAINDROP_CLIENT_ID,
+        secret: RAINDROP_CLIENT_SECRET,
+    },
+    auth: {
+        tokenHost: 'https://raindrop.io',
+        authorizePath: '/oauth/authorize',
+        tokenPath: '/oauth/access_token',
+    },
 });
 
-// Step 1: Redirect user to Raindrop.io OAuth
+const transports: Record<string, StreamableHTTPServerTransport> = {};
+
+/**
+ * OAuth endpoint: Redirects user to Raindrop.io for authentication.
+ */
 app.get('/auth/raindrop', (req, res) => {
-  if (!RAINDROP_CLIENT_ID) {
-    res.status(500).send('RAINDROP_CLIENT_ID not set');
-    return;
-  }
-  const authorizationUri = oauthClient.authorizeURL({
-    redirect_uri: RAINDROP_REDIRECT_URI,
-    scope: 'read write',
-  });
-  res.redirect(authorizationUri);
+    if (!process.env.RAINDROP_CLIENT_ID) {
+        res.status(500).send('RAINDROP_CLIENT_ID not set');
+        return;
+    }
+    const authorizationUri = oauthClient.authorizeURL({
+        redirect_uri: RAINDROP_REDIRECT_URI,
+        scope: 'read write',
+    });
+    res.redirect(authorizationUri);
 });
 
-// Step 2: Handle OAuth callback and exchange code for token
+/**
+ * OAuth callback endpoint: Exchanges code for access token.
+ */
 app.get('/auth/raindrop/callback', async (req, res) => {
-  const code = req.query.code as string;
-  if (!code) {
-    res.status(400).send('Missing code parameter');
-    return;
-  }
-  try {
-    const tokenParams = {
-      code,
-      redirect_uri: RAINDROP_REDIRECT_URI,
-    };
-    const accessToken = await oauthClient.getToken(tokenParams);
-    res.json({ access_token: accessToken.token.access_token });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'OAuth token exchange failed' });
-  }
+    const code = req.query.code as string;
+    if (!code) {
+        res.status(400).send('Missing code parameter');
+        return;
+    }
+    try {
+        const tokenParams = {
+            code,
+            redirect_uri: RAINDROP_REDIRECT_URI,
+        };
+        const accessToken = await oauthClient.getToken(tokenParams);
+        res.json({ access_token: accessToken.token.access_token });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message || 'OAuth token exchange failed' });
+    }
 });
 
-// CORS middleware
+/**
+ * CORS middleware for all HTTP requests.
+ */
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
-
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
         return;
     }
-
     next();
 });
 
-// JSON parsing middleware
+/**
+ * JSON parsing middleware for incoming requests.
+ */
 app.use(express.json());
 
-// Health check endpoint with session information
+/**
+ * Health check endpoint with session and optimization info.
+ */
 app.get('/health', (req, res) => {
     const sessions = Array.from(sessionMetadata.values());
-
     res.json({
         status: 'healthy',
         service: 'raindrop-mcp-optimized',
@@ -133,13 +136,15 @@ app.get('/health', (req, res) => {
                 'Consistent naming conventions',
                 'Enhanced parameter documentation',
                 'Standardized resource URI patterns',
-                'Improved error handling with suggestions'
-            ]
-        }
+                'Improved error handling with suggestions',
+            ],
+        },
     });
 });
 
-// API documentation endpoint
+/**
+ * API documentation endpoint.
+ */
 app.get('/', (req, res) => {
     res.json({
         name: 'Raindrop MCP HTTP Server',
@@ -148,13 +153,13 @@ app.get('/', (req, res) => {
         endpoints: {
             '/': 'This documentation',
             '/health': 'Health check with session info and optimization details',
-            '/mcp': 'MCP protocol endpoint (POST only)'
+            '/mcp': 'MCP protocol endpoint (POST only)',
         },
         optimizations: {
             tools: {
                 original: 37,
                 optimized: 24,
-                improvement: '35% reduction in tool count'
+                improvement: '35% reduction in tool count',
             },
             categories: [
                 'Collections (7 tools)',
@@ -162,7 +167,7 @@ app.get('/', (req, res) => {
                 'Tags (2 tools)',
                 'Highlights (4 tools)',
                 'User (2 tools)',
-                'Import/Export (3 tools)'
+                'Import/Export (3 tools)',
             ],
             features: [
                 'Hierarchical tool naming (category_action pattern)',
@@ -170,14 +175,14 @@ app.get('/', (req, res) => {
                 'Comprehensive parameter documentation',
                 'Smart tool consolidation with operation parameters',
                 'Standardized resource URI patterns (raindrop://type/scope)',
-                'Enhanced error messages with actionable suggestions'
-            ]
+                'Enhanced error messages with actionable suggestions',
+            ],
         },
         usage: {
             'MCP Inspector': `npx @modelcontextprotocol/inspector http://localhost:${PORT}/mcp`,
             'Direct API': `POST http://localhost:${PORT}/mcp`,
-            'Compare with original': `Original server on port 3001, optimized on port ${PORT}`
-        }
+            'Compare with original': `Original server on port 3001, optimized on port ${PORT}`,
+        },
     });
 });
 
@@ -186,7 +191,9 @@ const raindropMCP = new RaindropMCPService();
 const mcpServer = raindropMCP.getServer();
 const cleanup = raindropMCP.cleanup.bind(raindropMCP);
 
-// MCP endpoint with proper session handling
+/**
+ * MCP protocol endpoint with session management and transport handling.
+ */
 app.all('/mcp', async (req, res) => {
     try {
         // Check for existing session ID
@@ -208,10 +215,10 @@ app.all('/mcp', async (req, res) => {
                     sessionMetadata.set(sessionId, {
                         id: sessionId,
                         created: new Date().toISOString(),
-                        uptime: 0
+                        uptime: 0,
                     });
                     logger.info(`New optimized Streamable HTTP session initialized: ${sessionId}`);
-                }
+                },
             });
 
             // Clean up transport when closed
@@ -256,7 +263,9 @@ app.all('/mcp', async (req, res) => {
     }
 });
 
-// Start server
+/**
+ * Starts the MCP HTTP server and logs endpoints.
+ */
 const serverInstance = app.listen(PORT, () => {
     logger.info(`Optimized Raindrop MCP HTTP Server running on port ${PORT}`);
     logger.info(`MCP Inspector: npx @modelcontextprotocol/inspector http://localhost:${PORT}/mcp`);
@@ -265,13 +274,13 @@ const serverInstance = app.listen(PORT, () => {
     logger.info(`Optimizations: 24 tools (vs 37 original), enhanced AI-friendly interface`);
 });
 
-// Graceful shutdown
+/**
+ * Graceful shutdown handler for SIGINT.
+ */
 process.on('SIGINT', async () => {
     logger.info('Shutting down optimized HTTP server...');
-
     // Close all active sessions
     logger.info(`Closing ${Object.keys(transports).length} active optimized sessions`);
-
     // Clean up all transports
     Object.values(transports).forEach(transport => {
         try {
@@ -280,9 +289,7 @@ process.on('SIGINT', async () => {
             logger.error('Error closing transport:', error);
         }
     });
-
     sessionMetadata.clear();
-
     // Close server
     serverInstance.close(() => {
         logger.info('Optimized HTTP server stopped');
@@ -292,3 +299,5 @@ process.on('SIGINT', async () => {
 
 export { activeSessions, app, transports };
 
+
+sessionMetadata.clear();

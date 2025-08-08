@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 /**
- * @file src/index.ts
-  * @description
-  * 
-  * This file serves as the entry point for the Raindrop MCP server using STDIO transport.
-  * It initializes the server, sets up logging, and handles graceful shutdown on exit signals.
-  *
-  * The server does not expose HTTP or SSE endpoints and is designed to run in environments
-  * where STDIO communication is preferred.
+ * Entry point for the Raindrop MCP server (STDIO transport).
+ *
+ * Initializes the MCP server using STDIO transport for environments where direct process communication is required.
+ * Loads environment variables, sets up logging, and ensures graceful shutdown on exit signals.
+ *
+ * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
+ * @see StdioServerTransport
  */
 
 
@@ -21,11 +20,16 @@ config({ quiet: true }); // Load .env file quietly
 const logger = createLogger('mcp-stdio');
 
 /**
- * Main bootstrap for the STDIO-based MCP server.
- * Sets up the transport, connects the server, and handles graceful shutdown.
+ * Bootstraps the STDIO-based MCP server.
+ *
+ * - Instantiates the STDIO transport and Raindrop MCP service.
+ * - Connects the MCP server to the transport.
+ * - Handles graceful shutdown on SIGINT and SIGTERM.
+ *
+ * @see StdioServerTransport
+ * @see RaindropMCPService
  */
-
-export async function main() {
+export async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   const raindropMCP = new RaindropMCPService();
   const server = raindropMCP.getServer();
@@ -34,7 +38,7 @@ export async function main() {
   await server.connect(transport);
   logger.info('MCP server connected via STDIO transport');
 
-  // Cleanup on exit
+  // Handle graceful shutdown on SIGINT
   process.on("SIGINT", async () => {
     logger.info('Received SIGINT, shutting down gracefully');
     try {
@@ -47,6 +51,7 @@ export async function main() {
     process.exit(0);
   });
 
+  // Handle graceful shutdown on SIGTERM
   process.on("SIGTERM", async () => {
     logger.info('Received SIGTERM, shutting down gracefully');
     try {
