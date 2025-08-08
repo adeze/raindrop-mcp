@@ -52,14 +52,16 @@
     "**/build": true,
     "**/dist": true,
     "**/.git": true,
-    "**/coverage": true
+    "**/coverage": true,
+    "docs": true
   },
 
   // Files Configuration
   "files.watcherExclude": {
     "**/node_modules/**": true,
     "**/build/**": true,
-    "**/dist/**": true
+    "**/dist/**": true,
+    "docs/**": true
   },
 
   // Extension Specific Settings
