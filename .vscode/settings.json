@@ -71,10 +71,5 @@
     "smithery.yaml": "yaml",
     "raindrop.yaml": "yaml"
   },
-  "testing.automaticallyOpenTestResults": "neverOpen",
-  "chat.mcp.serverSampling": {
-    "raindrop-mcp/.vscode/mcp.json: raindrop": {
-      "allowedModels": ["github.copilot-chat/gpt-4.1"]
-    }
-  }
+  "testing.automaticallyOpenTestResults": "neverOpen"
 }
