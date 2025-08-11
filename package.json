@@ -1,6 +1,6 @@
 {
     "name": "@adeze/raindrop-mcp",
-    "version": "2.0.10",
+    "version": "2.0.11",
     "description": "MCP Server for Raindrop.io bookmark management",
     "main": "build/index.js",
     "module": "build/index.js",
@@ -77,6 +77,7 @@
         "zod-to-json-schema": "^3.24.6"
     },
     "devDependencies": {
+        "@anthropic-ai/dxt": "^0.2.6",
         "@modelcontextprotocol/inspector": "^0.16.2",
         "@openapitools/openapi-generator-cli": "^2.21.4",
         "@types/bun": "^1.2.20",
