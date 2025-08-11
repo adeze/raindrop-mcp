@@ -123,7 +123,7 @@ Connect your MCP client (like an LLM agent) to the running server process via st
 - `mcp://collection/{id}` - Access any Raindrop collection by ID (e.g., `mcp://collection/123456`)
 - `mcp://raindrop/{id}` - Access any Raindrop bookmark by ID (e.g., `mcp://raindrop/987654`)
 
-### **Available Tools (9 total):**
+### **Available Tools (10 total):**
 - **diagnostics** - Server diagnostic information
 - **collection_list** - List all collections (returns `resource_link` to individual collections)
 - **collection_manage** - Create, update, or delete collections
@@ -133,6 +133,63 @@ Connect your MCP client (like an LLM agent) to the running server process via st
 - **highlight_manage** - Create, update, or delete highlights
 - **getRaindrop** - Fetch single bookmark by ID (legacy)
 - **listRaindrops** - List bookmarks for collection (legacy)
+- **bulk_edit_raindrops** - Bulk update tags, favorite status, media, cover, or move bookmarks to another collection.
+
+### Bulk Edit Tool Usage
+
+**Tool Name:** `bulk_edit_raindrops`
+
+Bulk update multiple bookmarks in a collection. Supports updating tags, favorite status, media, cover, and moving bookmarks to another collection.
+
+**Input Schema:**
+```json
+{
+  "collectionId": 123456,                // Collection to update raindrops in
+  "ids": [987654, 876543],               // (Optional) Array of raindrop IDs to update
+  "important": true,                     // (Optional) Mark as favorite
+  "tags": ["work", "urgent"],           // (Optional) Tags to set (empty array removes all tags)
+  "media": ["https://img.com/a.png"],   // (Optional) Media URLs (empty array removes all media)
+  "cover": "<screenshot>",              // (Optional) Cover URL
+  "collection": { "$id": 654321 },      // (Optional) Move to another collection
+  "nested": false                        // (Optional) Include nested collections
+}
+```
+
+**Example Usage:**
+- Update tags and favorite status for two bookmarks:
+```json
+{
+  "collectionId": 123456,
+  "ids": [987654, 876543],
+  "tags": ["project", "review"],
+  "important": true
+}
+```
+- Remove all tags from all bookmarks in a collection:
+```json
+{
+  "collectionId": 123456,
+  "tags": []
+}
+```
+- Move bookmarks to another collection:
+```json
+{
+  "collectionId": 123456,
+  "ids": [987654, 876543],
+  "collection": { "$id": 654321 }
+}
+```
+
+**Response:**
+Returns a text message indicating success and the number of modified bookmarks.
+```json
+{
+  "content": [
+    { "type": "text", "text": "Bulk edit successful. Modified: 2" }
+  ]
+}
+```
 
 The modern tools use the efficient `resource_link` pattern - they return lightweight links to resources instead of full data, allowing clients to fetch complete data only when needed via the dynamic resource URIs.
 

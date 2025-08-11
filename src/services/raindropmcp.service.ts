@@ -58,9 +58,26 @@ const toolConfigs: ToolConfig[] = [
                 type: 'resource_link',
                 uri: 'diagnostics://server',
                 name: 'Server Diagnostics',
-                description: 'Server diagnostics and environment info resource.',
+                description: `Server diagnostics and environment info resource. Version: ${SERVER_VERSION}`,
                 mimeType: 'application/json',
-                _meta: {},
+                _meta: {
+                    version: SERVER_VERSION,
+                    mcpProtocolVersion: process.env.MCP_PROTOCOL_VERSION || 'unknown',
+                    nodeVersion: process.version,
+                    bunVersion: (typeof Bun !== 'undefined' ? Bun.version : undefined),
+                    os: process.platform,
+                    uptime: process.uptime(),
+                    startTime: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+                    env: {
+                        NODE_ENV: process.env.NODE_ENV,
+                        MCP_DEBUG: process.env.MCP_DEBUG,
+                        MCP_TRANSPORT: process.env.MCP_TRANSPORT,
+                        RAINDROP_ACCESS_TOKEN: process.env.RAINDROP_ACCESS_TOKEN ? 'set' : 'unset',
+                    },
+                    enabledTools: toolConfigs.map(t => t.name),
+                    apiStatus: 'unknown', // Optionally, ping Raindrop.io API for live status
+                    memory: process.memoryUsage(),
+                },
             }]
         })
     },
@@ -80,12 +97,12 @@ const toolConfigs: ToolConfig[] = [
         }),
         handler: async (_args, { raindropService }) => {
             const collections = await raindropService.getCollections();
-            
+
             // Return resource links for each collection
             const content: McpContent[] = [
                 { type: "text", text: `Found ${collections.length} collections` }
             ];
-            
+
             collections.forEach((collection: any) => {
                 content.push({
                     type: "resource_link",
@@ -95,7 +112,7 @@ const toolConfigs: ToolConfig[] = [
                     mimeType: "application/json"
                 });
             });
-            
+
             return { content };
         }
     },
@@ -159,12 +176,12 @@ const toolConfigs: ToolConfig[] = [
                 highlight: args.highlight,
                 domain: args.domain
             });
-            
+
             // Return resource links instead of raw data for better efficiency
             const content: McpContent[] = [
                 { type: "text", text: `Found ${result.count} bookmarks` }
             ];
-            
+
             // Add resource links for each bookmark
             result.items.forEach((bookmark: any) => {
                 content.push({
@@ -175,7 +192,7 @@ const toolConfigs: ToolConfig[] = [
                     mimeType: "application/json"
                 });
             });
-            
+
             return { content };
         }
     },
@@ -296,12 +313,12 @@ const toolConfigs: ToolConfig[] = [
                 collection: parseInt(args.collectionId),
                 perPage: args.limit || 50
             });
-            
+
             // Return resource links for better efficiency
             const content: McpContent[] = [
                 { type: "text", text: `Found ${result.count} bookmarks in collection` }
             ];
-            
+
             result.items.forEach((bookmark: any) => {
                 content.push({
                     type: "resource_link",
@@ -311,9 +328,72 @@ const toolConfigs: ToolConfig[] = [
                     mimeType: "application/json"
                 });
             });
-            
+
             return { content };
         }
+    },
+
+    {
+        name: 'bulk_edit_raindrops',
+        description: 'Bulk update tags, favorite status, media, cover, or move bookmarks to another collection.',
+        inputSchema: z.object({
+            collectionId: z.number().describe('Collection to update raindrops in'),
+            ids: z.array(z.number()).optional().describe('Array of raindrop IDs to update. If omitted, all in collection are updated.'),
+            important: z.boolean().optional().describe('Mark as favorite (true/false)'),
+            tags: z.array(z.string()).optional().describe('Tags to set. Empty array removes all tags.'),
+            media: z.array(z.string()).optional().describe('Media URLs to set. Empty array removes all media.'),
+            cover: z.string().optional().describe('Cover URL. Use <screenshot> for auto screenshot.'),
+            collection: z.object({ $id: z.number() }).optional().describe('Move to another collection.'),
+            nested: z.boolean().optional().describe('Include nested collections.'),
+        }),
+        outputSchema: z.object({
+            content: z.array(z.object({
+                type: z.string(),
+                text: z.string(),
+            }))
+        }),
+        handler: async (args, { raindropService }) => {
+            // Defensive: Only send fields that are defined
+            const body: any = {};
+            if (args.ids) body.ids = args.ids;
+            if (args.important !== undefined) body.important = args.important;
+            if (args.tags) body.tags = args.tags;
+            if (args.media) body.media = args.media;
+            if (args.cover) body.cover = args.cover;
+            if (args.collection) body.collection = args.collection;
+            if (args.nested !== undefined) body.nested = args.nested;
+
+            // Call Raindrop.io bulk update API
+            const url = `https://api.raindrop.io/rest/v1/raindrops/${args.collectionId}`;
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Add auth header if needed
+                    },
+                    body: JSON.stringify(body),
+                });
+                const result = await response.json() as { result: boolean; errorMessage?: string; modified?: number };
+                if (!result.result) {
+                    throw new Error(result.errorMessage || 'Bulk edit failed');
+                }
+                return {
+                    content: [{
+                        type: 'text',
+                        text: `Bulk edit successful. Modified: ${result.modified ?? 'unknown'}`,
+                    }],
+                };
+            } catch (err) {
+                return {
+                    content: [{
+                        type: 'text',
+                        text: `Bulk edit error: ${(err as Error).message}`,
+                    }],
+                    isError: true,
+                };
+            }
+        },
     },
     // ...add more tools as needed, following the same pattern...
 ];
@@ -424,7 +504,7 @@ export class RaindropMCPService {
         this.resources['diagnostics://server'] = {
             contents: [{
                 uri: 'diagnostics://server',
-                text: JSON.stringify({ 
+                text: JSON.stringify({
                     diagnostics: 'Server diagnostics and environment info',
                     version: SERVER_VERSION,
                     timestamp: new Date().toISOString()
@@ -455,7 +535,7 @@ export class RaindropMCPService {
             inputSchema: tool.inputSchema || {},
             outputSchema: tool.outputSchema || {},
         }));
-        
+
         // Also include tools from our toolConfigs if the server's _tools is empty
         if (tools.length === 0) {
             return toolConfigs.map(config => ({
@@ -466,7 +546,7 @@ export class RaindropMCPService {
                 outputSchema: config.outputSchema || {}
             }));
         }
-        
+
         return tools.filter((tool: any) => tool.description);
     }
 
@@ -514,7 +594,7 @@ export class RaindropMCPService {
                     }]
                 };
             }
-            
+
             if (uri.startsWith('mcp://raindrop/')) {
                 const uriParts = uri.split('/');
                 const raindropIdStr = uriParts[uriParts.length - 1];
@@ -571,7 +651,7 @@ export class RaindropMCPService {
             description: r.description,
             mimeType: r.mimeType,
         }));
-        
+
         // Include our static resources and dynamic resource patterns
         const staticResources = Object.keys(this.resources).map(uri => ({
             id: uri,
@@ -598,7 +678,7 @@ export class RaindropMCPService {
                 mimeType: 'application/json'
             }
         ];
-        
+
         // Combine all resources: server resources, static resources, and dynamic patterns
         return [
             ...serverResources,

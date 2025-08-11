@@ -152,6 +152,34 @@ describe('RaindropMCPService', () => {
     expect(result.contents[0].text).toContain('raindrop');
   });
 
+  it('should emit valid diagnostics data', async () => {
+    if (typeof mcpService.callTool !== 'function') {
+      throw new Error('callTool(name: string, args?: any) public method not implemented on RaindropMCPService');
+    }
+    const result = await mcpService.callTool('diagnostics', {});
+    expect(result).toBeDefined();
+    expect(result.content).toBeDefined();
+    expect(Array.isArray(result.content)).toBe(true);
+    const diag = result.content[0];
+    expect(diag.type).toBe('resource_link');
+    expect(diag.uri).toBe('diagnostics://server');
+    expect(diag.name).toContain('Diagnostics');
+    expect(diag.description).toContain('Version');
+    expect(diag.mimeType).toBe('application/json');
+    expect(diag._meta).toBeDefined();
+    // Check for key diagnostic fields
+    expect(diag._meta.version).toBeDefined();
+    expect(typeof diag._meta.version).toBe('string');
+    expect(diag._meta.nodeVersion || diag._meta.bunVersion).toBeDefined();
+    expect(diag._meta.os).toBeDefined();
+    expect(typeof diag._meta.uptime).toBe('number');
+    expect(Array.isArray(diag._meta.enabledTools)).toBe(true);
+    expect(diag._meta.memory).toBeDefined();
+    expect(typeof diag._meta.memory).toBe('object');
+    expect(diag._meta.env).toBeDefined();
+    expect(typeof diag._meta.env).toBe('object');
+  });
+
   // Additional test to output actual return values for inspection
   it('should output actual API data for inspection', async () => {
     console.log('=== Testing actual API responses ===');
