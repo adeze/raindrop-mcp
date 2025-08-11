@@ -53,7 +53,7 @@
     "**/dist": true,
     "**/.git": true,
     "**/coverage": true,
-    "docs": true
+    "**/docs/**": true
   },
 
   // Files Configuration
@@ -61,7 +61,7 @@
     "**/node_modules/**": true,
     "**/build/**": true,
     "**/dist/**": true,
-    "docs/**": true
+    "**/docs/**": true
   },
 
   // Extension Specific Settings
