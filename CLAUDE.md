@@ -242,35 +242,13 @@ The server provides **24 optimized tools** (reduced from 37+ original tools) org
 - **Logical grouping**: Tools organized by functional area for easier discovery
 - **Dynamic tools**: Context-aware tools that provide smart recommendations
 
-### **Service Layer:**
-- **25-30% code reduction** through extracted common functions
-- **Consistent error handling** with standardized response patterns
-- **Type safety improvements** with generic response handlers
-- **Centralized endpoint building** for API consistency
-
-### **Developer Experience:**
-- **Rich parameter documentation** with examples and constraints
-- **Enhanced error messages** with actionable suggestions
-- **Standardized resource URI patterns** (raindrop://type/scope)
-- **Comprehensive diagnostic tools** for debugging and monitoring
-
-## Additional Features
-
-### Logging and Diagnostics
-- **STDIO-safe logging**: Uses stderr to avoid protocol pollution
-- **Structured logging**: Timestamp, log levels, context-aware
-- **Built-in diagnostics tool**: Get server status, memory usage, capabilities
-- **Environment-based configuration**: `LOG_LEVEL=debug` for verbose output
-- **Transport awareness**: Consistent logging across STDIO and HTTP modes
-- See `LOGGING_DIAGNOSTICS.md` for detailed information
-
 ### Dual Entry Points
-- **CLI executable** (`src/cli.ts`): For direct command-line usage
+
 - **HTTP server** (`src/server.ts`): For web-based MCP protocol (port 3002)
 - **STDIO server** (`src/index.ts`): Standard MCP protocol over stdin/stdout
 
 ### Version Information
-- **Current version**: 2.0.5
+- **Current version**: 2.0.10
 - **Node.js**: >=18.0.0 required
 - **Bun**: >=1.0.0 required
 - **MCP SDK**: ^1.17.1
