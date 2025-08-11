@@ -21,28 +21,6 @@ interface ToolConfig<T = { content: McpContent[] }> {
     handler: (args: any, extra: any) => Promise<T>;
 }
 
-/**
- * Configuration for an MCP resource.
- * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
- */
-interface ResourceConfig {
-    /** Resource ID */
-    id: string;
-    /** Resource URI */
-    uri: string;
-    /** Optional resource title */
-    title?: string;
-    /** Resource description */
-    description: string;
-    /** MIME type of the resource */
-    mimeType?: string;
-    /** Zod schema for resource input */
-    inputSchema?: z.ZodType;
-    /** Zod schema for resource output */
-    outputSchema?: z.ZodType;
-    /** Resource handler function */
-    handler: (params: any, context: any) => Promise<any>;
-}
 
 
 /**
@@ -90,19 +68,35 @@ const toolConfigs: ToolConfig[] = [
         name: 'collection_list',
         description: 'Lists all Raindrop collections for the authenticated user.',
         inputSchema: z.object({}),
-        outputSchema: z.array(CollectionOutputSchema),
-        handler: async (_args, { raindropService: _ }) => {
-            // Instead of returning all collections directly, return a resource_link
-            return {
-                content: [{
-                    type: 'resource_link',
-                    uri: 'resource://collections',
-                    name: 'Collections',
-                    description: 'All Raindrop collections for the authenticated user.',
-                    mimeType: 'application/json',
-                    _meta: {},
-                }]
-            };
+        outputSchema: z.object({
+            content: z.array(z.object({
+                type: z.string(),
+                name: z.string().optional(),
+                uri: z.string().optional(),
+                description: z.string().optional(),
+                mimeType: z.string().optional(),
+                text: z.string().optional()
+            }))
+        }),
+        handler: async (_args, { raindropService }) => {
+            const collections = await raindropService.getCollections();
+            
+            // Return resource links for each collection
+            const content: McpContent[] = [
+                { type: "text", text: `Found ${collections.length} collections` }
+            ];
+            
+            collections.forEach((collection: any) => {
+                content.push({
+                    type: "resource_link",
+                    uri: `mcp://collection/${collection._id}`,
+                    name: collection.title || 'Untitled Collection',
+                    description: collection.description || `Collection with ${collection.count || 0} bookmarks`,
+                    mimeType: "application/json"
+                });
+            });
+            
+            return { content };
         }
     },
     {
@@ -132,20 +126,57 @@ const toolConfigs: ToolConfig[] = [
     {
         name: 'bookmark_search',
         description: 'Searches bookmarks with advanced filters, tags, and full-text search.',
-        inputSchema: BookmarkInputSchema.partial(), // Make all fields optional for search
-        outputSchema: z.array(BookmarkOutputSchema),
-        handler: async (_args, { raindropService: _ }) => {
-            // Instead of returning all bookmarks directly, return a resource_link
-            return {
-                content: [{
-                    type: 'resource_link',
-                    uri: 'resource://bookmarks',
-                    name: 'Bookmarks',
-                    description: 'Search results for bookmarks with applied filters.',
-                    mimeType: 'application/json',
-                    _meta: {},
-                }]
-            };
+        inputSchema: z.object({
+            search: z.string().optional().describe('Full-text search query'),
+            collection: z.number().optional().describe('Collection ID to search within'),
+            tags: z.array(z.string()).optional().describe('Tags to filter by'),
+            important: z.boolean().optional().describe('Filter by important bookmarks'),
+            page: z.number().optional().describe('Page number for pagination'),
+            perPage: z.number().optional().describe('Items per page (max 50)'),
+            sort: z.string().optional().describe('Sort order (score, title, -created, created)'),
+            tag: z.string().optional().describe('Single tag to filter by'),
+            duplicates: z.boolean().optional().describe('Include duplicate bookmarks'),
+            broken: z.boolean().optional().describe('Include broken links'),
+            highlight: z.boolean().optional().describe('Only bookmarks with highlights'),
+            domain: z.string().optional().describe('Filter by domain')
+        }),
+        outputSchema: z.object({
+            items: z.array(BookmarkOutputSchema),
+            count: z.number()
+        }),
+        handler: async (args, { raindropService }) => {
+            const result = await raindropService.getBookmarks({
+                search: args.search,
+                collection: args.collection,
+                tags: args.tags,
+                important: args.important,
+                page: args.page,
+                perPage: args.perPage,
+                sort: args.sort,
+                tag: args.tag,
+                duplicates: args.duplicates,
+                broken: args.broken,
+                highlight: args.highlight,
+                domain: args.domain
+            });
+            
+            // Return resource links instead of raw data for better efficiency
+            const content: McpContent[] = [
+                { type: "text", text: `Found ${result.count} bookmarks` }
+            ];
+            
+            // Add resource links for each bookmark
+            result.items.forEach((bookmark: any) => {
+                content.push({
+                    type: "resource_link",
+                    uri: `mcp://raindrop/${bookmark._id}`,
+                    name: bookmark.title || 'Untitled',
+                    description: bookmark.excerpt || 'No description',
+                    mimeType: "application/json"
+                });
+            });
+            
+            return { content };
         }
     },
     {
@@ -234,15 +265,19 @@ const toolConfigs: ToolConfig[] = [
             id: z.string().min(1, 'Bookmark ID is required'),
         }),
         outputSchema: z.object({
-            item: z.object({
-                id: z.string(),
-                title: z.string(),
-                link: z.string().url(),
-                // ...other fields as needed...
-            }),
+            item: BookmarkOutputSchema
         }),
-        handler: function (_args: any, _extra: any): Promise<{ content: McpContent[]; }> {
-            throw new Error("Function not implemented.");
+        handler: async (args, { raindropService }) => {
+            const bookmark = await raindropService.getBookmark(parseInt(args.id));
+            return {
+                content: [{
+                    type: "resource_link",
+                    uri: `mcp://raindrop/${bookmark._id}`,
+                    name: bookmark.title || 'Untitled',
+                    description: bookmark.excerpt || 'No description',
+                    mimeType: "application/json"
+                }]
+            };
         }
     },
     {
@@ -253,17 +288,31 @@ const toolConfigs: ToolConfig[] = [
             limit: z.number().min(1).max(100).optional(),
         }),
         outputSchema: z.object({
-            items: z.array(
-                z.object({
-                    id: z.string(),
-                    title: z.string(),
-                    link: z.string().url(),
-                    // ...other fields as needed...
-                })
-            ),
+            items: z.array(BookmarkOutputSchema),
+            count: z.number()
         }),
-        handler: function (_args: any, _extra: any): Promise<{ content: McpContent[]; }> {
-            throw new Error("Function not implemented.");
+        handler: async (args, { raindropService }) => {
+            const result = await raindropService.getBookmarks({
+                collection: parseInt(args.collectionId),
+                perPage: args.limit || 50
+            });
+            
+            // Return resource links for better efficiency
+            const content: McpContent[] = [
+                { type: "text", text: `Found ${result.count} bookmarks in collection` }
+            ];
+            
+            result.items.forEach((bookmark: any) => {
+                content.push({
+                    type: "resource_link",
+                    uri: `mcp://raindrop/${bookmark._id}`,
+                    name: bookmark.title || 'Untitled',
+                    description: bookmark.excerpt || 'No description',
+                    mimeType: "application/json"
+                });
+            });
+            
+            return { content };
         }
     },
     // ...add more tools as needed, following the same pattern...
@@ -351,13 +400,12 @@ export class RaindropMCPService {
 
     private registerDeclarativeTools() {
         for (const config of toolConfigs) {
-            this.server.tool(
+            this.server.registerTool(
                 config.name,
-                (config.inputSchema as z.ZodObject<any>).shape,
                 {
-                    id: config.name,
-                    name: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                    description: config.description
+                    title: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                    description: config.description,
+                    inputSchema: (config.inputSchema as z.ZodObject<any>).shape
                 },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
             );

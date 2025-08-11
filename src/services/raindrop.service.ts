@@ -150,7 +150,7 @@ export default class RaindropService {
     if (params.broken !== undefined) query.broken = params.broken;
     if (params.highlight !== undefined) query.highlight = params.highlight;
     if (params.domain) query.domain = params.domain;
-    const endpoint = params.collection ? '/raindrops/{collectionId}' : '/raindrops/0';
+    const endpoint = params.collection ? '/raindrops/{id}' : '/raindrops/0';
     const options = params.collection
       ? { params: { path: { id: params.collection }, query } }
       : { params: { query } };

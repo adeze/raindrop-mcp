@@ -18,7 +18,7 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - **Import/Export**: Initiate and check the status of bookmark imports and exports.
 - **Trash Management**: Empty the trash.
 - **MCP Compliance**: Exposes Raindrop.io functionalities as MCP resources and tools.
-- **Optimized Tools**: Enhanced tool structure with 35% fewer tools (24 vs 37+) following MCP 2025 best practices.
+- **Optimized Tools**: Enhanced tool structure with 9 core tools using modern `resource_link` patterns for efficient data access.
 - **AI-Friendly Interface**: Clear naming conventions and comprehensive parameter documentation.
 - **Streaming Support**: Provides real-time SSE (Server-Sent Events) endpoints for streaming bookmark updates.
 - **Built with TypeScript**: Strong typing for better maintainability.
@@ -113,21 +113,28 @@ The server uses standard input/output (stdio) for communication by default, list
 
 ## Usage with MCP Clients
 
-Connect your MCP client (like an LLM agent) to the running server process via stdio. The server exposes the following resource URIs:
+Connect your MCP client (like an LLM agent) to the running server process via stdio. The server exposes the following resource patterns:
 
-- `collections://all` - All collections
-- `collections://{parentId}/children` - Child collections
-- `tags://all` - All tags
-- `tags://collection/{collectionId}` - Tags filtered by collection
-- `highlights://all` - All highlights
-- `highlights://raindrop/{raindropId}` - Highlights for a specific bookmark
-- `highlights://collection/{collectionId}` - Highlights filtered by collection
-- `bookmarks://collection/{collectionId}` - Bookmarks in a collection
-- `bookmarks://raindrop/{id}` - Specific bookmark by ID
-- `user://info` - User information
-- `user://stats` - User statistics
+### **Static Resources:**
+- `mcp://user/profile` - User account information
+- `diagnostics://server` - Server diagnostics and environment info
 
-It also provides numerous tools for operational tasks such as collection management, bookmark operations, tag management, highlight operations, and user operations. For a detailed list of all available tools, refer to `CLAUDE.md` or check `src/services/mcp.service.ts` for definitions of resources and tools.
+### **Dynamic Resources:** 
+- `mcp://collection/{id}` - Access any Raindrop collection by ID (e.g., `mcp://collection/123456`)
+- `mcp://raindrop/{id}` - Access any Raindrop bookmark by ID (e.g., `mcp://raindrop/987654`)
+
+### **Available Tools (9 total):**
+- **diagnostics** - Server diagnostic information
+- **collection_list** - List all collections (returns `resource_link` to individual collections)
+- **collection_manage** - Create, update, or delete collections
+- **bookmark_search** - Search bookmarks (returns `resource_link` to individual bookmarks)  
+- **bookmark_manage** - Create, update, or delete bookmarks
+- **tag_manage** - Rename, merge, or delete tags
+- **highlight_manage** - Create, update, or delete highlights
+- **getRaindrop** - Fetch single bookmark by ID (legacy)
+- **listRaindrops** - List bookmarks for collection (legacy)
+
+The modern tools use the efficient `resource_link` pattern - they return lightweight links to resources instead of full data, allowing clients to fetch complete data only when needed via the dynamic resource URIs.
 
 ### MCP Configuration
 
@@ -204,19 +211,31 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **DXT Manifest:** Automated packaging and release via GitHub CLI.
 - **Continuous Integration:** Version tagging and manifest publishing are fully automated.
 
-## 📋 Recent Enhancements (v2.0.0)
+## 📋 Recent Enhancements (v2.0.12)
 
-### **Service Layer Refactoring**
+### **MCP Resource Links Implementation** ✨ NEW
+- **Modern `resource_link` pattern** following MCP SDK v1.17.2 best practices
+- **Efficient data access** - tools return lightweight links instead of full data payloads
+- **Better performance** - clients fetch full bookmark/collection data only when needed
+- **Seamless integration** with existing dynamic resource system (`mcp://raindrop/{id}`)
+
+### **SDK & API Updates**
+- **Updated to MCP SDK v1.17.2** with latest protocol features
+- **Modern tool registration** using `registerTool()` API with proper descriptions
+- **Fixed API endpoints** - corrected Raindrop.io API path parameters
+- **Enhanced tool implementations** - all 9 tools now fully functional
+
+### **Tool Optimization** 
+- **Resource-efficient responses** - bookmark/collection lists return `resource_link` objects
+- **Dynamic resource access** - `mcp://collection/{id}` and `mcp://raindrop/{id}` patterns
+- **Better UX** - clients can display lists without loading full data
+- **MCP compliance** - follows official SDK patterns and examples
+
+### **Service Layer Improvements**
 - **25-30% code reduction** through extracted common functions and patterns
 - **Consistent error handling** with standardized response processing
 - **Enhanced type safety** with generic response handlers
 - **Centralized endpoint building** for better API consistency
-
-### **Tool Optimization** 
-- **35% reduction** in tool count (37+ → 24 tools) with enhanced AI-friendly descriptions
-- **Hierarchical naming** with `category_action` pattern for better organization
-- **Comprehensive documentation** with detailed parameter descriptions and examples
-- **Dynamic tools** providing context-aware recommendations
 
 ### **Developer Experience**
 - **[VS Code Configuration](https://github.com/adeze/raindrop-mcp/issues/3)**: Enterprise-grade testing & debugging support

@@ -30,7 +30,7 @@
 - [MCP Boilerplate](https://github.com/cyanheads/mcp-ts-template)
 - [MCP Inspector Tool](https://github.com/modelcontextprotocol/inspector)
 - [This project on GitHub](https://github.com/adeze/raindrop-mcp)
-
+- [systemprompt-mcp-server](https://github.com/systempromptio/systemprompt-mcp-server)
 ## Installation and Usage
 
 ### NPM Package

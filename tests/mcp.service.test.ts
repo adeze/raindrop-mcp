@@ -155,7 +155,7 @@ describe('RaindropMCPService', () => {
   // Additional test to output actual return values for inspection
   it('should output actual API data for inspection', async () => {
     console.log('=== Testing actual API responses ===');
-    
+
     // Test user profile
     try {
       const userResult = await mcpService.readResource(USER_PROFILE_URI);
@@ -207,7 +207,7 @@ describe('RaindropMCPService', () => {
     }
 
     console.log('=== End of API inspection ===');
-    
+
     // This test always passes - it's just for inspection
     expect(true).toBe(true);
   });

@@ -74,8 +74,8 @@ jobs:
         run: |
           PKG_VERSION=$(jq -r .version package.json)
           jq ".version = \"$PKG_VERSION\"" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
-      - name: Pack DXT manifest
-        run: bun run dxt:pack
+      # - name: Pack DXT manifest
+      #   run: bun run dxt:pack
 
       - name: Create GitHub Release
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')

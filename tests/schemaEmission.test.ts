@@ -24,4 +24,30 @@ describe('Tool schema emission', () => {
 			expect(typeof tool.outputSchema).toBe('object');
 		}
 	});
+
+	it('should not allow blank or whitespace-only tool descriptions', async () => {
+		const tools = await service.listTools();
+		for (const tool of tools) {
+			expect(tool.description).toBeDefined();
+			expect(typeof tool.description).toBe('string');
+			// Should not be empty or whitespace-only
+			expect(tool.description.trim()).not.toBe('');
+		}
+	});
+
+	it('should fail if any tool description is missing', async () => {
+		const tools = await service.listTools();
+		for (const tool of tools) {
+			// Description must exist and be a string
+			expect(tool).toHaveProperty('description');
+			expect(typeof tool.description).toBe('string');
+		}
+	});
+
+	it('should fail if any tool description is less than 5 characters', async () => {
+		const tools = await service.listTools();
+		for (const tool of tools) {
+			expect(tool.description.trim().length).toBeGreaterThanOrEqual(5);
+		}
+	});
 });
