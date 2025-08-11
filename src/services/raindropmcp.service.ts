@@ -649,6 +649,9 @@ export class RaindropMCPService {
             if (uri.startsWith('mcp://collection/')) {
                 const uriParts = uri.split('/');
                 const collectionIdStr = uriParts[uriParts.length - 1];
+                if (!collectionIdStr) {
+                    throw new Error('Collection ID is required');
+                }
                 const collectionId = parseInt(collectionIdStr);
                 if (isNaN(collectionId)) {
                     throw new Error(`Invalid collection ID: ${collectionIdStr}`);
@@ -665,6 +668,9 @@ export class RaindropMCPService {
             if (uri.startsWith('mcp://raindrop/')) {
                 const uriParts = uri.split('/');
                 const raindropIdStr = uriParts[uriParts.length - 1];
+                if (!raindropIdStr) {
+                    throw new Error('Raindrop ID is required');
+                }
                 const raindropId = parseInt(raindropIdStr);
                 if (isNaN(raindropId)) {
                     throw new Error(`Invalid raindrop ID: ${raindropIdStr}`);
