@@ -2,12 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import pkg from '../../package.json';
 import { BookmarkInputSchema, BookmarkOutputSchema, CollectionManageInputSchema, CollectionOutputSchema, HighlightInputSchema, HighlightOutputSchema, TagInputSchema, TagOutputSchema } from "../types/raindrop-zod.schemas.js";
-import type { components } from '../types/raindrop.schema.js';
 import RaindropService from "./raindrop.service.js";
-type Collection = components['schemas']['Collection'];
-type Bookmark = components['schemas']['Bookmark'];
-type Highlight = components['schemas']['Highlight'];
-type Tag = components['schemas']['Tag'];
 
 /**
  * Configuration for an MCP tool.
@@ -49,21 +44,6 @@ interface ResourceConfig {
     handler: (params: any, context: any) => Promise<any>;
 }
 
-/**
- * Supported CRUD operations for tools.
- * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
- */
-type CrudOperation = "create" | "update" | "delete";
-
-/**
- * Handler functions for CRUD tools.
- * @see {@link https://github.com/modelcontextprotocol/typescript-sdk | MCP TypeScript SDK}
- */
-type CrudHandler<T> = {
-    create?: (args: any) => Promise<T>;
-    update?: (args: any) => Promise<T>;
-    delete?: (args: any) => Promise<{ deleted: boolean } | void>;
-};
 
 /**
  * MCP protocol content type for tool/resource responses.
@@ -111,7 +91,7 @@ const toolConfigs: ToolConfig[] = [
         description: 'Lists all Raindrop collections for the authenticated user.',
         inputSchema: z.object({}),
         outputSchema: z.array(CollectionOutputSchema),
-        handler: async (_args, { raindropService }) => {
+        handler: async (_args, { raindropService: _ }) => {
             // Instead of returning all collections directly, return a resource_link
             return {
                 content: [{
@@ -154,7 +134,7 @@ const toolConfigs: ToolConfig[] = [
         description: 'Searches bookmarks with advanced filters, tags, and full-text search.',
         inputSchema: BookmarkInputSchema.partial(), // Make all fields optional for search
         outputSchema: z.array(BookmarkOutputSchema),
-        handler: async (args, { raindropService }) => {
+        handler: async (_args, { raindropService: _ }) => {
             // Instead of returning all bookmarks directly, return a resource_link
             return {
                 content: [{
@@ -261,7 +241,7 @@ const toolConfigs: ToolConfig[] = [
                 // ...other fields as needed...
             }),
         }),
-        handler: function (args: any, extra: any): Promise<{ content: McpContent[]; }> {
+        handler: function (_args: any, _extra: any): Promise<{ content: McpContent[]; }> {
             throw new Error("Function not implemented.");
         }
     },
@@ -282,7 +262,7 @@ const toolConfigs: ToolConfig[] = [
                 })
             ),
         }),
-        handler: function (args: any, extra: any): Promise<{ content: McpContent[]; }> {
+        handler: function (_args: any, _extra: any): Promise<{ content: McpContent[]; }> {
             throw new Error("Function not implemented.");
         }
     },
@@ -408,184 +388,6 @@ export class RaindropMCPService {
         // in readResource() method - no pre-registration needed
     }
 
-    // Helper methods for building responses
-    private createTextResponse(data: unknown): { content: McpContent[] } {
-        return {
-            content: [{
-                type: "text" as const,
-                text: JSON.stringify(data, null, 2),
-                _meta: {},
-            }],
-        };
-    }
-
-    private createResourceLinkResponse(uri: string, name: string, description: string): { content: McpContent[] } {
-        return {
-            content: [{
-                type: "resource_link" as const,
-                uri,
-                name,
-                description,
-                mimeType: "application/json",
-                _meta: {},
-            }],
-        };
-    }
-
-    // Generic list tool factory
-    private createListTool<T>(
-        name: string,
-        description: string,
-        serviceMethod: () => Promise<T[]>,
-        mapper: (items: T[]) => unknown[],
-        schema: z.ZodType
-    ): ToolConfig {
-        return {
-            name,
-            description,
-            inputSchema: z.object({
-                limit: z.number().optional().describe("Maximum number of items to return"),
-                offset: z.number().optional().describe("Offset for pagination")
-            }),
-            outputSchema: z.object({ [name.split('_')[0] + 's']: z.array(schema) }),
-            handler: this.asyncHandler(async (args: { limit?: number; offset?: number }) => {
-                const items = await serviceMethod();
-                if (!Array.isArray(items)) {
-                    throw new Error(`${name} service returned invalid data`);
-                }
-                let resultItems = items;
-                if (typeof args.offset === 'number') {
-                    resultItems = resultItems.slice(args.offset);
-                }
-                if (typeof args.limit === 'number') {
-                    resultItems = resultItems.slice(0, args.limit);
-                }
-                const mapped = mapper(resultItems);
-                const resultKey = name.split('_')[0] + 's';
-                return this.createTextResponse({ [resultKey]: mapped });
-            })
-        };
-    }
-
-    // Generic CRUD tool factory
-    private createCrudTool<T>(
-        name: string,
-        description: string,
-        inputSchema: z.ZodRawShape,
-        outputSchema: z.ZodType,
-        handlers: CrudHandler<T>,
-        mapper?: (items: T[]) => unknown[]
-    ): ToolConfig {
-        return {
-            name,
-            description,
-            inputSchema: z.object(inputSchema),
-            outputSchema,
-            handler: this.asyncHandler(async (args: any) => {
-                let result: T | { deleted: boolean } | void;
-
-                switch (args.operation) {
-                    case "create":
-                        if (!handlers.create) throw new Error(`Create operation not supported for ${name}`);
-                        result = await handlers.create(args);
-                        break;
-                    case "update":
-                        if (!handlers.update) throw new Error(`Update operation not supported for ${name}`);
-                        result = await handlers.update(args);
-                        break;
-                    case "delete":
-                        if (!handlers.delete) throw new Error(`Delete operation not supported for ${name}`);
-                        result = await handlers.delete(args);
-                        break;
-                    default:
-                        throw new Error(`Unsupported operation for ${name}: ${args.operation}`);
-                }
-
-                const mappedResult = result && mapper && typeof result === 'object' && !('deleted' in result)
-                    ? mapper([result as T])[0]
-                    : result;
-
-                return this.createTextResponse({ result: mappedResult });
-            })
-        };
-    }
-
-
-    // Resource registration helper
-    private registerResourceFromConfig(config: ResourceConfig): void {
-        const options: any = {
-            description: config.description,
-            ...(config.title && { title: config.title }),
-            ...(config.mimeType && { mimeType: config.mimeType }),
-            ...(config.inputSchema && { input: config.inputSchema }),
-            ...(config.outputSchema && { output: config.outputSchema })
-        };
-
-        this.server.registerResource(config.id, config.uri, options, config.handler);
-    }
-
-    // Helper methods (mapCollections, mapBookmarks, mapTags, mapHighlights, requestConfirmation, cleanup, getMimeTypeFromUrl)
-
-    /**
-     * Maps Raindrop API collections to MCP-friendly format.
-     * @param collections Raw collections from Raindrop API
-     */
-    private mapCollections(collections: unknown[]): unknown[] {
-        if (!Array.isArray(collections)) {
-            throw new Error('Collections must be an array');
-        }
-        return collections.map((col: any) => ({
-            id: col._id || col.id,
-            title: col.title,
-            description: col.description,
-            count: col.count,
-            parentId: col.parent?.$id || col.parentId,
-            color: col.color,
-            created: col.created,
-            lastUpdate: col.lastUpdate,
-            expanded: col.expanded,
-            access: col.access,
-        }));
-    }
-
-    /**
-     * Maps Raindrop API bookmarks to MCP-friendly format.
-     */
-    private mapBookmarks(bookmarks: unknown[]): unknown[] {
-        if (!Array.isArray(bookmarks)) {
-            throw new Error('Bookmarks must be an array');
-        }
-        return bookmarks.map((bm: any) => ({
-            id: bm._id || bm.id,
-            title: bm.title,
-            url: bm.link || bm.url,
-            excerpt: bm.excerpt,
-            tags: bm.tags,
-            created: bm.created,
-            lastUpdate: bm.lastUpdate,
-            important: bm.important,
-            collectionId: bm.collection?.$id || bm.collectionId,
-        }));
-    }
-
-
-    /**
-     * Maps Raindrop API highlights to MCP-friendly format.
-     */
-    private mapHighlights(highlights: unknown[]): unknown[] {
-        if (!Array.isArray(highlights)) {
-            throw new Error('Highlights must be an array');
-        }
-        return highlights.map((hl: any) => ({
-            id: hl._id || hl.id,
-            text: hl.text,
-            note: hl.note,
-            color: hl.color,
-            created: hl.created,
-            lastUpdate: hl.lastUpdate,
-            bookmarkId: hl.bookmarkId,
-        }));
-    }
 
     /**
      * Returns a list of all registered MCP tools with their metadata.

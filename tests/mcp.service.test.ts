@@ -161,7 +161,7 @@ describe('RaindropMCPService', () => {
       const userResult = await mcpService.readResource(USER_PROFILE_URI);
       console.log('User Profile Result:', JSON.stringify(userResult, null, 2));
     } catch (error) {
-      console.log('User Profile Error:', error.message);
+      console.log('User Profile Error:', error instanceof Error ? error.message : String(error));
     }
 
     // Test diagnostics
@@ -169,7 +169,7 @@ describe('RaindropMCPService', () => {
       const diagResult = await mcpService.readResource(DIAGNOSTICS_URI);
       console.log('Diagnostics Result:', JSON.stringify(diagResult, null, 2));
     } catch (error) {
-      console.log('Diagnostics Error:', error.message);
+      console.log('Diagnostics Error:', error instanceof Error ? error.message : String(error));
     }
 
     // Test collection
@@ -178,7 +178,7 @@ describe('RaindropMCPService', () => {
       const collectionResult = await mcpService.readResource(collectionUri);
       console.log('Collection Result:', JSON.stringify(collectionResult, null, 2));
     } catch (error) {
-      console.log('Collection Error:', error.message);
+      console.log('Collection Error:', error instanceof Error ? error.message : String(error));
     }
 
     // Test raindrop
@@ -187,7 +187,7 @@ describe('RaindropMCPService', () => {
       const raindropResult = await mcpService.readResource(raindropUri);
       console.log('Raindrop Result:', JSON.stringify(raindropResult, null, 2));
     } catch (error) {
-      console.log('Raindrop Error:', error.message);
+      console.log('Raindrop Error:', error instanceof Error ? error.message : String(error));
     }
 
     // Test available tools
@@ -195,7 +195,7 @@ describe('RaindropMCPService', () => {
       const tools = await mcpService.listTools();
       console.log('Available Tools:', tools.map(t => ({ id: t.id, name: t.name, description: t.description })));
     } catch (error) {
-      console.log('Tools Error:', error.message);
+      console.log('Tools Error:', error instanceof Error ? error.message : String(error));
     }
 
     // Test available resources
@@ -203,7 +203,7 @@ describe('RaindropMCPService', () => {
       const resources = mcpService.listResources();
       console.log('Available Resources:', resources);
     } catch (error) {
-      console.log('Resources Error:', error.message);
+      console.log('Resources Error:', error instanceof Error ? error.message : String(error));
     }
 
     console.log('=== End of API inspection ===');
