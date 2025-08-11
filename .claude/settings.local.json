@@ -21,7 +21,8 @@
       "Bash(rm:*)",
       "Bash(pkill:*)",
       "Bash(mv:*)",
-      "Bash(bun test:*)"
+      "Bash(bun test:*)",
+      "Bash(bun:*)"
     ],
     "deny": []
   }

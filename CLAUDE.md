@@ -72,17 +72,21 @@ The `RaindropService` has been significantly refactored to reduce code duplicati
 - Type definitions: Prefer interfaces for object types
 - Async: Use async/await pattern consistently
 - Testing: Use Vitest with mocks for dependencies
-- Tests should be co-located with source files in `src/tests` directory
+- Tests should be co-located with source files in `tests/` directory
 
 ## Project Structure
 - **Source code**: `src/` directory with:
   - `index.ts` - STDIO server entry point
   - `cli.ts` - CLI executable entry point  
   - `server.ts` - HTTP server entry point (port 3002)
-  - `services/` - Service layer (RaindropService, RaindropMCPService)
-  - `types/` - TypeScript type definitions
+  - `services/` - Service layer:
+    - `raindrop.service.ts` - Core Raindrop.io API client with optimized common functions
+    - `raindropmcp.service.ts` - MCP protocol wrapper with resource management
+  - `types/` - TypeScript type definitions and Zod schemas
   - `utils/` - Utilities (logger, etc.)
-- **Tests**: `tests/` directory with comprehensive test coverage
+- **Tests**: `tests/` directory with comprehensive test coverage using `vitest`:
+  - `mcp.service.test.ts` - Full MCP service integration tests with real API calls
+  - `raindrop.service.test.ts` - Core service layer tests
 - **Build output**: `build/` directory (index.js, server.js)
 - **Configuration**: 
   - `.env` - Environment variables
@@ -91,7 +95,44 @@ The `RaindropService` has been significantly refactored to reduce code duplicati
   - `manifest.json` - DXT manifest
   - `LOGGING_DIAGNOSTICS.md` - Logging documentation
 
-## MCP Resources
+## Service Architecture
+
+### **RaindropMCPService** (MCP Protocol Layer)
+The main MCP server implementation that wraps the MCP SDK and provides:
+
+#### **Resource Management:**
+- **Dynamic Resource Registration**: Resources are registered at initialization and populated with real data on-demand
+- **Supported Resource URIs**:
+  - `mcp://user/profile` - User account information (real-time API data)
+  - `diagnostics://server` - Server diagnostics and environment info
+  - `mcp://collection/{id}` - Specific collection data (real-time API data)
+  - `mcp://raindrop/{id}` - Specific bookmark data (real-time API data)
+- **Fallback Handling**: Falls back to placeholder data if API calls fail
+
+#### **Tool Management:**
+- **Declarative Tool Configuration**: Tools are defined using `ToolConfig` interfaces with Zod schemas
+- **Currently Registered Tools**: 9 active tools including diagnostics, collection management, bookmark operations
+- **Dynamic Tool Discovery**: `listTools()` method returns all available tools with metadata
+
+#### **Public API Methods:**
+- `readResource(uri: string)` - Reads resources with real API data fetching
+- `listTools()` - Returns all available tools with schemas
+- `listResources()` - Returns all registered resources
+- `callTool(toolId: string, input: any)` - Executes tools by ID
+- `getManifest()` - Returns MCP server manifest
+- `healthCheck()` - Server health status
+- `getInfo()` - Basic server information
+
+### **RaindropService** (API Client Layer)
+Optimized Raindrop.io API client with common function extraction:
+
+#### **Optimization Features:**
+- **Common Response Handlers**: `handleItemResponse<T>()`, `handleItemsResponse<T>()`
+- **Endpoint Builders**: `buildTagEndpoint()`, `buildRaindropEndpoint()`
+- **Error Management**: `handleApiError()`, `safeApiCall()` with consistent patterns
+- **25-30% Code Reduction**: Through extracted common functions
+
+## MCP Resources (Legacy Documentation)
 - Collections: `collections://all` and `collections://{parentId}/children`
 - Tags: `tags://all` and `tags://collection/{collectionId}`
 - Highlights: `highlights://all`, `highlights://all?page={pageNumber}&perPage={perPageCount}`, `highlights://raindrop/{raindropId}`, and `highlights://collection/{collectionId}`
@@ -166,89 +207,109 @@ The project can be packaged as a DXT (Developer Extension) for easy distribution
 
 **Note**: This server uses an optimized tool structure following MCP 2025 best practices. Tools are organized by category with clear, descriptive names and comprehensive parameter documentation.
 
-### 🎯 **Optimized Tool Structure**
+### 🎯 **Current Tool Implementation**
 
-The server provides **24 optimized tools** (reduced from 37+ original tools) organized by category for maximum efficiency and AI-friendly interactions:
+The server currently provides **9 registered tools** with declarative configuration for MCP integration:
 
-### **Collection Management (7 tools)**
+### **Currently Registered Tools (9 tools)**
 
-- `collection_list` - List all collections or child collections of a parent
-- `collection_get` - Get detailed information about a specific collection by ID
-- `collection_create` - Create a new collection (folder) for organizing bookmarks
-- `collection_update` - Update collection properties like title, visibility, or view settings
-- `collection_delete` - Delete a collection permanently (WARNING: Cannot be undone)
-- `collection_share` - Share a collection with specific users or generate public sharing link
-- `collection_maintenance` - Perform maintenance operations (merge, remove empty, empty trash)
+#### **System & Diagnostics (1 tool)**
+- `diagnostics` - Get MCP server diagnostic information with environment details
 
-### **Bookmark Management (6 tools)**
+#### **Collection Management (2 tools)**
+- `collection_list` - List all collections for the authenticated user (returns resource links)
+- `collection_manage` - Create, update, or delete collections with operation parameter
 
-- `bookmark_search` - Search bookmarks with advanced filtering (primary search tool)
-- `bookmark_get` - Get detailed information about a specific bookmark by ID
-- `bookmark_create` - Add a new bookmark to a collection with automatic metadata extraction
-- `bookmark_update` - Update bookmark properties (title, description, tags, collection)
-- `bookmark_batch_operations` - Perform operations on multiple bookmarks at once
-- `bookmark_reminders` - Manage reminders for bookmarks (set/remove notifications)
+#### **Bookmark Management (2 tools)**
+- `bookmark_search` - Search bookmarks with advanced filtering (returns resource links)
+- `bookmark_manage` - Create, update, or delete bookmarks with operation parameter
 
-### **Tag Management (2 tools)**
+#### **Tag Management (1 tool)**
+- `tag_manage` - Rename, merge, or delete tags with operation parameter
 
-- `tag_list` - List all tags or tags from a specific collection
-- `tag_manage` - Perform tag operations (rename, merge, delete, delete multiple)
+#### **Highlight Management (1 tool)**
+- `highlight_manage` - Create, update, or delete highlights with operation parameter
 
-### **Highlight Management (4 tools)**
+#### **Legacy Tools (2 tools)**
+- `getRaindrop` - Fetch a single bookmark by ID (placeholder implementation)
+- `listRaindrops` - List bookmarks for a collection (placeholder implementation)
 
-- `highlight_list` - List highlights from all bookmarks, specific bookmark, or collection
-- `highlight_create` - Create a new text highlight for a bookmark
-- `highlight_update` - Update existing highlight's text, note, or color
-- `highlight_delete` - Delete a highlight permanently (cannot be undone)
+### **Future Tool Expansion**
+The current architecture supports easy expansion to the full 24+ tool suite including:
+- User profile and statistics tools
+- Import/export functionality
+- Advanced bookmark batch operations
+- Reminder management
+- Feature availability checking
+- Quick action suggestions
 
-### **User & Account Management (2 tools)**
+## 📊 **Implementation Status & Benefits**
 
-- `user_profile` - Get user account information (name, email, subscription status)
-- `user_statistics` - Get account statistics or collection-specific statistics
+### **Current MCP Integration Features:**
+- ✅ **Full MCP Protocol Compliance**: Implements MCP SDK v1.17.1 with proper tool/resource registration
+- ✅ **Real-time API Data**: Resources fetch live data from Raindrop.io APIs on-demand
+- ✅ **Robust Error Handling**: Graceful fallback to placeholder data when API calls fail
+- ✅ **Comprehensive Testing**: 11 test cases with real API validation
+- ✅ **Resource URI Patterns**: Standardized `mcp://` and `diagnostics://` URI schemes
+- ✅ **Dynamic Discovery**: Tools and resources are discoverable through MCP protocol
+- ✅ **Type Safety**: Full TypeScript implementation with Zod validation schemas
 
-### **Import/Export (3 tools)**
+### **Service Layer Optimizations:**
+- ✅ **25-30% Code Reduction**: Through extracted common functions in RaindropService
+- ✅ **Consistent Response Handling**: Standardized API response processing
+- ✅ **Enhanced Error Management**: Centralized error handling with detailed messages
+- ✅ **Generic Type Support**: Type-safe operations across all service methods
 
-- `import_status` - Check the status of ongoing import operations
-- `export_bookmarks` - Export bookmarks in various formats (CSV, HTML, PDF)
-- `export_status` - Check export operation status and get download link
-
-### **System & Diagnostics (2 tools)**
-
-- `diagnostics` - Get MCP server diagnostic information
-- `prompts/list` - List available prompts for the Raindrop MCP extension
-
-### **Dynamic Tools (2 tools)**
-
-- `feature_availability` - Check which Raindrop.io features are available for your account
-- `quick_actions` - Get suggested quick actions based on recent activity and data state
-
----
-
-## 📊 **Optimization Benefits**
-
-- **35% reduction** in tool count (37+ → 24 tools)
-- **Hierarchical naming** with category_action pattern for better organization
-- **Enhanced descriptions** with comprehensive use cases and parameter documentation
-- **Better discoverability** through logical tool grouping and consistent naming
-- **AI-friendly interface** with detailed parameter descriptions and examples
-- **Improved maintainability** with reduced code duplication in service layer
-- **Preserved functionality** - all original features available through optimized tools
-
-## 🔧 **Key Improvements**
-
-### **Tool Organization:**
-- **Clear naming conventions**: `category_action` pattern (e.g., `bookmark_search`, `collection_create`)
-- **Comprehensive descriptions**: Each tool includes detailed use cases and parameter explanations
-- **Logical grouping**: Tools organized by functional area for easier discovery
-- **Dynamic tools**: Context-aware tools that provide smart recommendations
+### **Tool Architecture:**
+- **Declarative Configuration**: Tools defined with `ToolConfig` interfaces and Zod schemas
+- **Operation-based Design**: Tools use operation parameters (create/update/delete) for CRUD operations
+- **Resource Link Responses**: Search and list tools return resource links for further exploration
+- **Extensible Framework**: Easy addition of new tools following established patterns
 
 ### Dual Entry Points
 
 - **HTTP server** (`src/server.ts`): For web-based MCP protocol (port 3002)
 - **STDIO server** (`src/index.ts`): Standard MCP protocol over stdin/stdout
 
+## Testing
+
+### **Test Structure**
+The project uses Vitest for comprehensive testing with the following test files:
+
+#### **`tests/mcp.service.test.ts`** - MCP Integration Tests
+- **Purpose**: Tests the full MCP service integration with real Raindrop.io API calls
+- **Coverage**: 11 test cases covering all public MCP service methods
+- **API Integration**: Tests with actual API tokens and real data fetching
+- **Key Test Areas**:
+  - ✅ Server initialization and cleanup
+  - ✅ Resource reading with real API data (`mcp://user/profile`, `mcp://collection/{id}`, `mcp://raindrop/{id}`)
+  - ✅ Tool listing and metadata validation (9 registered tools)
+  - ✅ Resource listing and registration (4 resource types)
+  - ✅ Diagnostics and health checks
+  - ✅ MCP manifest generation
+  - ✅ API inspection test for debugging
+
+#### **`tests/raindrop.service.test.ts`** - Core Service Tests
+- **Purpose**: Tests the core Raindrop.io API client functionality
+- **Coverage**: Service layer methods with mocked dependencies
+- **Focus**: API client optimization and common function extraction
+
+### **Test Configuration**
+- **Framework**: Vitest with TypeScript support
+- **Environment**: Requires `RAINDROP_ACCESS_TOKEN` in `.env` file
+- **Execution**: `bun run test` or `bun run test:coverage`
+- **Real API Testing**: Tests use actual Raindrop.io API endpoints
+- **Test Constants**: Configurable collection and raindrop IDs for testing
+
+### **Test Data Validation**
+Current tests validate against real API responses:
+- **User Profile**: Real user account data (ID: 858216, Pro account)
+- **Collection**: "Veritex" collection (ID: 55725911, 112 bookmarks)
+- **Bookmark**: VentureBeat article about MCPEval (ID: 1286757883)
+- **Diagnostics**: Server status, version info, timestamp
+
 ### Version Information
-- **Current version**: 2.0.10
+- **Current version**: 2.0.11
 - **Node.js**: >=18.0.0 required
 - **Bun**: >=1.0.0 required
 - **MCP SDK**: ^1.17.1

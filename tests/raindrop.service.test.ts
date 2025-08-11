@@ -9,8 +9,8 @@ type Tag = components['schemas']['Tag'];
 config();
 
 // Test constants for known collection and raindrop IDs (populate these as needed)
-const TEST_COLLECTION_ID = 123456; // <-- set your known collection ID here
-const TEST_RAINDROP_ID = 654321;   // <-- set your known raindrop/bookmark ID here
+const TEST_COLLECTION_ID = 55725911; // <-- set your known collection ID here
+const TEST_RAINDROP_ID = 1286757883;   // <-- set your known raindrop/bookmark ID here
 
 describe('RaindropService Read-Only API Integration', () => {
   let service: RaindropService;

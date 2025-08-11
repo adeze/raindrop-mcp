@@ -385,7 +385,7 @@ export class RaindropMCPService {
     }
 
     private registerResources() {
-        // Register user profile resource
+        // Register static resources only (user profile and diagnostics)
         this.resources['mcp://user/profile'] = {
             contents: [{
                 uri: 'mcp://user/profile',
@@ -393,7 +393,6 @@ export class RaindropMCPService {
             }]
         };
 
-        // Register diagnostics resource
         this.resources['diagnostics://server'] = {
             contents: [{
                 uri: 'diagnostics://server',
@@ -405,31 +404,8 @@ export class RaindropMCPService {
             }]
         };
 
-        // Register collection resource template
-        const registerCollectionResource = (collectionId: number) => {
-            const uri = `mcp://collection/${collectionId}`;
-            this.resources[uri] = {
-                contents: [{
-                    uri,
-                    text: JSON.stringify({ collection: `Collection ${collectionId} information` }, null, 2)
-                }]
-            };
-        };
-
-        // Register raindrop resource template
-        const registerRaindropResource = (raindropId: number) => {
-            const uri = `mcp://raindrop/${raindropId}`;
-            this.resources[uri] = {
-                contents: [{
-                    uri,
-                    text: JSON.stringify({ raindrop: `Raindrop ${raindropId} information` }, null, 2)
-                }]
-            };
-        };
-
-        // Pre-register test resources for the test constants
-        registerCollectionResource(123456);
-        registerRaindropResource(654321);
+        // Note: Collection and raindrop resources are now handled dynamically
+        // in readResource() method - no pre-registration needed
     }
 
     // Helper methods for building responses
@@ -660,20 +636,67 @@ export class RaindropMCPService {
     }
 
     /**
-     * Reads a registered MCP resource by URI using the public API.
-     * Throws an error if the resource is not found or not readable.
+     * Reads an MCP resource by URI using the public API.
+     * Supports both static pre-registered resources and dynamic resources.
      *
-     * Example:
      * @param uri - The resource URI to read.
      * @returns The resource contents as an array of objects with uri and text.
      * @throws Error if the resource is not found or not readable.
      */
     public async readResource(uri: string): Promise<{ contents: any[] }> {
-        // Defensive: Check if resource exists
+        // Handle dynamic resources first (no pre-registration required)
+        try {
+            if (uri.startsWith('mcp://collection/')) {
+                const uriParts = uri.split('/');
+                const collectionIdStr = uriParts[uriParts.length - 1];
+                const collectionId = parseInt(collectionIdStr);
+                if (isNaN(collectionId)) {
+                    throw new Error(`Invalid collection ID: ${collectionIdStr}`);
+                }
+                const collection = await this.raindropService.getCollection(collectionId);
+                return {
+                    contents: [{
+                        uri,
+                        text: JSON.stringify({ collection }, null, 2)
+                    }]
+                };
+            }
+            
+            if (uri.startsWith('mcp://raindrop/')) {
+                const uriParts = uri.split('/');
+                const raindropIdStr = uriParts[uriParts.length - 1];
+                const raindropId = parseInt(raindropIdStr);
+                if (isNaN(raindropId)) {
+                    throw new Error(`Invalid raindrop ID: ${raindropIdStr}`);
+                }
+                const raindrop = await this.raindropService.getBookmark(raindropId);
+                return {
+                    contents: [{
+                        uri,
+                        text: JSON.stringify({ raindrop }, null, 2)
+                    }]
+                };
+            }
+
+            if (uri === 'mcp://user/profile') {
+                const userInfo = await this.raindropService.getUserInfo();
+                return {
+                    contents: [{
+                        uri,
+                        text: JSON.stringify({ profile: userInfo }, null, 2)
+                    }]
+                };
+            }
+        } catch (error) {
+            // If API call fails for dynamic resources, throw error with context
+            throw new Error(`Failed to fetch data for resource ${uri}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+
+        // Handle static pre-registered resources
         if (!this.resources[uri]) {
             throw new Error(`Resource with uri "${uri}" not found or not readable.`);
         }
-        // Defensive: Ensure contents is an array
+
         const resource = this.resources[uri];
         return {
             contents: Array.isArray(resource.contents) ? resource.contents : [resource.contents]
@@ -681,7 +704,8 @@ export class RaindropMCPService {
     }
 
     /**
-     * Returns a list of all registered MCP resources with their metadata.
+     * Returns a list of all available MCP resources with their metadata.
+     * Includes both static pre-registered resources and dynamic resource patterns.
      */
     public listResources(): Array<{ id: string; uri: string; title?: string; description?: string; mimeType?: string }> {
         const serverResources = ((this.server as any)._resources || []).map((r: any) => ({
@@ -692,18 +716,39 @@ export class RaindropMCPService {
             mimeType: r.mimeType,
         }));
         
-        // Also include our registered resources if the server's _resources is empty
-        if (serverResources.length === 0) {
-            return Object.keys(this.resources).map(uri => ({
-                id: uri,
-                uri,
-                title: `Resource ${uri}`,
-                description: `MCP resource for ${uri}`,
+        // Include our static resources and dynamic resource patterns
+        const staticResources = Object.keys(this.resources).map(uri => ({
+            id: uri,
+            uri,
+            title: `Resource ${uri}`,
+            description: `MCP resource for ${uri}`,
+            mimeType: 'application/json'
+        }));
+
+        // Add dynamic resource patterns for documentation
+        const dynamicResourcePatterns = [
+            {
+                id: 'mcp://collection/{id}',
+                uri: 'mcp://collection/{id}',
+                title: 'Collection Resource Pattern',
+                description: 'Access any Raindrop collection by ID (e.g., mcp://collection/123456)',
                 mimeType: 'application/json'
-            }));
-        }
+            },
+            {
+                id: 'mcp://raindrop/{id}',
+                uri: 'mcp://raindrop/{id}',
+                title: 'Raindrop Resource Pattern',
+                description: 'Access any Raindrop bookmark by ID (e.g., mcp://raindrop/987654)',
+                mimeType: 'application/json'
+            }
+        ];
         
-        return serverResources;
+        // Combine all resources: server resources, static resources, and dynamic patterns
+        return [
+            ...serverResources,
+            ...staticResources,
+            ...dynamicResourcePatterns
+        ];
     }
 
     /**

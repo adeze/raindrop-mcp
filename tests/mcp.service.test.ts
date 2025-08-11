@@ -13,8 +13,8 @@ if (!process.env.RAINDROP_ACCESS_TOKEN || process.env.RAINDROP_ACCESS_TOKEN.trim
 // Test constants for URIs and resource IDs (populate these as needed)
 const USER_PROFILE_URI = 'mcp://user/profile';
 const DIAGNOSTICS_URI = 'diagnostics://server';
-const TEST_COLLECTION_ID = 123456; // <-- set your known collection ID here
-const TEST_RAINDROP_ID = 654321;   // <-- set your known raindrop/bookmark ID here
+const TEST_COLLECTION_ID = 55725911; // <-- set your known collection ID here
+const TEST_RAINDROP_ID = 1286757883;   // <-- set your known raindrop/bookmark ID here
 // Add more constants here as needed for other read-only resources
 
 describe('RaindropMCPService', () => {
@@ -150,6 +150,66 @@ describe('RaindropMCPService', () => {
     expect(Array.isArray(result.contents)).toBe(true);
     expect(result.contents[0].uri).toBe(raindropUri);
     expect(result.contents[0].text).toContain('raindrop');
+  });
+
+  // Additional test to output actual return values for inspection
+  it('should output actual API data for inspection', async () => {
+    console.log('=== Testing actual API responses ===');
+    
+    // Test user profile
+    try {
+      const userResult = await mcpService.readResource(USER_PROFILE_URI);
+      console.log('User Profile Result:', JSON.stringify(userResult, null, 2));
+    } catch (error) {
+      console.log('User Profile Error:', error.message);
+    }
+
+    // Test diagnostics
+    try {
+      const diagResult = await mcpService.readResource(DIAGNOSTICS_URI);
+      console.log('Diagnostics Result:', JSON.stringify(diagResult, null, 2));
+    } catch (error) {
+      console.log('Diagnostics Error:', error.message);
+    }
+
+    // Test collection
+    try {
+      const collectionUri = `mcp://collection/${TEST_COLLECTION_ID}`;
+      const collectionResult = await mcpService.readResource(collectionUri);
+      console.log('Collection Result:', JSON.stringify(collectionResult, null, 2));
+    } catch (error) {
+      console.log('Collection Error:', error.message);
+    }
+
+    // Test raindrop
+    try {
+      const raindropUri = `mcp://raindrop/${TEST_RAINDROP_ID}`;
+      const raindropResult = await mcpService.readResource(raindropUri);
+      console.log('Raindrop Result:', JSON.stringify(raindropResult, null, 2));
+    } catch (error) {
+      console.log('Raindrop Error:', error.message);
+    }
+
+    // Test available tools
+    try {
+      const tools = await mcpService.listTools();
+      console.log('Available Tools:', tools.map(t => ({ id: t.id, name: t.name, description: t.description })));
+    } catch (error) {
+      console.log('Tools Error:', error.message);
+    }
+
+    // Test available resources
+    try {
+      const resources = mcpService.listResources();
+      console.log('Available Resources:', resources);
+    } catch (error) {
+      console.log('Resources Error:', error.message);
+    }
+
+    console.log('=== End of API inspection ===');
+    
+    // This test always passes - it's just for inspection
+    expect(true).toBe(true);
   });
 });
 
