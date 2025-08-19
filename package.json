@@ -64,7 +64,7 @@
     },
     "homepage": "https://github.com/adeze/raindrop-mcp#readme",
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.17.2",
+        "@modelcontextprotocol/sdk": "^1.17.3",
         "axios": "^1.11.0",
         "dotenv": "^17.2.1",
         "esm": "^3.2.25",
@@ -78,13 +78,13 @@
     },
     "devDependencies": {
         "@anthropic-ai/dxt": "^0.2.6",
-        "@modelcontextprotocol/inspector": "^0.16.2",
-        "@openapitools/openapi-generator-cli": "^2.21.4",
+        "@modelcontextprotocol/inspector": "^0.16.5",
+        "@openapitools/openapi-generator-cli": "^2.22.0",
         "@types/bun": "^1.2.20",
         "@types/express": "^5.0.3",
-        "@types/node": "^24.2.1",
+        "@types/node": "^24.3.0",
         "@vitest/coverage-v8": "^3.2.4",
-        "openapi-typescript": "^7.8.0",
+        "openapi-typescript": "^7.9.1",
         "typedoc": "^0.28.10",
         "typescript": "^5.9.2",
         "vitest": "^3.2.4"
