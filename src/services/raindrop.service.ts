@@ -1,6 +1,7 @@
 // Simple, clean openapi-fetch REST client
 import createClient from 'openapi-fetch';
 import type { components, paths } from '../types/raindrop.schema.js';
+import { createLogger } from '../utils/logger.js';
 
 type Bookmark = components['schemas']['Bookmark'];
 type Collection = components['schemas']['Collection'];
@@ -20,7 +21,9 @@ export default class RaindropService {
     this.client.use({
       onRequest({ request }) {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`${request.method} ${request.url}`);
+          // Use project logger instead of console to avoid polluting STDIO
+          const logger = createLogger('raindrop-service');
+          logger.debug(`${request.method} ${request.url}`);
         }
         return request;
       },
