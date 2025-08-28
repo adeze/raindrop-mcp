@@ -7,6 +7,7 @@
  * Compare with the original HTTP server on port 3001 for differences in tool coverage and design.
  */
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { config } from 'dotenv';
 import { randomUUID } from "node:crypto";
 import http from 'node:http';
@@ -61,6 +62,7 @@ const oauthClient = new AuthorizationCode({
 });
 
 const transports: Record<string, StreamableHTTPServerTransport> = {};
+const sseTransports: Record<string, SSEServerTransport> = {};
 
 // Create native HTTP server
 const server = http.createServer(async (req, res) => {
@@ -114,6 +116,9 @@ const server = http.createServer(async (req, res) => {
 
         if (url.pathname === '/health' && req.method === 'GET') {
             const sessions = Array.from(sessionMetadata.values());
+            const streamableSessions = sessions.filter(s => s.type !== 'sse');
+            const sseSessions = sessions.filter(s => s.type === 'sse');
+            
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
                 status: 'healthy',
@@ -121,6 +126,10 @@ const server = http.createServer(async (req, res) => {
                 version: '2.0.0',
                 port: PORT,
                 activeSessions: sessions.length,
+                sessionTypes: {
+                    streamable: streamableSessions.length,
+                    sse: sseSessions.length,
+                },
                 sessions,
                 optimizations: {
                     toolCount: 24,
@@ -135,6 +144,10 @@ const server = http.createServer(async (req, res) => {
                         'Improved error handling with suggestions',
                     ],
                 },
+                transports: {
+                    modern: 'StreamableHTTPServerTransport (/mcp endpoint)',
+                    legacy: 'SSEServerTransport (/sse + /messages endpoints)',
+                },
             }));
             return;
         }
@@ -148,7 +161,9 @@ const server = http.createServer(async (req, res) => {
                 endpoints: {
                     '/': 'This documentation',
                     '/health': 'Health check with session info and optimization details',
-                    '/mcp': 'MCP protocol endpoint (POST only)',
+                    '/mcp': 'MCP protocol endpoint (POST only) - Modern StreamableHTTP transport',
+                    '/sse': 'Legacy SSE connection endpoint (GET) - Server-Sent Events transport',
+                    '/messages': 'Legacy SSE message endpoint (POST) - Send messages to SSE transport',
                 },
                 optimizations: {
                     tools: { original: 37, optimized: 24, improvement: '35% reduction in tool count' },
@@ -172,9 +187,95 @@ const server = http.createServer(async (req, res) => {
                 usage: {
                     'MCP Inspector': `npx @modelcontextprotocol/inspector http://localhost:${PORT}/mcp`,
                     'Direct API': `POST http://localhost:${PORT}/mcp`,
+                    'Legacy SSE': `GET http://localhost:${PORT}/sse + POST http://localhost:${PORT}/messages`,
                     'Compare with original': `Original server on port 3001, optimized on port ${PORT}`,
                 },
             }));
+            return;
+        }
+
+        // SSE endpoint for legacy clients (GET to establish SSE connection)
+        if (url.pathname === '/sse' && req.method === 'GET') {
+            try {
+                const sessionId = randomUUID();
+                const transport = new SSEServerTransport('/messages', res, {
+                    allowedOrigins: ['*'], // Allow all origins for development
+                    enableDnsRebindingProtection: false, // Disable for compatibility
+                });
+
+                transport.onclose = () => {
+                    delete sseTransports[sessionId];
+                    sessionMetadata.delete(sessionId);
+                    logger.info(`SSE session cleaned up: ${sessionId}`);
+                };
+
+                // Store the transport
+                sseTransports[sessionId] = transport;
+                sessionMetadata.set(sessionId, { 
+                    id: sessionId, 
+                    type: 'sse',
+                    created: new Date().toISOString(), 
+                    uptime: 0 
+                });
+
+                // Connect to MCP server first, then start the SSE connection
+                await mcpServer.connect(transport);
+                
+                logger.info(`SSE session established: ${sessionId}`);
+            } catch (error) {
+                logger.error('Error establishing SSE connection:', error);
+                if (!res.headersSent) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Failed to establish SSE connection' }));
+                }
+            }
+            return;
+        }
+
+        // Messages endpoint for SSE transport (POST to send messages)
+        if (url.pathname === '/messages' && req.method === 'POST') {
+            // Collect body
+            const chunks: Uint8Array[] = [];
+            for await (const chunk of req) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+            const raw = Buffer.concat(chunks).toString('utf8');
+            
+            let body: any = undefined;
+            try {
+                body = raw ? JSON.parse(raw) : undefined;
+            } catch (err) {
+                logger.warn('Invalid JSON body on /messages');
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+                return;
+            }
+
+            try {
+                // Find the SSE transport by session ID in headers or body
+                const sessionId = req.headers['mcp-session-id'] as string || body?.sessionId;
+                const transport = sessionId ? sseTransports[sessionId] : null;
+
+                if (!transport) {
+                    // If no specific session, try to route to any available SSE transport
+                    const availableTransports = Object.values(sseTransports);
+                    if (availableTransports.length === 0) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'No active SSE session found' }));
+                        return;
+                    }
+                    // Use the first available transport
+                    await availableTransports[0].handlePostMessage(req, res, body);
+                } else {
+                    await transport.handlePostMessage(req, res, body);
+                }
+                
+                logger.debug(`SSE message handled for session: ${sessionId || 'auto-routed'}`);
+            } catch (error) {
+                logger.error('Error handling SSE message:', error);
+                if (!res.headersSent) {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'Failed to handle SSE message' }));
+                }
+            }
             return;
         }
 
@@ -268,6 +369,8 @@ const serverInstance = server.listen(PORT, () => {
     logger.info(`MCP Inspector: npx @modelcontextprotocol/inspector http://localhost:${PORT}/mcp`);
     logger.info(`Health check: http://localhost:${PORT}/health`);
     logger.info(`Documentation: http://localhost:${PORT}/`);
+    logger.info(`Modern transport: http://localhost:${PORT}/mcp (StreamableHTTP)`);
+    logger.info(`Legacy transport: http://localhost:${PORT}/sse + http://localhost:${PORT}/messages (SSE)`);
     logger.info(`Optimizations: 24 tools (vs 37 original), enhanced AI-friendly interface`);
 });
 
@@ -277,15 +380,26 @@ const serverInstance = server.listen(PORT, () => {
 process.on('SIGINT', async () => {
     logger.info('Shutting down optimized HTTP server...');
     // Close all active sessions
-    logger.info(`Closing ${Object.keys(transports).length} active optimized sessions`);
-    // Clean up all transports
+    logger.info(`Closing ${Object.keys(transports).length} streamable sessions and ${Object.keys(sseTransports).length} SSE sessions`);
+    
+    // Clean up streamable transports
     Object.values(transports).forEach(transport => {
         try {
             transport.close();
         } catch (error) {
-            logger.error('Error closing transport:', error);
+            logger.error('Error closing streamable transport:', error);
         }
     });
+    
+    // Clean up SSE transports
+    Object.values(sseTransports).forEach(transport => {
+        try {
+            transport.close();
+        } catch (error) {
+            logger.error('Error closing SSE transport:', error);
+        }
+    });
+    
     sessionMetadata.clear();
     // Close server
     serverInstance.close(() => {
@@ -294,5 +408,5 @@ process.on('SIGINT', async () => {
     });
 });
 
-export { activeSessions, server as app, transports };
+export { activeSessions, server as app, transports, sseTransports };
 
