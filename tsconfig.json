@@ -22,7 +22,8 @@
     "strict": true, // Disable all strict checks
     "skipLibCheck": true,
     "declaration": true,
-    "sourceMap": true,
+    "sourceMap": true, // Enable .js.map files for debugging
+    "inlineSources": true, // Embed original .ts source in the map
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,

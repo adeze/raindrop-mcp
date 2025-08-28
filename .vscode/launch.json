@@ -2,20 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug STDIO Server with Inspector",
-      "request": "launch",
       "type": "node",
+      "request": "launch",
+      "name": "Debug MCP STDIO Server",
+      "program": "${workspaceFolder}/build/index.js",
+      "outFiles": ["${workspaceFolder}/build/**/*.js"],
+      "sourceMaps": true,
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug STDIO mcp server with inspector",
       "runtimeExecutable": "npx",
-      "cwd": "${workspaceFolder}",
       "args": [
-        "-y",
         "@modelcontextprotocol/inspector",
         "node",
-        "--inspect-brk",
-        "src/index.js"
+        "${workspaceFolder}/build/index.js"
       ],
-      "preLaunchTask": "Bun Build",
-      "console": "integratedTerminal"
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
