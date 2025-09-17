@@ -263,7 +263,13 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
                     // Use the first available transport
-                    await availableTransports[0].handlePostMessage(req, res, body);
+                    const fallbackTransport = availableTransports[0];
+                    if (!fallbackTransport) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'No active SSE session found' }));
+                        return;
+                    }
+                    await fallbackTransport.handlePostMessage(req, res, body);
                 } else {
                     await transport.handlePostMessage(req, res, body);
                 }
@@ -409,4 +415,3 @@ process.on('SIGINT', async () => {
 });
 
 export { activeSessions, server as app, transports, sseTransports };
-
