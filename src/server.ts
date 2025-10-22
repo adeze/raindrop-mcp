@@ -332,8 +332,16 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
 
-                // delegate to transport
-                await transport.handleRequest(req as any, res as any, body);
+                // delegate to transport and ensure response is flushed
+                try {
+                    await transport.handleRequest(req as any, res as any, body);
+                } catch (e) {
+                    logger.error('Transport handleRequest error', e);
+                    if (!res.headersSent) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32603, message: 'Transport error' }, id: body?.id ?? null }));
+                    }
+                }
             } catch (error) {
                 logger.error('Error handling optimized Streamable HTTP request:', error);
                 if (!res.headersSent) {

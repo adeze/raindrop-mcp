@@ -41,6 +41,20 @@ const SERVER_VERSION = pkg.version;
 
 const defineTool = <I, O>(config: ToolConfig<I, O>) => config;
 
+// Convert a Zod schema to a JSON Schema object with a guaranteed top-level type: "object"
+function toObjectJsonSchema(schema: z.ZodTypeAny): any {
+    try {
+        const json = zodToJsonSchema(schema, { name: 'input' }) as any;
+        if (json && typeof json === 'object') {
+            if (json.type === 'object') return json;
+            // zod-to-json-schema may wrap in { $schema, definitions, ... }
+            // If no explicit type, wrap it into an object container
+            return { type: 'object', additionalProperties: true, ...json };
+        }
+    } catch (_) { /* ignore */ }
+    return { type: 'object', properties: {}, additionalProperties: true };
+}
+
 const textContent = (text: string): McpContent => ({ type: 'text', text });
 
 const makeCollectionLink = (collection: any): McpContent => ({
@@ -513,11 +527,13 @@ export class RaindropMCPService {
      * Uses the SDK's getManifest() method if available, otherwise builds a manifest from registered tools/resources.
      */
     public async getManifest(): Promise<unknown> {
-        // Always build a JSON-Schema-friendly manifest for maximum client compatibility
+        const mode = (process.env.MCP_SCHEMA_MODE || 'zod').toLowerCase();
         const tools = toolConfigs.map((config) => ({
             name: config.name,
             description: config.description,
-            inputSchema: { type: "object", properties: {}, additionalProperties: true },
+            inputSchema: mode === 'json'
+                ? toObjectJsonSchema(config.inputSchema as z.ZodTypeAny)
+                : (config.inputSchema as z.ZodObject<any>).shape,
         }));
         return {
             name: "raindrop-mcp",
@@ -568,9 +584,11 @@ export class RaindropMCPService {
     }
 
     private registerDeclarativeTools() {
+        const mode = (process.env.MCP_SCHEMA_MODE || 'zod').toLowerCase();
         for (const config of toolConfigs) {
-            // Convert Zod schema to a JSON Schema object compatible with MCP SDK >= 1.19
-            const inputSchema: any = { type: "object", properties: {}, additionalProperties: true };
+            const inputSchema = mode === 'json'
+                ? toObjectJsonSchema(config.inputSchema as z.ZodTypeAny)
+                : (config.inputSchema as z.ZodObject<any>).shape;
 
             this.server.registerTool(
                 config.name,
@@ -630,11 +648,14 @@ export class RaindropMCPService {
 
         // Also include tools from our toolConfigs if the server's _tools is empty
         if (tools.length === 0) {
+            const mode = (process.env.MCP_SCHEMA_MODE || 'zod').toLowerCase();
             return toolConfigs.map(config => ({
                 id: config.name,
                 name: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                 description: config.description,
-                inputSchema: { type: "object", properties: {}, additionalProperties: true },
+                inputSchema: mode === 'json'
+                    ? toObjectJsonSchema(config.inputSchema as z.ZodTypeAny)
+                    : (config.inputSchema as z.ZodObject<any>).shape,
                 outputSchema: config.outputSchema || {}
             }));
         }
