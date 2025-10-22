@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import pkg from '../../package.json';
 import { BookmarkInputSchema, BookmarkOutputSchema, CollectionManageInputSchema, CollectionOutputSchema, HighlightInputSchema, HighlightOutputSchema, TagInputSchema, TagOutputSchema } from "../types/raindrop-zod.schemas.js";
 import RaindropService from "./raindrop.service.js";
@@ -512,17 +513,23 @@ export class RaindropMCPService {
      * Uses the SDK's getManifest() method if available, otherwise builds a manifest from registered tools/resources.
      */
     public async getManifest(): Promise<unknown> {
-        if (typeof (this.server as any).getManifest === 'function') {
-            return (this.server as any).getManifest();
-        }
-        // Fallback: build manifest manually
+        // Always build a JSON-Schema-friendly manifest for maximum client compatibility
+        const tools = toolConfigs.map((config) => ({
+            name: config.name,
+            description: config.description,
+            inputSchema: { type: "object", properties: {}, additionalProperties: true },
+        }));
         return {
             name: "raindrop-mcp",
             version: SERVER_VERSION,
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
-            capabilities: (this.server as any).capabilities,
-            tools: await this.listTools(),
-            // Optionally add resources, schemas, etc.
+            tools,
+            resources: [
+                { uri: 'mcp://user/profile', name: 'User Profile', description: 'Authenticated user profile', mimeType: 'application/json' },
+                { uri: 'diagnostics://server', name: 'Diagnostics', description: 'Server diagnostics and environment info', mimeType: 'application/json' },
+                { uri: 'mcp://collection/{id}', name: 'Collection Resource Pattern', description: 'Access a collection by ID', mimeType: 'application/json' },
+                { uri: 'mcp://raindrop/{id}', name: 'Raindrop Resource Pattern', description: 'Access a raindrop by ID', mimeType: 'application/json' },
+            ],
         };
     }
 
@@ -562,12 +569,15 @@ export class RaindropMCPService {
 
     private registerDeclarativeTools() {
         for (const config of toolConfigs) {
+            // Convert Zod schema to a JSON Schema object compatible with MCP SDK >= 1.19
+            const inputSchema: any = { type: "object", properties: {}, additionalProperties: true };
+
             this.server.registerTool(
                 config.name,
                 {
                     title: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                     description: config.description,
-                    inputSchema: (config.inputSchema as z.ZodObject<any>).shape
+                    inputSchema,
                 },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
             );
@@ -624,7 +634,7 @@ export class RaindropMCPService {
                 id: config.name,
                 name: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                 description: config.description,
-                inputSchema: config.inputSchema,
+                inputSchema: { type: "object", properties: {}, additionalProperties: true },
                 outputSchema: config.outputSchema || {}
             }));
         }
