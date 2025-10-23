@@ -527,13 +527,11 @@ export class RaindropMCPService {
      * Uses the SDK's getManifest() method if available, otherwise builds a manifest from registered tools/resources.
      */
     public async getManifest(): Promise<unknown> {
-        const mode = (process.env.MCP_SCHEMA_MODE || 'zod').toLowerCase();
+        // Always use JSON Schema for MCP SDK >= 1.19 and Goose >= 1.11
         const tools = toolConfigs.map((config) => ({
             name: config.name,
             description: config.description,
-            inputSchema: mode === 'json'
-                ? toObjectJsonSchema(config.inputSchema as z.ZodTypeAny)
-                : (config.inputSchema as z.ZodObject<any>).shape,
+            inputSchema: toObjectJsonSchema(config.inputSchema as z.ZodTypeAny),
         }));
         return {
             name: "raindrop-mcp",
@@ -584,11 +582,9 @@ export class RaindropMCPService {
     }
 
     private registerDeclarativeTools() {
-        const mode = (process.env.MCP_SCHEMA_MODE || 'zod').toLowerCase();
         for (const config of toolConfigs) {
-            const inputSchema = mode === 'json'
-                ? toObjectJsonSchema(config.inputSchema as z.ZodTypeAny)
-                : (config.inputSchema as z.ZodObject<any>).shape;
+            // Always use JSON Schema for MCP SDK >= 1.19 and Goose >= 1.11
+            const inputSchema = toObjectJsonSchema(config.inputSchema as z.ZodTypeAny);
 
             this.server.registerTool(
                 config.name,
@@ -648,14 +644,11 @@ export class RaindropMCPService {
 
         // Also include tools from our toolConfigs if the server's _tools is empty
         if (tools.length === 0) {
-            const mode = (process.env.MCP_SCHEMA_MODE || 'zod').toLowerCase();
             return toolConfigs.map(config => ({
                 id: config.name,
                 name: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                 description: config.description,
-                inputSchema: mode === 'json'
-                    ? toObjectJsonSchema(config.inputSchema as z.ZodTypeAny)
-                    : (config.inputSchema as z.ZodObject<any>).shape,
+                inputSchema: toObjectJsonSchema(config.inputSchema as z.ZodTypeAny),
                 outputSchema: config.outputSchema || {}
             }));
         }
