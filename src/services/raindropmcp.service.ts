@@ -41,17 +41,28 @@ const SERVER_VERSION = pkg.version;
 
 const defineTool = <I, O>(config: ToolConfig<I, O>) => config;
 
-// Convert a Zod schema to a JSON Schema object with a guaranteed top-level type: "object"
+// Convert a Zod schema to a JSON Schema object
+// With Zod 3.x, zodToJsonSchema returns proper JSON Schema directly
 function toObjectJsonSchema(schema: z.ZodTypeAny): any {
     try {
-        const json = zodToJsonSchema(schema, { name: 'input' }) as any;
+        const json = zodToJsonSchema(schema) as any;
         if (json && typeof json === 'object') {
-            if (json.type === 'object') return json;
-            // zod-to-json-schema may wrap in { $schema, definitions, ... }
-            // If no explicit type, wrap it into an object container
-            return { type: 'object', additionalProperties: true, ...json };
+            // Remove $schema field if present (MCP doesn't need it)
+            const { $schema, ...cleanJson } = json;
+            // Ensure it's an object type (all our schemas are z.object())
+            if (cleanJson.type === 'object') {
+                return cleanJson;
+            }
+            // Fallback: wrap non-object types
+            return {
+                type: 'object',
+                properties: { value: cleanJson },
+                additionalProperties: false
+            };
         }
-    } catch (_) { /* ignore */ }
+    } catch (err) {
+        console.error('Error converting Zod schema to JSON Schema:', err);
+    }
     return { type: 'object', properties: {}, additionalProperties: true };
 }
 
