@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import pkg from '../../package.json';
 import { BookmarkInputSchema, BookmarkOutputSchema, CollectionManageInputSchema, CollectionOutputSchema, HighlightInputSchema, HighlightOutputSchema, TagInputSchema, TagOutputSchema } from "../types/raindrop-zod.schemas.js";
 import RaindropService from "./raindrop.service.js";
@@ -39,6 +40,31 @@ type McpContent =
 const SERVER_VERSION = pkg.version;
 
 const defineTool = <I, O>(config: ToolConfig<I, O>) => config;
+
+// Convert a Zod schema to a JSON Schema object
+// With Zod 3.x, zodToJsonSchema returns proper JSON Schema directly
+function toObjectJsonSchema(schema: z.ZodTypeAny): any {
+    try {
+        const json = zodToJsonSchema(schema) as any;
+        if (json && typeof json === 'object') {
+            // Remove $schema field if present (MCP doesn't need it)
+            const { $schema, ...cleanJson } = json;
+            // Ensure it's an object type (all our schemas are z.object())
+            if (cleanJson.type === 'object') {
+                return cleanJson;
+            }
+            // Fallback: wrap non-object types
+            return {
+                type: 'object',
+                properties: { value: cleanJson },
+                additionalProperties: false
+            };
+        }
+    } catch (err) {
+        console.error('Error converting Zod schema to JSON Schema:', err);
+    }
+    return { type: 'object', properties: {}, additionalProperties: true };
+}
 
 const textContent = (text: string): McpContent => ({ type: 'text', text });
 
@@ -164,8 +190,8 @@ const BulkEditRaindropsOutputSchema = z.object({
     })),
 });
 
-async function handleDiagnostics(_args?: z.infer<typeof DiagnosticsInputSchema>, _context?: ToolHandlerContext): Promise<z.infer<typeof DiagnosticsOutputSchema>> {
-    return {
+async function handleDiagnostics(_args?: z.infer<typeof DiagnosticsInputSchema>, _context?: ToolHandlerContext): Promise<any> {
+    const result = {
         content: [{
             type: 'resource_link',
             uri: 'diagnostics://server',
@@ -192,6 +218,10 @@ async function handleDiagnostics(_args?: z.infer<typeof DiagnosticsInputSchema>,
             },
         }],
     };
+    return {
+        content: result.content,
+        structuredContent: result,
+    };
 }
 
 async function handleCollectionList(_args: z.infer<typeof CollectionListInputSchema>, { raindropService }: ToolHandlerContext) {
@@ -200,7 +230,11 @@ async function handleCollectionList(_args: z.infer<typeof CollectionListInputSch
         textContent(`Found ${collections.length} collections`),
         ...collections.map(makeCollectionLink),
     ];
-    return { content };
+    const result = { content };
+    return {
+        content: result.content,
+        structuredContent: result,
+    };
 }
 
 async function handleCollectionManage(args: CollectionManageArgs, { raindropService }: ToolHandlerContext) {
@@ -214,6 +248,9 @@ async function handleCollectionManage(args: CollectionManageArgs, { raindropServ
             setIfDefined(updatePayload, 'title', args.title);
             setIfDefined(updatePayload, 'color', args.color);
             setIfDefined(updatePayload, 'description', args.description);
+            if (args.parentId !== undefined) {
+                updatePayload.parent = { $id: args.parentId };
+            }
             return await raindropService.updateCollection(args.id, updatePayload as any);
         case 'delete':
             if (!args.id) throw new Error('id is required for delete');
@@ -246,7 +283,11 @@ async function handleBookmarkSearch(args: z.infer<typeof BookmarkSearchInputSche
         content.push(makeBookmarkLink(bookmark));
     });
 
-    return { content };
+    const returnValue = { content };
+    return {
+        content: returnValue.content,
+        structuredContent: returnValue,
+    };
 }
 
 async function handleBookmarkManage(args: z.infer<typeof BookmarkManageInputSchema>, { raindropService }: ToolHandlerContext) {
@@ -324,8 +365,12 @@ async function handleHighlightManage(args: z.infer<typeof HighlightManageInputSc
 
 async function handleGetRaindrop(args: z.infer<typeof GetRaindropInputSchema>, { raindropService }: ToolHandlerContext) {
     const bookmark = await raindropService.getBookmark(parseInt(args.id));
-    return {
+    const result = {
         content: [makeBookmarkLink(bookmark)],
+    };
+    return {
+        content: result.content,
+        structuredContent: result,
     };
 }
 
@@ -338,44 +383,63 @@ async function handleListRaindrops(args: z.infer<typeof ListRaindropsInputSchema
     const content: McpContent[] = [textContent(`Found ${result.count} bookmarks in collection`)];
     result.items.forEach((bookmark: any) => content.push(makeBookmarkLink(bookmark)));
 
-    return { content };
+    const returnValue = { content };
+    return {
+        content: returnValue.content,
+        structuredContent: returnValue,
+    };
 }
 
-async function handleBulkEditRaindrops(args: z.infer<typeof BulkEditRaindropsInputSchema>, _context?: ToolHandlerContext) {
-    const body: Record<string, unknown> = {};
-    if (args.ids) body.ids = args.ids;
-    if (args.important !== undefined) body.important = args.important;
-    if (args.tags) body.tags = args.tags;
-    if (args.media) body.media = args.media;
-    if (args.cover) body.cover = args.cover;
-    if (args.collection) body.collection = args.collection;
-    if (args.nested !== undefined) body.nested = args.nested;
-
-    const url = `https://api.raindrop.io/rest/v1/raindrops/${args.collectionId}`;
+async function handleBulkEditRaindrops(args: z.infer<typeof BulkEditRaindropsInputSchema>, { raindropService }: ToolHandlerContext) {
     try {
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-        });
-        const result = await response.json() as { result: boolean; errorMessage?: string; modified?: number };
-        if (!result.result) {
-            throw new Error(result.errorMessage || 'Bulk edit failed');
+        // Get all bookmarks from the source collection
+        const bookmarks = await raindropService.getBookmarks({ collection: args.collectionId });
+        const ids = args.ids || bookmarks.items.map(b => b._id);
+        
+        if (args.collection && ids.length > 0) {
+            // Move bookmarks one by one (more reliable than batch endpoint)
+            let moved = 0;
+            let errors = 0;
+            
+            for (const id of ids) {
+                try {
+                    await raindropService.updateBookmark(id, {
+                        collection: { $id: args.collection.$id } as any
+                    });
+                    moved++;
+                } catch (err) {
+                    errors++;
+                    // Continue with other bookmarks even if one fails
+                }
+            }
+            
+            if (errors > 0) {
+                throw new Error(`Moved ${moved} bookmarks, ${errors} failed`);
+            }
+            
+            const returnValue = {
+                content: [{
+                    type: 'text',
+                    text: `Bulk edit successful. Moved ${moved} bookmarks to collection ${args.collection.$id}`,
+                }],
+            };
+            return {
+                content: returnValue.content,
+                structuredContent: returnValue,
+            };
+        } else {
+            throw new Error('Collection destination and bookmark IDs are required');
         }
-        return {
-            content: [{
-                type: 'text',
-                text: `Bulk edit successful. Modified: ${result.modified ?? 'unknown'}`,
-            }],
-        };
     } catch (err) {
-        return {
+        const returnValue = {
             content: [{
                 type: 'text',
                 text: `Bulk edit error: ${(err as Error).message}`,
             }],
+        };
+        return {
+            content: returnValue.content,
+            structuredContent: returnValue,
             isError: true,
         };
     }
@@ -512,17 +576,23 @@ export class RaindropMCPService {
      * Uses the SDK's getManifest() method if available, otherwise builds a manifest from registered tools/resources.
      */
     public async getManifest(): Promise<unknown> {
-        if (typeof (this.server as any).getManifest === 'function') {
-            return (this.server as any).getManifest();
-        }
-        // Fallback: build manifest manually
+        // Always use JSON Schema for MCP SDK >= 1.19 and Goose >= 1.11
+        const tools = toolConfigs.map((config) => ({
+            name: config.name,
+            description: config.description,
+            inputSchema: toObjectJsonSchema(config.inputSchema as z.ZodTypeAny),
+        }));
         return {
             name: "raindrop-mcp",
             version: SERVER_VERSION,
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
-            capabilities: (this.server as any).capabilities,
-            tools: await this.listTools(),
-            // Optionally add resources, schemas, etc.
+            tools,
+            resources: [
+                { uri: 'mcp://user/profile', name: 'User Profile', description: 'Authenticated user profile', mimeType: 'application/json' },
+                { uri: 'diagnostics://server', name: 'Diagnostics', description: 'Server diagnostics and environment info', mimeType: 'application/json' },
+                { uri: 'mcp://collection/{id}', name: 'Collection Resource Pattern', description: 'Access a collection by ID', mimeType: 'application/json' },
+                { uri: 'mcp://raindrop/{id}', name: 'Raindrop Resource Pattern', description: 'Access a raindrop by ID', mimeType: 'application/json' },
+            ],
         };
     }
 
@@ -562,12 +632,18 @@ export class RaindropMCPService {
 
     private registerDeclarativeTools() {
         for (const config of toolConfigs) {
+            // The SDK wraps inputSchema with z.object(), so we need to pass the schema shape
+            // (the object inside z.object()), not the schema itself
+            // Extract the shape from the Zod schema
+            const zodSchema = config.inputSchema as z.ZodObject<any>;
+            const inputSchema = zodSchema.shape || {};
+
             this.server.registerTool(
                 config.name,
                 {
                     title: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                     description: config.description,
-                    inputSchema: (config.inputSchema as z.ZodObject<any>).shape
+                    inputSchema,
                 },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
             );
@@ -624,7 +700,7 @@ export class RaindropMCPService {
                 id: config.name,
                 name: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                 description: config.description,
-                inputSchema: config.inputSchema,
+                inputSchema: toObjectJsonSchema(config.inputSchema as z.ZodTypeAny),
                 outputSchema: config.outputSchema || {}
             }));
         }

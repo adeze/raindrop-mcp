@@ -64,7 +64,7 @@
     },
     "homepage": "https://github.com/adeze/raindrop-mcp#readme",
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.18.0",
+        "@modelcontextprotocol/sdk": "^1.20.1",
         "axios": "^1.12.2",
         "dotenv": "^17.2.2",
         "esm": "^3.2.25",
@@ -73,7 +73,7 @@
         "openapi-fetch": "^0.14.0",
         "rate-limiter-flexible": "^7.3.1",
         "simple-oauth2": "^5.1.0",
-        "zod": "^4.1.9",
+        "zod": "^3.23.8",
         "zod-to-json-schema": "^3.24.6"
     },
     "devDependencies": {
