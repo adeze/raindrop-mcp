@@ -239,6 +239,11 @@ async function handleBookmarkSearch(args: z.infer<typeof BookmarkSearchInputSche
     setIfDefined(query, 'highlight', args.highlight);
     setIfDefined(query, 'domain', args.domain);
 
+    // Enable exact tag matching when searching by tags (fixes full-text search issue)
+    if (args.tag || args.tags) {
+        query.exactTagMatch = true;
+    }
+
     const result = await raindropService.getBookmarks(query as any);
 
     const content: McpContent[] = [textContent(`Found ${result.count} bookmarks`)];
@@ -352,11 +357,17 @@ async function handleBulkEditRaindrops(args: z.infer<typeof BulkEditRaindropsInp
     if (args.nested !== undefined) body.nested = args.nested;
 
     const url = `https://api.raindrop.io/rest/v1/raindrops/${args.collectionId}`;
+    const token = process.env.RAINDROP_ACCESS_TOKEN;
+    if (!token) {
+        throw new Error('RAINDROP_ACCESS_TOKEN environment variable not set');
+    }
+
     try {
         const response = await fetch(url, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify(body),
         });

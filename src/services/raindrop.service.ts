@@ -126,6 +126,9 @@ export default class RaindropService {
   /**
    * Fetch bookmarks (search, filter, etc)
    * Raindrop.io API: GET /raindrops/{collectionId} or /raindrops/0
+   *
+   * NOTE: The Raindrop API 'tag' parameter performs full-text search, not exact tag filtering.
+   * Use exactTagMatch: true to filter results client-side for exact tag matches only.
    */
   async getBookmarks(params: {
     search?: string;
@@ -140,6 +143,7 @@ export default class RaindropService {
     broken?: boolean;
     highlight?: boolean;
     domain?: string;
+    exactTagMatch?: boolean; // If true, filter results client-side for exact tag matches
   } = {}): Promise<{ items: Bookmark[]; count: number }> {
     const query: any = {};
     if (params.search) query.search = params.search;
@@ -158,9 +162,23 @@ export default class RaindropService {
       ? { params: { path: { id: params.collection }, query } }
       : { params: { query } };
     const { data } = await (this.client as any).GET(endpoint, options);
+
+    let items = data?.items || [];
+    let count = data?.count || 0;
+
+    // Client-side exact tag filtering (workaround for API full-text search)
+    if (params.exactTagMatch && (params.tag || params.tags)) {
+      const searchTags = params.tags || (params.tag ? [params.tag] : []);
+      items = items.filter((bookmark: Bookmark) => {
+        const bookmarkTags = bookmark.tags || [];
+        return searchTags.every(searchTag => bookmarkTags.includes(searchTag));
+      });
+      count = items.length; // Update count to reflect filtered results
+    }
+
     return {
-      items: data?.items || [],
-      count: data?.count || 0
+      items,
+      count
     };
   }
 
