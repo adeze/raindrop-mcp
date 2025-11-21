@@ -168,7 +168,7 @@ export default class RaindropService {
 
     // Client-side exact tag filtering (workaround for API full-text search)
     if (params.exactTagMatch && (params.tag || params.tags)) {
-      const searchTags = params.tags || (params.tag ? [params.tag] : []);
+      const searchTags = [...(params.tags ?? []), ...(params.tag ? [params.tag] : [])];
       items = items.filter((bookmark: Bookmark) => {
         const bookmarkTags = bookmark.tags || [];
         return searchTags.every(searchTag => bookmarkTags.includes(searchTag));
@@ -260,6 +260,57 @@ export default class RaindropService {
     if (updates.broken !== undefined) body.broken = updates.broken;
     const { data } = await this.client.PUT('/raindrops', { body });
     return !!data?.result;
+  }
+
+  /**
+   * Bulk edit raindrops in a collection
+   * Raindrop.io API: PUT /raindrops/{collectionId}
+   *
+   * Note: This endpoint has limitations:
+   * - Collection -1 (Unsorted) and 0 (All) don't support bulk operations
+   * - Use specific collection IDs for bulk operations
+   *
+   * This endpoint is not in the OpenAPI spec, so we use fetch() directly
+   */
+  async bulkEditRaindrops(collectionId: number, updates: {
+    ids?: number[];
+    important?: boolean;
+    tags?: string[];
+    media?: string[];
+    cover?: string;
+    collection?: { $id: number };
+    nested?: boolean;
+  }): Promise<{ result: boolean; modified?: number; errorMessage?: string }> {
+    const body: any = {};
+    if (updates.ids) body.ids = updates.ids;
+    if (updates.important !== undefined) body.important = updates.important;
+    if (updates.tags) body.tags = updates.tags;
+    if (updates.media) body.media = updates.media;
+    if (updates.cover) body.cover = updates.cover;
+    if (updates.collection) body.collection = updates.collection;
+    if (updates.nested !== undefined) body.nested = updates.nested;
+
+    const url = `https://api.raindrop.io/rest/v1/raindrops/${collectionId}`;
+    const token = process.env.RAINDROP_ACCESS_TOKEN;
+    if (!token) {
+      throw new Error('RAINDROP_ACCESS_TOKEN environment variable not set');
+    }
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json() as { result?: boolean; modified?: number; errorMessage?: string };
+    return {
+      result: data?.result ?? false,
+      ...(data?.modified !== undefined && { modified: data.modified }),
+      ...(data?.errorMessage !== undefined && { errorMessage: data.errorMessage })
+    };
   }
 
   /**

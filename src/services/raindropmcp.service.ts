@@ -346,50 +346,28 @@ async function handleListRaindrops(args: z.infer<typeof ListRaindropsInputSchema
     return { content };
 }
 
-async function handleBulkEditRaindrops(args: z.infer<typeof BulkEditRaindropsInputSchema>, _context?: ToolHandlerContext) {
-    const body: Record<string, unknown> = {};
-    if (args.ids) body.ids = args.ids;
-    if (args.important !== undefined) body.important = args.important;
-    if (args.tags) body.tags = args.tags;
-    if (args.media) body.media = args.media;
-    if (args.cover) body.cover = args.cover;
-    if (args.collection) body.collection = args.collection;
-    if (args.nested !== undefined) body.nested = args.nested;
+async function handleBulkEditRaindrops(args: z.infer<typeof BulkEditRaindropsInputSchema>, { raindropService }: ToolHandlerContext) {
+    const updates: Record<string, unknown> = {};
+    if (args.ids) updates.ids = args.ids;
+    if (args.important !== undefined) updates.important = args.important;
+    if (args.tags) updates.tags = args.tags;
+    if (args.media) updates.media = args.media;
+    if (args.cover) updates.cover = args.cover;
+    if (args.collection) updates.collection = args.collection;
+    if (args.nested !== undefined) updates.nested = args.nested;
 
-    const url = `https://api.raindrop.io/rest/v1/raindrops/${args.collectionId}`;
-    const token = process.env.RAINDROP_ACCESS_TOKEN;
-    if (!token) {
-        throw new Error('RAINDROP_ACCESS_TOKEN environment variable not set');
+    const result = await raindropService.bulkEditRaindrops(args.collectionId, updates as any);
+
+    if (!result.result) {
+        throw new Error(result.errorMessage || 'Bulk edit failed');
     }
 
-    try {
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(body),
-        });
-        const result = await response.json() as { result: boolean; errorMessage?: string; modified?: number };
-        if (!result.result) {
-            throw new Error(result.errorMessage || 'Bulk edit failed');
-        }
-        return {
-            content: [{
-                type: 'text',
-                text: `Bulk edit successful. Modified: ${result.modified ?? 'unknown'}`,
-            }],
-        };
-    } catch (err) {
-        return {
-            content: [{
-                type: 'text',
-                text: `Bulk edit error: ${(err as Error).message}`,
-            }],
-            isError: true,
-        };
-    }
+    return {
+        content: [{
+            type: 'text',
+            text: `Bulk edit successful. Modified: ${result.modified ?? 'unknown'}`,
+        }],
+    };
 }
 
 const diagnosticsTool = defineTool({
