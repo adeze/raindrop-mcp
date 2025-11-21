@@ -567,7 +567,7 @@ export class RaindropMCPService {
                 {
                     title: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                     description: config.description,
-                    inputSchema: (config.inputSchema as z.ZodObject<any>).shape
+                    inputSchema: config.inputSchema
                 },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
             );
