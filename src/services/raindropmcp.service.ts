@@ -556,6 +556,9 @@ export class RaindropMCPService {
                 {
                     title: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                     description: config.description,
+                    // MCP SDK wraps inputSchema with z.object() internally (mcp.js:443)
+                    // Therefore it expects ZodRawShape (plain object), not ZodObject
+                    // Use .shape to extract the plain object that the SDK needs
                     inputSchema: (config.inputSchema as z.ZodObject<any>).shape
                 },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
