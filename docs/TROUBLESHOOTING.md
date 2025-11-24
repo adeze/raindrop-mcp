@@ -163,19 +163,53 @@ curl http://localhost:3000/mcp
 **Symptoms:**
 - HTTP service fails to start
 - Error: "EADDRINUSE: address already in use"
+- Super-MCP shows as unavailable in Claude Code
 
-**Solution:**
+**Common Causes:**
+1. **Obsidian application** - May intermittently use port 3000
+2. **Previous super-mcp instance** - Didn't shut down cleanly
+3. **Other local development server** - Another app using port 3000
+
+**Solution 1: Kill Conflicting Process (Quick Fix)**
 ```bash
 # Find process using port 3000
 lsof -i :3000
 
-# Kill the process
+# Kill the process (if not needed)
 kill -9 [PID]
 
 # Restart super-mcp service
 launchctl unload ~/Library/LaunchAgents/com.user.super-mcp-http.plist
 launchctl load ~/Library/LaunchAgents/com.user.super-mcp-http.plist
 ```
+
+**Solution 2: Change Super-MCP Port (Recommended for Obsidian Users)**
+
+If Obsidian regularly conflicts with port 3000, change super-mcp to use port 3001:
+
+```bash
+# Step 1: Edit launchd service
+nano ~/Library/LaunchAgents/com.user.super-mcp-http.plist
+# Change: <string>3000</string>
+# To:     <string>3001</string>
+
+# Step 2: Update Claude Code config
+nano ~/.claude.json
+# Change: "url": "http://localhost:3000/mcp"
+# To:     "url": "http://localhost:3001/mcp"
+
+# Step 3: Restart service
+launchctl unload ~/Library/LaunchAgents/com.user.super-mcp-http.plist
+launchctl load ~/Library/LaunchAgents/com.user.super-mcp-http.plist
+
+# Step 4: Verify new port
+curl http://localhost:3001/mcp
+```
+
+**Prevention:**
+- Use port 3001 for super-mcp to avoid common conflicts
+- Ensure super-mcp starts before Obsidian (if keeping port 3000)
+- Check port availability before starting: `lsof -i :3000`
 
 ### Issue: Raindrop MCP Not Healthy in Super-MCP
 
