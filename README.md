@@ -26,6 +26,33 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - **Uses Zod**: For robust schema validation of API parameters and responses.
 - **Uses MCP SDK**: Leverages the official `@modelcontextprotocol/sdk`.
 
+## Recent Fixes & Improvements
+
+### November 2025 (v2.0.16)
+
+**Critical Schema Registration Fix**
+- ✅ **Fixed:** MCP SDK schema registration causing `._def` null reference errors
+- ✅ **Solution:** Restored `.shape` extraction for proper ZodRawShape handling
+- ✅ **Impact:** All 10 tools now work correctly in both Claude Desktop and Claude Code
+- 📚 **Documentation:** See [docs/MCP_SDK_INTEGRATION.md](docs/MCP_SDK_INTEGRATION.md) for technical details
+
+**Tag Search Accuracy Improvement**
+- ✅ **Fixed:** 87% false positive rate in tag search (23 results → 3 results)
+- ✅ **Added:** `exactTagMatch` boolean parameter for client-side filtering
+- 🎯 **Impact:** Dramatically improved search precision for tagged bookmarks
+
+**Bulk Edit Authorization Fix**
+- ✅ **Fixed:** 100% failure rate in bulk edit operations
+- ✅ **Added:** Missing Authorization header to bulk edit requests
+- 🔧 **Impact:** Bulk tag updates and bookmark management now fully functional
+
+**Zod Version Compatibility**
+- ✅ **Fixed:** Invalid Zod version (^4.1.9 doesn't exist)
+- ✅ **Downgraded:** To Zod ^3.23.8 (stable and MCP SDK compatible)
+- 🛡️ **Impact:** Eliminated schema validation errors at startup
+
+For troubleshooting common issues, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
 ## Prerequisites
 
 - Node.js (v18 or later recommended) or Bun

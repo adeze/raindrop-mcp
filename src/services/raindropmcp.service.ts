@@ -239,6 +239,11 @@ async function handleBookmarkSearch(args: z.infer<typeof BookmarkSearchInputSche
     setIfDefined(query, 'highlight', args.highlight);
     setIfDefined(query, 'domain', args.domain);
 
+    // Enable exact tag matching when searching by tags (fixes full-text search issue)
+    if (args.tag || args.tags) {
+        query.exactTagMatch = true;
+    }
+
     const result = await raindropService.getBookmarks(query as any);
 
     const content: McpContent[] = [textContent(`Found ${result.count} bookmarks`)];
@@ -341,44 +346,28 @@ async function handleListRaindrops(args: z.infer<typeof ListRaindropsInputSchema
     return { content };
 }
 
-async function handleBulkEditRaindrops(args: z.infer<typeof BulkEditRaindropsInputSchema>, _context?: ToolHandlerContext) {
-    const body: Record<string, unknown> = {};
-    if (args.ids) body.ids = args.ids;
-    if (args.important !== undefined) body.important = args.important;
-    if (args.tags) body.tags = args.tags;
-    if (args.media) body.media = args.media;
-    if (args.cover) body.cover = args.cover;
-    if (args.collection) body.collection = args.collection;
-    if (args.nested !== undefined) body.nested = args.nested;
+async function handleBulkEditRaindrops(args: z.infer<typeof BulkEditRaindropsInputSchema>, { raindropService }: ToolHandlerContext) {
+    const updates: Record<string, unknown> = {};
+    if (args.ids) updates.ids = args.ids;
+    if (args.important !== undefined) updates.important = args.important;
+    if (args.tags) updates.tags = args.tags;
+    if (args.media) updates.media = args.media;
+    if (args.cover) updates.cover = args.cover;
+    if (args.collection) updates.collection = args.collection;
+    if (args.nested !== undefined) updates.nested = args.nested;
 
-    const url = `https://api.raindrop.io/rest/v1/raindrops/${args.collectionId}`;
-    try {
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
-        });
-        const result = await response.json() as { result: boolean; errorMessage?: string; modified?: number };
-        if (!result.result) {
-            throw new Error(result.errorMessage || 'Bulk edit failed');
-        }
-        return {
-            content: [{
-                type: 'text',
-                text: `Bulk edit successful. Modified: ${result.modified ?? 'unknown'}`,
-            }],
-        };
-    } catch (err) {
-        return {
-            content: [{
-                type: 'text',
-                text: `Bulk edit error: ${(err as Error).message}`,
-            }],
-            isError: true,
-        };
+    const result = await raindropService.bulkEditRaindrops(args.collectionId, updates as any);
+
+    if (!result.result) {
+        throw new Error(result.errorMessage || 'Bulk edit failed');
     }
+
+    return {
+        content: [{
+            type: 'text',
+            text: `Bulk edit successful. Modified: ${result.modified ?? 'unknown'}`,
+        }],
+    };
 }
 
 const diagnosticsTool = defineTool({
@@ -567,6 +556,9 @@ export class RaindropMCPService {
                 {
                     title: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                     description: config.description,
+                    // MCP SDK wraps inputSchema with z.object() internally (mcp.js:443)
+                    // Therefore it expects ZodRawShape (plain object), not ZodObject
+                    // Use .shape to extract the plain object that the SDK needs
                     inputSchema: (config.inputSchema as z.ZodObject<any>).shape
                 },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
