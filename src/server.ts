@@ -324,7 +324,7 @@ const server = http.createServer(async (req, res) => {
                         }
                     };
 
-                    await mcpServer.connect(transport);
+                    await mcpServer.connect(transport as any);
                 } else {
                     logger.warn('Invalid optimized MCP request: missing session ID or invalid initialization');
                     res.writeHead(400, { 'Content-Type': 'application/json' });

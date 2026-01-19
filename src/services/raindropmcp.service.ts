@@ -532,19 +532,7 @@ export class RaindropMCPService {
             name: "raindrop-mcp",
             version: SERVER_VERSION,
             description: "MCP Server for Raindrop.io with advanced interactive capabilities",
-            capabilities: {
-                logging: false,
-                discovery: true,
-                errorStandardization: true,
-                sessionInfo: true,
-                toolChaining: true,
-                schemaExport: true,
-                promptManagement: true,
-                resources: true,
-                sampling: { supported: true, description: "All list/search tools support sampling and pagination." },
-                elicitation: { supported: true, description: "Destructive and ambiguous actions require confirmation or clarification." }
-            }
-        });
+        } as any);
         this.registerDeclarativeTools();
         this.registerResources();
     }
@@ -562,12 +550,13 @@ export class RaindropMCPService {
 
     private registerDeclarativeTools() {
         for (const config of toolConfigs) {
+            // Pass the Zod schema directly - MCP SDK will convert it
             this.server.registerTool(
                 config.name,
                 {
                     title: config.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                     description: config.description,
-                    inputSchema: (config.inputSchema as z.ZodObject<any>).shape
+                    inputSchema: config.inputSchema as any
                 },
                 this.asyncHandler(async (args: any, extra: any) => config.handler(args, { raindropService: this.raindropService, ...extra }))
             );
