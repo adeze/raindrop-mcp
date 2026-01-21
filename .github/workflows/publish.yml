@@ -44,6 +44,9 @@ jobs:
       - name: Create GitHub Release
         run: |
           CURRENT_VERSION=$(jq -r .version package.json)
-          gh release create v$CURRENT_VERSION --title "Release v$CURRENT_VERSION" --notes "MCP Server for Raindrop.io" --clobber
+          # Delete existing release if it exists
+          gh release delete v$CURRENT_VERSION --yes || true
+          # Create new release
+          gh release create v$CURRENT_VERSION --title "Release v$CURRENT_VERSION" --notes "MCP Server for Raindrop.io"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
