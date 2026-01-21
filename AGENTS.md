@@ -25,6 +25,7 @@ Deliver production-ready enhancements to the Raindrop MCP server while preservin
   - `mcp-inspector.instructions.md` - Debugging with Inspector
   - `mcp-refactor.instructions.md` - Refactoring guidelines
   - `dxt.instructions.md` - DXT packaging
+  - `publishing.instructions.md` - Publishing & release workflows
 - Sort imports: external → internal
 - Use async/await consistently
 - Use logging helpers (`utils/logger.ts`) instead of `console.log`
