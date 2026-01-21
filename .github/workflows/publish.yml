@@ -38,6 +38,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node.js (for npm OIDC support)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
       - name: Install jq (for version extraction)
         run: sudo apt-get update && sudo apt-get install -y jq
 
