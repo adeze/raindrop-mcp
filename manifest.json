@@ -1,7 +1,7 @@
 {
   "dxt_version": "0.1",
   "name": "@adeze/raindrop-mcp",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "MCP Server for Raindrop.io",
   "author": {
     "name": "Adam E"
