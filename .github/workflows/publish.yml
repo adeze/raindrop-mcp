@@ -21,8 +21,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -44,6 +44,6 @@ jobs:
       - name: Create GitHub Release
         run: |
           CURRENT_VERSION=$(jq -r .version package.json)
-          gh release create v$CURRENT_VERSION --title "Release v$CURRENT_VERSION" --notes "MCP Server for Raindrop.io"
+          gh release create v$CURRENT_VERSION --title "Release v$CURRENT_VERSION" --notes "MCP Server for Raindrop.io" --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
