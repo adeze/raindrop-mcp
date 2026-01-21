@@ -58,16 +58,7 @@ jobs:
           default_bump: patch
           tag_prefix: v
 
-      - name: Set up npm authentication
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Set up GitHub Packages authentication
-        run: echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> ~/.npmrc
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish to npm
+      - name: Publish to npm (via Trusted Publisher)
         run: npm publish --provenance --access public
 
       - name: Sync manifest.json version with package.json
