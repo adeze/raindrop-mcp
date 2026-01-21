@@ -4,48 +4,30 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to publish"
-        required: true
-        default: "patch"
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+
+permissions:
+  id-token: write
+  contents: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      actions: read
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-
-      - name: Setup Node.js (for npm OIDC support)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install jq (for version extraction)
-        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Install dependencies
         run: bun install
@@ -56,28 +38,12 @@ jobs:
       - name: Build package
         run: bun run build
 
-      - name: Create tag and bump version
-        uses: mathieudutour/github-tag-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_branches: master
-          default_bump: patch
-          tag_prefix: v
-
       - name: Publish to npm (via Trusted Publisher)
         run: npm publish --provenance --access public
 
-      - name: Sync manifest.json version with package.json
-        run: |
-          PKG_VERSION=$(jq -r .version package.json)
-          jq ".version = \"$PKG_VERSION\"" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
-      # - name: Pack DXT manifest
-      #   run: bun run dxt:pack
-
       - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         run: |
           CURRENT_VERSION=$(jq -r .version package.json)
-          gh release create v$CURRENT_VERSION raindrop-mcp.dxt --title "Release v$CURRENT_VERSION" --notes "DXT manifest for MCP"
+          gh release create v$CURRENT_VERSION --title "Release v$CURRENT_VERSION" --notes "MCP Server for Raindrop.io"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
