@@ -64,9 +64,72 @@ const oauthClient = new AuthorizationCode({
 
 const transports: Record<string, StreamableHTTPServerTransport> = {};
 
+/**
+ * DNS Rebinding Protection Helper
+ * Validates Host header against an allowlist of safe hostnames.
+ * Prevents DNS rebinding attacks where attacker controls domain that resolves to localhost.
+ *
+ * @see https://owasp.org/www-community/attacks/DNS_Rebinding
+ */
+function validateHostHeader(
+  hostHeader: string | null | undefined,
+  allowedHostnames: string[],
+): { ok: boolean; message?: string } {
+  if (!hostHeader) {
+    return { ok: false, message: "Missing Host header" };
+  }
+
+  // Remove port if present (e.g., "localhost:3002" -> "localhost")
+  const hostname = hostHeader.split(":")[0] || "";
+
+  // Handle IPv6 brackets (e.g., "[::1]:3002" -> "::1")
+  const cleanHostname = (hostname || "").replace(/^\[|\]$/g, "");
+
+  if (!allowedHostnames.includes(cleanHostname)) {
+    return {
+      ok: false,
+      message: `Invalid Host: ${cleanHostname}. Only ${allowedHostnames.join(", ")} allowed.`,
+    };
+  }
+
+  return { ok: true };
+}
+
 // Create native HTTP server
 const server = http.createServer(async (req, res) => {
   try {
+    // DNS Rebinding Protection - validate Host header
+    const allowedHosts = [
+      "localhost",
+      "127.0.0.1",
+      "::1", // IPv6 localhost
+    ];
+    // Add custom hosts from environment if configured
+    if (process.env.ALLOWED_HOSTS) {
+      allowedHosts.push(...process.env.ALLOWED_HOSTS.split(","));
+    }
+
+    const hostValidation = validateHostHeader(
+      req.headers.host ?? "",
+      allowedHosts,
+    );
+
+    if (!hostValidation.ok) {
+      logger.warn(`DNS rebinding attempt detected: ${hostValidation.message}`);
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32603,
+            message: hostValidation.message,
+          },
+          id: null,
+        }),
+      );
+      return;
+    }
+
     const url = parseUrl(req.url || "", true);
     // CORS handling
     res.setHeader("Access-Control-Allow-Origin", "*");
