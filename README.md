@@ -80,7 +80,6 @@ npx @adeze/raindrop-mcp
     bun start
     ```
 
-
 ## Inspector CLI & VS Code Integration
 
 This project is designed for seamless debugging and protocol inspection using the [MCP Inspector CLI](https://github.com/modelcontextprotocol/inspector). For full instructions and best practices, see [`./github/prompts/inspector.prompt.md`](.github/prompts/inspector.prompt.md).
@@ -116,18 +115,21 @@ The server uses standard input/output (stdio) for communication by default, list
 Connect your MCP client (like an LLM agent) to the running server process via stdio. The server exposes the following resource patterns:
 
 ### **Static Resources:**
+
 - `mcp://user/profile` - User account information
 - `diagnostics://server` - Server diagnostics and environment info
 
-### **Dynamic Resources:** 
+### **Dynamic Resources:**
+
 - `mcp://collection/{id}` - Access any Raindrop collection by ID (e.g., `mcp://collection/123456`)
 - `mcp://raindrop/{id}` - Access any Raindrop bookmark by ID (e.g., `mcp://raindrop/987654`)
 
 ### **Available Tools (10 total):**
+
 - **diagnostics** - Server diagnostic information
 - **collection_list** - List all collections (returns `resource_link` to individual collections)
 - **collection_manage** - Create, update, or delete collections
-- **bookmark_search** - Search bookmarks (returns `resource_link` to individual bookmarks)  
+- **bookmark_search** - Search bookmarks (returns `resource_link` to individual bookmarks)
 - **bookmark_manage** - Create, update, or delete bookmarks
 - **tag_manage** - Rename, merge, or delete tags
 - **highlight_manage** - Create, update, or delete highlights
@@ -142,21 +144,24 @@ Connect your MCP client (like an LLM agent) to the running server process via st
 Bulk update multiple bookmarks in a collection. Supports updating tags, favorite status, media, cover, and moving bookmarks to another collection.
 
 **Input Schema:**
+
 ```json
 {
-  "collectionId": 123456,                // Collection to update raindrops in
-  "ids": [987654, 876543],               // (Optional) Array of raindrop IDs to update
-  "important": true,                     // (Optional) Mark as favorite
-  "tags": ["work", "urgent"],           // (Optional) Tags to set (empty array removes all tags)
-  "media": ["https://img.com/a.png"],   // (Optional) Media URLs (empty array removes all media)
-  "cover": "<screenshot>",              // (Optional) Cover URL
-  "collection": { "$id": 654321 },      // (Optional) Move to another collection
-  "nested": false                        // (Optional) Include nested collections
+  "collectionId": 123456, // Collection to update raindrops in
+  "ids": [987654, 876543], // (Optional) Array of raindrop IDs to update
+  "important": true, // (Optional) Mark as favorite
+  "tags": ["work", "urgent"], // (Optional) Tags to set (empty array removes all tags)
+  "media": ["https://img.com/a.png"], // (Optional) Media URLs (empty array removes all media)
+  "cover": "<screenshot>", // (Optional) Cover URL
+  "collection": { "$id": 654321 }, // (Optional) Move to another collection
+  "nested": false // (Optional) Include nested collections
 }
 ```
 
 **Example Usage:**
+
 - Update tags and favorite status for two bookmarks:
+
 ```json
 {
   "collectionId": 123456,
@@ -165,14 +170,18 @@ Bulk update multiple bookmarks in a collection. Supports updating tags, favorite
   "important": true
 }
 ```
+
 - Remove all tags from all bookmarks in a collection:
+
 ```json
 {
   "collectionId": 123456,
   "tags": []
 }
 ```
+
 - Move bookmarks to another collection:
+
 ```json
 {
   "collectionId": 123456,
@@ -183,11 +192,10 @@ Bulk update multiple bookmarks in a collection. Supports updating tags, favorite
 
 **Response:**
 Returns a text message indicating success and the number of modified bookmarks.
+
 ```json
 {
-  "content": [
-    { "type": "text", "text": "Bulk edit successful. Modified: 2" }
-  ]
+  "content": [{ "type": "text", "text": "Bulk edit successful. Modified: 2" }]
 }
 ```
 
@@ -227,7 +235,6 @@ Contributions are welcome! Please open an issue or submit a pull request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 
 ## Architecture Overview
 
@@ -271,30 +278,35 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📋 Recent Enhancements (v2.0.12)
 
 ### **MCP Resource Links Implementation** ✨ NEW
-- **Modern `resource_link` pattern** following MCP SDK v1.17.2 best practices
+
+- **Modern `resource_link` pattern** following MCP SDK v1.25.3 best practices
 - **Efficient data access** - tools return lightweight links instead of full data payloads
 - **Better performance** - clients fetch full bookmark/collection data only when needed
 - **Seamless integration** with existing dynamic resource system (`mcp://raindrop/{id}`)
 
 ### **SDK & API Updates**
-- **Updated to MCP SDK v1.17.2** with latest protocol features
+
+- **Updated to MCP SDK v1.25.3** with latest protocol features
 - **Modern tool registration** using `registerTool()` API with proper descriptions
 - **Fixed API endpoints** - corrected Raindrop.io API path parameters
-- **Enhanced tool implementations** - all 9 tools now fully functional
+- **Enhanced tool implementations** - all 10 tools now fully functional
 
-### **Tool Optimization** 
+### **Tool Optimization**
+
 - **Resource-efficient responses** - bookmark/collection lists return `resource_link` objects
 - **Dynamic resource access** - `mcp://collection/{id}` and `mcp://raindrop/{id}` patterns
 - **Better UX** - clients can display lists without loading full data
 - **MCP compliance** - follows official SDK patterns and examples
 
 ### **Service Layer Improvements**
+
 - **25-30% code reduction** through extracted common functions and patterns
 - **Consistent error handling** with standardized response processing
 - **Enhanced type safety** with generic response handlers
 - **Centralized endpoint building** for better API consistency
 
 ### **Developer Experience**
+
 - **[VS Code Configuration](https://github.com/adeze/raindrop-mcp/issues/3)**: Enterprise-grade testing & debugging support
 - **Enhanced error messages** with actionable suggestions
 - **Standardized resource patterns** for consistent API interactions
@@ -316,7 +328,7 @@ bun run bump:patch  # 2.0.10 → 2.0.11
 # Option A: Let workflow handle publishing
 bun run tag:version  # Creates tag, triggers workflow
 
-# Option B: Publish manually  
+# Option B: Publish manually
 bun run build
 bun run bun:publish:npm
 bun run bun:publish:github
@@ -331,11 +343,13 @@ bun run release:dxt
 ```
 
 **Requirements:**
+
 - [GitHub CLI](https://cli.github.com/) (`gh`) must be installed and authenticated.
 - [`jq`](https://stedolan.github.io/jq/) must be installed (`brew install jq` on macOS).
 - The `raindrop-mcp.dxt` file must exist in the project root.
 
 **Scripts (in `package.json`):**
+
 ```json
 "tag:version": "git tag v$(jq -r .version package.json) && git push origin v$(jq -r .version package.json)",
 "release:dxt": "gh release create v$(jq -r .version package.json) raindrop-mcp.dxt --title \"Release v$(jq -r .version package.json)\" --notes \"DXT manifest for MCP\""
