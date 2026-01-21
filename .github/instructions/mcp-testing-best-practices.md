@@ -223,8 +223,9 @@ it("should fetch and validate collection resources", async () => {
     uri: "mcp://collection/12345",
   });
 
-  expect(resourceData.contents).toBeDefined();
-  expect(resourceData.contents[0].text).toBeDefined();
+  expect(resourceData).toBeDefined();
+  expect(Array.isArray(resourceData)).toBe(true);
+  expect(resourceData[0].text).toBeDefined();
 });
 ```
 

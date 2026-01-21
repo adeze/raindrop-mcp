@@ -384,11 +384,11 @@ export class RaindropMCPService {
       );
     }
 
-    const resource = this.resources[uri];
+    const resource = this.resources[uri] as
+      | { contents: Array<{ uri: string; text: string }> }
+      | undefined;
     if (resource?.contents) {
-      return Array.isArray(resource.contents)
-        ? resource.contents
-        : [resource.contents];
+      return resource.contents;
     }
 
     throw new NotFoundError(

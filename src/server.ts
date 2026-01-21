@@ -79,11 +79,16 @@ function validateHostHeader(
     return { ok: false, message: "Missing Host header" };
   }
 
-  // Remove port if present (e.g., "localhost:3002" -> "localhost")
-  const hostname = hostHeader.split(":")[0] || "";
-
-  // Handle IPv6 brackets (e.g., "[::1]:3002" -> "::1")
-  const cleanHostname = (hostname || "").replace(/^\[|\]$/g, "");
+  // Handle IPv6 addresses in brackets: [::1]:3002 -> ::1
+  let cleanHostname: string;
+  if (hostHeader.startsWith("[")) {
+    // IPv6 format: [::1]:3002 or [::1]
+    const endBracket = hostHeader.indexOf("]");
+    cleanHostname = hostHeader.substring(1, endBracket);
+  } else {
+    // IPv4 or hostname: localhost:3002 -> localhost
+    cleanHostname = hostHeader.split(":")[0] || "";
+  }
 
   if (!allowedHostnames.includes(cleanHostname)) {
     return {
