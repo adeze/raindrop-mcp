@@ -20,12 +20,7 @@ Deliver production-ready enhancements to the Raindrop MCP server while preservin
 **Primary Reference**: `.github/copilot-instructions.md` for coding standards
 
 - TypeScript + Bun + Vitest + Zod validation required
-- Reference `.github/instructions/mcp-*.instructions.md` for MCP-specific work:
-  - `mcp-dev.instructions.md` - Development workflows
-  - `mcp-inspector.instructions.md` - Debugging with Inspector
-  - `mcp-refactor.instructions.md` - Refactoring guidelines
-  - `dxt.instructions.md` - DXT packaging
-  - `publishing.instructions.md` - Publishing & release workflows
+- Reference `.github/skills/` for domain-specific skills and workflows
 - Sort imports: external → internal
 - Use async/await consistently
 - Use logging helpers (`utils/logger.ts`) instead of `console.log`

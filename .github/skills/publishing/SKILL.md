@@ -1,10 +1,10 @@
-# Publishing Instructions for @adeze/raindrop-mcp
+# Publishing Skill for @adeze/raindrop-mcp
 
 Automates and manages the complete publishing workflow for @adeze/raindrop-mcp from version bumping through npm registry deployment.
 
 ## Overview
 
-This document encapsulates the end-to-end publishing process, ensuring consistent version management, proper synchronization across configuration files, and reliable deployment via GitHub Actions with npm Trusted Publishers.
+This skill encapsulates the end-to-end publishing process, ensuring consistent version management, proper synchronization across configuration files, and reliable deployment via GitHub Actions with npm Trusted Publishers.
 
 ## Publishing Workflow
 
