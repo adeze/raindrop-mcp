@@ -205,7 +205,7 @@ const server = http.createServer(async (req, res) => {
           isInitializeRequest(body)
         ) {
           logger.info("Creating new optimized Streamable HTTP session");
-          transport = new StreamableHTTPServerTransport({
+          const streamTransport = new StreamableHTTPServerTransport({
             sessionIdGenerator: () => randomUUID(),
             onsessioninitialized: (sessionId) => {
               transports[sessionId] = transport;
@@ -220,6 +220,7 @@ const server = http.createServer(async (req, res) => {
             },
           });
 
+          transport = streamTransport;
           transport.onclose = () => {
             if (transport.sessionId) {
               delete transports[transport.sessionId];
@@ -229,8 +230,11 @@ const server = http.createServer(async (req, res) => {
               );
             }
           };
+          transport.onerror = (error: Error) => {
+            logger.error("Streamable HTTP transport error", error);
+          };
 
-          await mcpServer.connect(transport);
+          await mcpServer.connect(transport as any);
         } else {
           logger.warn(
             "Invalid optimized MCP request: missing session ID or invalid initialization",
