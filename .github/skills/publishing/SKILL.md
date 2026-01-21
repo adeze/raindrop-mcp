@@ -11,6 +11,7 @@ This skill encapsulates the end-to-end publishing process, ensuring consistent v
 ### 1. Pre-Publication Checklist
 
 Before publishing, verify:
+
 - ✅ All tests passing: `bun run test`
 - ✅ Type-check passing: `bun run type-check`
 - ✅ Build successful: `bun run build`
@@ -26,6 +27,7 @@ bun pm version <MAJOR.MINOR.PATCH>
 ```
 
 **Examples:**
+
 - Patch: `bun pm version 2.1.2` (bug fixes)
 - Minor: `bun pm version 2.2.0` (new features)
 - Major: `bun pm version 3.0.0` (breaking changes)
@@ -35,12 +37,14 @@ bun pm version <MAJOR.MINOR.PATCH>
 Update version numbers in ALL four files to maintain consistency:
 
 **Files to update:**
+
 1. **package.json** - Already updated by `bun pm version`
 2. **manifest.json** - DXT manifest version (lines 2-4)
 3. **CLAUDE.md** - Project guidelines (around line 8)
 4. **README.md** - User documentation (around line 278)
 
 **Version reference locations:**
+
 ```json
 // manifest.json
 {
@@ -51,12 +55,15 @@ Update version numbers in ALL four files to maintain consistency:
 
 ```markdown
 // CLAUDE.md
+
 ### Version Information
+
 - **Current version**: X.X.X
 ```
 
 ```markdown
 // README.md
+
 ## 📋 Recent Enhancements (vX.X.X)
 ```
 
@@ -87,6 +94,7 @@ git push origin vX.X.X
 ```
 
 **Note:** If tag already exists:
+
 ```bash
 git tag -d vX.X.X
 git tag vX.X.X
@@ -124,6 +132,7 @@ Once tag is pushed, GitHub Actions automatically:
 8. Click **Add**
 
 **Benefits:**
+
 - 🔒 No static tokens needed (OIDC-based)
 - 🔄 No token rotation required
 - 📋 Automatic provenance attestation
@@ -134,6 +143,7 @@ Once tag is pushed, GitHub Actions automatically:
 Location: `.github/workflows/publish.yml`
 
 **Key permissions:**
+
 ```yaml
 permissions:
   id-token: write
@@ -141,6 +151,7 @@ permissions:
 ```
 
 **Key steps:**
+
 - Node.js 24 with `registry-url: https://registry.npmjs.org`
 - `npm publish --provenance --access public`
 - GitHub release creation: deletes existing release first, then creates new one
@@ -156,6 +167,7 @@ gh run list --limit 1
 ```
 
 **Output statuses:**
+
 - `*` - Running
 - `✓` - Completed successfully
 - `✗` - Failed
@@ -171,10 +183,12 @@ gh run view <run-id>
 **Check latest release:**
 
 Call `mcp_github_get_latest_release` with:
+
 - `owner`: adeze
 - `repo`: raindrop-mcp
 
 This returns the most recent release and confirms:
+
 - `tag_name` matches your version (e.g., v2.1.2)
 - `published_at` is recent
 - Workflow executed successfully
@@ -251,7 +265,7 @@ After workflow completes (usually 30-60 seconds):
    ```bash
    npm view @adeze/raindrop-mcp@2.1.2
    ```
-   
+
    Should return package metadata confirming it's live
 
 4. **Verify package installation:**
