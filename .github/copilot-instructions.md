@@ -6,57 +6,67 @@ applyTo: "**"
 
 ## General Coding Principles
 
-- Write modular, well-documented, and maintainable code.
-- Use modern, type-safe, idiomatic TypeScript. Prefer interfaces for object types and camelCase/PascalCase naming conventions.
-- Use zod for schema validation where appropriate.
-- Use async/await for all asynchronous code.
-- Group imports by type (external, then internal).
-- Use try/catch for error handling with descriptive messages.
-- Prefer explicitness and reference documentation or example repos if ambiguous.
+- Write modular, well-documented, maintainable code with complete implementations
+- Use modern, type-safe, idiomatic TypeScript with interfaces and camelCase/PascalCase naming
+- Use Zod for schema validation; async/await for all asynchronous operations
+- Group imports: external first, then internal
+- Use try/catch with descriptive error messages
+- Reference documentation or example repos for ambiguous requirements
 
-## Raindrop.io & MCP API Coverage
+## API Coverage & References
 
-- Ensure complete coverage for Raindrop.io and MCP endpoints.
-- Reference [Raindrop.io API docs](https://developer.raindrop.io) for endpoints, authentication, and data models.
-- Reference [`raindropio/app`](https://github.com/raindropio/app) for implementation details and usage patterns.
-- LLM friendly documentation is `https://context7.com/context7/developer_raindrop_io/llms.txt`
-- Reference [Model Context Protocol docs](https://modelcontextprotocol.io/) and [LLMs integration guide](https://modelcontextprotocol.io/llms-full.txt) for MCP compliance.
-- Reference [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) for usage patterns.
+- **Raindrop.io**: [API docs](https://developer.raindrop.io), [GitHub repo](https://github.com/raindropio/app), [LLM docs](https://context7.com/context7/developer_raindrop_io/llms.txt)
+- **MCP Protocol**: [Official docs](https://modelcontextprotocol.io/), [LLM guide](https://modelcontextprotocol.io/llms-full.txt), [TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- **MCP Examples**: [Server examples](https://github.com/modelcontextprotocol/servers), [TypeScript SDK examples](https://github.com/modelcontextprotocol/typescript-sdk/src/examples/README.md)
+- **Tools**: [Inspector](https://github.com/modelcontextprotocol/inspector), [Debugging guide](https://modelcontextprotocol.io/docs/tools/debugging)
+- **Templates**: [MCP boilerplate](https://github.com/cyanheads/mcp-ts-template)
 
 ## Project Structure
 
-- Source: `src/`
-- Build: `build/`
-- Tests: `tests/` (all test files must be here)
+```
+src/
+  ├── index.ts              # STDIO entry point
+  ├── server.ts             # HTTP/SSE entry point
+  ├── connectors/           # External integrations (OpenAI)
+  ├── services/
+  │   ├── raindrop.service.ts     # Raindrop.io API client
+  │   └── raindropmcp.service.ts  # MCP server implementation
+  ├── types/                # TypeScript types and Zod schemas
+  └── utils/                # Logger and utilities
+tests/                     # All test files (Vitest)
+build/                     # Compiled output
+```
 
 ## Development Best Practices
 
-- Structure tools with clear schemas, validation, and consistent JSON responses.
-- Include documentation and setup instructions.
-- Use design patterns for maintainability and scalability.
-- Use helper functions to reduce duplication.
-- Prefer declarative programming styles and common libraries/utilities.
-- Use `bun` for package management/scripts (not npm).
+- Use `bun` for package management (not npm): `bun install`, `bun run <script>`
+- Structure tools with clear Zod schemas, validation, and consistent JSON responses
+- Prefer declarative patterns and reuse existing `toolConfigs` in `raindropmcp.service.ts`
+- Reduce duplication with helper functions; favor composition over inheritance
+- Follow MCP Protocol and DXT specification for compatibility
 
-## Testing
+## Testing & Quality
 
-- Use [Vitest](https://vitest.dev/) for all tests.
-- Validate tool calls return properly structured responses.
-- Verify manifest loads and host integration works.
+- **Testing**: [Vitest](https://vitest.dev/) with `bun test` or `bun test --coverage`
+- Validate tool calls return properly structured responses
+- Verify manifest loads correctly and host integration works
+- Run `bun run type-check` before committing
 
-## Tooling & References
+## Development Scripts
 
-- For debugging MCP servers, see [MCP Debugging Instructions](https://modelcontextprotocol.io/docs/tools/debugging).
-- Use [Inspector tool](https://modelcontextprotocol.io/docs/tools/inspector) and [repo](https://github.com/modelcontextprotocol/inspector) for protocol inspection.
-- Use `#concept7` for documentation access and reference for SDKs, APIs, and protocol details.
-- MCP Protocol spec: [specification](https://github.com/modelcontextprotocol/specification)
-- MCP server examples: [`modelcontextprotocol/serverstypescript-sdk/src/examples/README.md`](https://github.com/modelcontextprotocol/serverstypescript-sdk/src/examples/README.md)
-- LLM-friendly docs: [context7.com/context7/developer_raindrop_io/llms.txt](https://context7.com/context7/developer_raindrop_io/llms.txt)
-- MCP boilerplate: [`cyanheads/mcp-ts-template`](https://github.com/cyanheads/mcp-ts-template)
+- **Dev**: `bun run dev` (STDIO watch), `bun run dev:http` (HTTP watch)
+- **Build**: `bun run build` (outputs to `build/`)
+- **Test**: `bun run test`, `bun run test:coverage`
+- **Type check**: `bun run type-check`
+- **Inspector**: `bun run inspector` (STDIO), `bun run inspector:http-server` (HTTP)
+- **Generate**: `bun run generate:schema`, `bun run generate:client`
+- **Update deps**: `bun run update:deps` (auto), `bun run update:deps:interactive`
+- **Versioning**: `bun run bump:patch|minor|major`
+- **Package**: `bun run dxt:pack`, `bun run release:dxt`
 
-## Output Requirements
+## Code Requirements
 
-- Generate complete, production-ready code that can be immediately tested.
-- Focus on defensive programming, clear error messages, MCP Protocol and DXT specification compatibility.
-- always consider the simplest solution that meets the requirements that leveragees existing libraries and patterns.
-- configuration and declarative programming should be preferred over imperative programming.
+- Generate complete, production-ready code that can be immediately tested
+- Defensive programming with clear error messages
+- Simplest solution that leverages existing libraries and patterns
+- Configuration and declarative programming over imperative approaches

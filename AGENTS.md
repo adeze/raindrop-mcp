@@ -1,37 +1,117 @@
 # Agent Operating Guide
 
 ## Shared Mission
-- Deliver production-ready enhancements to the Raindrop MCP server while preserving full MCP protocol compliance.
-- Prefer existing patterns in `src/services/raindropmcp.service.ts` and related modules before inventing new abstractions.
-- Keep responses concise, cite relevant files/lines, and recommend verification steps (tests, builds) after changes.
 
-## Primary Agent Briefs
+Deliver production-ready enhancements to the Raindrop MCP server while preserving full MCP protocol compliance. Reuse existing patterns in `src/services/raindropmcp.service.ts` before creating new abstractions. Keep responses concise, cite relevant files/lines, and recommend verification steps after changes.
+
+## Agent Roles & Guidelines
 
 ### Claude (Anthropic)
-- Use `CLAUDE.md` for the canonical project tour: current version, capabilities, tooling commands, and architectural notes.
-- When adding tools or resources, mirror the declarative `toolConfigs` pattern and reuse the Zod schemas under `src/types/`.
-- Validate destructive actions (collection/tag/delete) with clear preconditions and meaningful error messages.
+
+**Primary Reference**: `CLAUDE.md` for project overview, version info, capabilities, and architecture
+
+- Mirror declarative `toolConfigs` pattern when adding tools/resources
+- Reuse Zod schemas from `src/types/` for validation
+- Validate destructive operations (delete, merge, etc.) with clear preconditions
+- Provide meaningful error messages for all operations
 
 ### GitHub Copilot / Code Generation Agents
-- Follow `.github/copilot-instructions.md` for style, dependency, and testing conventions (TypeScript + bun, Vitest, zod validation).
-- Reference `.github/instructions/mcp-*.instructions.md` when working on MCP transports, refactors, or inspector tooling.
-- Keep imports sorted (external→internal), prefer async/await, and avoid `console.log` in MCP-facing code—use existing logging helpers instead.
 
-### Other LLM Operators (e.g., Cursor, ChatGPT)
-- Defer to the same guidelines as Copilot unless a task explicitly targets documentation or analysis.
-- Surface open questions back to the user when Raindrop API behavior is ambiguous; default to the OpenAPI definitions in `raindrop-complete.yaml`.
+**Primary Reference**: `.github/copilot-instructions.md` for coding standards
+
+- TypeScript + Bun + Vitest + Zod validation required
+- Reference `.github/instructions/mcp-*.instructions.md` for MCP-specific work:
+  - `mcp-dev.instructions.md` - Development workflows
+  - `mcp-inspector.instructions.md` - Debugging with Inspector
+  - `mcp-refactor.instructions.md` - Refactoring guidelines
+  - `dxt.instructions.md` - DXT packaging
+- Sort imports: external → internal
+- Use async/await consistently
+- Use logging helpers (`utils/logger.ts`) instead of `console.log`
+
+### Other LLM Operators (Cursor, ChatGPT, etc.)
+
+- Follow Copilot guidelines unless targeting documentation/analysis
+- Surface ambiguities about Raindrop API behavior to user
+- Default to OpenAPI definitions in `raindrop-complete.yaml` for API contracts
 
 ## Development Workflow
-- Install & run with bun: `bun run dev`, `bun run start:prod`, `bun run build`, `bun run test`, `bun run type-check`.
-- Generated assets: use `bun run generate:schema` or `bun run generate:client` only when the OpenAPI spec changes.
-- Tests live in `tests/`; use Vitest and update coverage when new tools/resources are introduced.
 
-## Protocol & Resource Notes
-- MCP manifest, tool registration, and resource handling are centralized in `RaindropMCPService` (`src/services/raindropmcp.service.ts`).
-- Dynamic resources (`mcp://collection/{id}`, `mcp://raindrop/{id}`) should stay lightweight and fetch live data via `RaindropService`.
-- Authentication depends on the `RAINDROP_ACCESS_TOKEN` environment variable—never hard-code secrets.
+### Quick Start Commands
 
-## Documentation & Release Hygiene
-- Update `README.md`, `CLAUDE.md`, or `LOGGING_DIAGNOSTICS.md` when behavior changes affect users or operators.
-- Package/distribution tasks: `bun run dxt:pack` for DXT bundles, `bun run bump:<semver>` for version increments.
-- Before proposing releases, ensure manifest parity across STDIO/HTTP entry points and note any outstanding manual test steps.
+```bash
+# Install dependencies
+bun install
+
+# Development (watch mode)
+bun run dev              # STDIO server
+bun run dev:http         # HTTP server on :3002
+
+# Testing & Quality
+bun run test             # Run all tests
+bun run test:coverage    # With coverage report
+bun run type-check       # TypeScript validation
+
+# Building & Running
+bun run build            # Compile to build/
+bun run start:prod       # Run production build
+
+# Debugging
+bun run inspector                # MCP Inspector (STDIO)
+bun run inspector:http-server    # MCP Inspector (HTTP)
+
+# Code Generation (only when OpenAPI spec changes)
+bun run generate:schema   # Generate TypeScript types
+bun run generate:client   # Generate Axios client
+
+# Dependency Management
+bun run update:deps                # Update all deps to latest
+bun run update:deps:interactive    # Interactive updates
+bun run bun:update                 # Conservative updates
+
+# Release & Distribution
+bun run bump:patch|minor|major    # Bump version
+bun run dxt:pack                  # Package DXT bundle
+bun run release:dxt               # Create GitHub release
+bun run tag:version               # Tag & push version
+```
+
+### Project Architecture
+
+**Entry Points**:
+
+- `src/index.ts` - STDIO transport (main CLI entry)
+- `src/server.ts` - HTTP/SSE transport (port 3002)
+
+**Core Services**:
+
+- `src/services/raindropmcp.service.ts` - MCP server implementation (tool/resource registration)
+- `src/services/raindrop.service.ts` - Raindrop.io API client wrapper
+
+**Testing**: All tests in `tests/` using Vitest. Update coverage when adding tools/resources.
+
+## MCP Protocol & Resources
+
+- **Centralized Management**: Tool registration and resource handling in `RaindropMCPService`
+- **Dynamic Resources**: `mcp://collection/{id}`, `mcp://raindrop/{id}` fetch live data via `RaindropService`
+- **Resource Links**: Tools use `resource_link` patterns for efficient data access
+- **Authentication**: Requires `RAINDROP_ACCESS_TOKEN` environment variable (never hard-code)
+
+## Documentation & Release Process
+
+### When to Update Documentation
+
+- **README.md** - User-facing features, installation, or usage changes
+- **CLAUDE.md** - Version updates, architectural changes, or new capabilities
+- **LOGGING_DIAGNOSTICS.md** - Logging behavior or diagnostic features
+- **AGENTS.md** / **copilot-instructions.md** - Development workflow or tooling changes
+
+### Release Checklist
+
+1. Run `bun run type-check` and `bun run test` (all passing)
+2. Update version in documentation if needed
+3. Ensure manifest parity across STDIO/HTTP entry points
+4. Build and test DXT package: `bun run dxt:pack`
+5. Bump version: `bun run bump:patch|minor|major`
+6. Create release: `bun run release:dxt`
+7. Note any manual test steps or breaking changes
