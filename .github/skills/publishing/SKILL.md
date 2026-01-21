@@ -1,7 +1,15 @@
 ---
 name: publishing
 description: Publishing and Release Workflows with GitHub Actions and npm Trusted Publishers
-keywords: [publishing, npm, github-actions, semantic-versioning, ci-cd, trusted-publishers]
+keywords:
+  [
+    publishing,
+    npm,
+    github-actions,
+    semantic-versioning,
+    ci-cd,
+    trusted-publishers,
+  ]
 ---
 
 # Publishing Skill for @adeze/raindrop-mcp

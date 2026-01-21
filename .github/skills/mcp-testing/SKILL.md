@@ -1,7 +1,8 @@
 ---
 name: mcp-testing
 description: MCP Testing Strategies with Vitest, Inspector, and Integration Tests
-keywords: [mcp, testing, vitest, inspector, unit-tests, integration-tests, ci-cd]
+keywords:
+  [mcp, testing, vitest, inspector, unit-tests, integration-tests, ci-cd]
 ---
 
 # MCP Testing Skill
@@ -114,6 +115,7 @@ bun run test:coverage
 ```
 
 Generates coverage reports showing:
+
 - Line & branch coverage for tools
 - Uncovered error paths
 - Integration test coverage vs unit test coverage

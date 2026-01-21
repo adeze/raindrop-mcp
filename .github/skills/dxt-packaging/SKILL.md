@@ -1,7 +1,8 @@
 ---
 name: dxt-packaging
 description: Desktop Extension (DXT) Packaging and Distribution
-keywords: [dxt, desktop-extension, packaging, distribution, anthropic, extension]
+keywords:
+  [dxt, desktop-extension, packaging, distribution, anthropic, extension]
 ---
 
 # DXT Packaging Skill
