@@ -275,7 +275,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **DXT Manifest:** Automated packaging and release via GitHub CLI.
 - **Continuous Integration:** Version tagging and manifest publishing are fully automated.
 
-## 📋 Recent Enhancements (v2.0.12)
+## 📋 Recent Enhancements (v2.0.17)
 
 ### **MCP Resource Links Implementation** ✨ NEW
 
