@@ -26,11 +26,17 @@ describeIf("MCPJam SDK Integration", () => {
 
     manager = new MCPClientManager();
 
+    const baseEnv = Object.fromEntries(
+      Object.entries(process.env).filter(
+        ([, value]): value is string => typeof value === "string",
+      ),
+    );
+
     await manager.connectToServer("raindrop", {
       command: "bun",
       args: ["run", "build/index.js"],
       env: {
-        ...process.env,
+        ...baseEnv,
         RAINDROP_ACCESS_TOKEN: process.env.RAINDROP_ACCESS_TOKEN as string,
       },
     });
@@ -53,6 +59,12 @@ describeIf("MCPJam SDK Integration", () => {
 
   it("executes diagnostics tool", async () => {
     const result = await manager.executeTool("raindrop", "diagnostics", {});
+
+    if ("task" in result) {
+      throw new Error(
+        `Expected tool response content, received task status: ${result.task.status}`,
+      );
+    }
 
     expect(result.content).toBeDefined();
     expect(Array.isArray(result.content)).toBe(true);

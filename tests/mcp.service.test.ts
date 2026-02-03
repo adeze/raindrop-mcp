@@ -168,6 +168,9 @@ describe("RaindropMCPService", () => {
     const diagnosticsTool = tools.find((t: any) => t.id === "diagnostics");
 
     expect(diagnosticsTool).toBeDefined();
+    if (!diagnosticsTool) {
+      throw new Error("Diagnostics tool not found in tool list");
+    }
     expect(diagnosticsTool.name).toBe("Diagnostics");
     expect(diagnosticsTool.description).toContain("Diagnostics");
   });
