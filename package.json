@@ -1,106 +1,106 @@
 {
-    "name": "@adeze/raindrop-mcp",
-    "version": "2.2.1",
-    "description": "MCP Server for Raindrop.io bookmark management",
-    "main": "build/index.js",
-    "module": "build/index.js",
-    "type": "module",
-    "bin": {
-        "raindrop-mcp": "./build/index.js"
-    },
-    "files": [
-        "build"
-    ],
-    "private": false,
-    "scripts": {
-        "dev": "bun run build && bun --watch src/index.ts",
-        "dev:http": "bun run build && bun --watch src/server.ts",
-        "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
-        "inspector:http-server": "npx @modelcontextprotocol/inspector node build/server.js",
-        "type-check": "tsc --noEmit",
-        "test": "bun  --env-file .env test",
-        "test:coverage": "bun test --coverage",
-        "run": "bun run build/index.js",
-        "build": "bun build --target=node --format=esm --bundle --sourcemap --outdir=build ./src/index.ts ./src/server.ts",
-        "start:prod": "bun run build/index.js",
-        "start:http": "bun run src/server.ts",
-        "clean": "rm -rf build",
-        "bump:patch": "bun pm version patch",
-        "bump:minor": "bun pm version minor",
-        "bump:major": "bun pm version major",
-        "bun:update": "bun update",
-        "update:deps": "npx npm-check-updates -u && bun install",
-        "update:deps:interactive": "npx npm-check-updates -i && bun install",
-        "dxt:pack": "bun run build && npx @anthropic-ai/mcpb@latest pack . raindrop-mcp.dxt && npx @anthropic-ai/mcpb@latest clean raindrop-mcp.dxt",
-        "generate:schema": "npx openapi-typescript ./raindrop-complete.yaml -o ./src/types/raindrop.schema.d.ts --tsconfig ./tsconfig.json --export-type --useUnionTypes --immutable",
-        "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop-complete.yaml -g typescript-axios -o src/services/raindrop-client",
-        "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/ --access public",
-        "bun:publish:npm": "bun publish --access public",
-        "tag:version": "git tag v$(jq -r .version package.json) && git push origin master && git push origin v$(jq -r .version package.json)",
-        "release:dxt": "bun run dxt:pack && gh release create v$(jq -r .version package.json) raindrop-mcp.dxt --title \"Release v$(jq -r .version package.json)\" --notes \"DXT manifest for MCP\"",
-        "docs": "typedoc"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/adeze/raindrop-mcp.git"
-    },
-    "publishConfig": {
-        "access": "public",
-        "registry": "https://registry.npmjs.org/"
-    },
-    "keywords": [
-        "mcp",
-        "raindrop.io",
-        "modelcontextprotocol",
-        "mcp-server",
-        "raindrop",
-        "bookmarks",
-        "ai-assistant",
-        "llm-tools",
-        "typescript"
-    ],
-    "author": "Adam E",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/adeze/raindrop-mcp/issues"
-    },
-    "homepage": "https://github.com/adeze/raindrop-mcp#readme",
-    "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.25.3",
-        "axios": "^1.13.4",
-        "dotenv": "^17.2.3",
-        "esm": "^3.2.25",
-        "express": "^5.2.1",
-        "openai": "^6.17.0",
-        "openapi-fetch": "^0.15.0",
-        "rate-limiter-flexible": "^9.1.0",
-        "simple-oauth2": "^5.1.0",
-        "zod": "^4.3.6",
-        "zod-to-json-schema": "^3.25.1"
-    },
-    "devDependencies": {
-        "@anthropic-ai/dxt": "^0.2.6",
-        "@modelcontextprotocol/inspector": "^0.19.0",
-        "@openapitools/openapi-generator-cli": "^2.28.0",
-        "@types/bun": "^1.3.8",
-        "@types/express": "^5.0.6",
-        "@types/node": "^25.2.0",
-        "@types/supertest": "^6.0.3",
-        "@typescript-eslint/eslint-plugin": "^8.54.0",
-        "@typescript-eslint/parser": "^8.54.0",
-        "@vitest/coverage-v8": "^4.0.18",
-        "eslint": "^9.39.2",
-        "eslint-config-prettier": "^10.1.8",
-        "openapi-typescript": "^7.10.1",
-        "prettier": "^3.8.1",
-        "supertest": "^7.2.2",
-        "typedoc": "^0.28.16",
-        "typescript": "^5.9.3",
-        "vitest": "^4.0.18",
-        "vitest-mock-extended": "^3.1.0"
-    },
-    "engines": {
-        "node": ">=18.0.0",
-        "bun": ">=1.0.0"
-    }
+  "name": "@adeze/raindrop-mcp",
+  "version": "2.2.1",
+  "description": "MCP Server for Raindrop.io bookmark management",
+  "main": "build/index.js",
+  "module": "build/index.js",
+  "type": "module",
+  "bin": {
+    "raindrop-mcp": "./build/index.js"
+  },
+  "files": [
+    "build"
+  ],
+  "private": false,
+  "scripts": {
+    "dev": "bun run build && bun --watch src/index.ts",
+    "dev:http": "bun run build && bun --watch src/server.ts",
+    "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
+    "inspector:http-server": "npx @modelcontextprotocol/inspector node build/server.js",
+    "type-check": "tsc --noEmit",
+    "test": "bun  --env-file .env test",
+    "test:coverage": "bun test --coverage",
+    "run": "bun run build/index.js",
+    "build": "bun build --target=node --format=esm --bundle --sourcemap --outdir=build ./src/index.ts ./src/server.ts",
+    "start:prod": "bun run build/index.js",
+    "start:http": "bun run src/server.ts",
+    "clean": "rm -rf build",
+    "bump:patch": "bun pm version patch",
+    "bump:minor": "bun pm version minor",
+    "bump:major": "bun pm version major",
+    "bun:update": "bun update",
+    "update:deps": "npx npm-check-updates -u && bun install",
+    "update:deps:interactive": "npx npm-check-updates -i && bun install",
+    "mcpb:pack": "bun run build && npx @anthropic-ai/mcpb@latest pack . raindrop-mcp.mcpb && npx @anthropic-ai/mcpb@latest clean raindrop-mcp.mcpb",
+    "generate:schema": "npx openapi-typescript ./raindrop-complete.yaml -o ./src/types/raindrop.schema.d.ts --tsconfig ./tsconfig.json --export-type --useUnionTypes --immutable",
+    "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop-complete.yaml -g typescript-axios -o src/services/raindrop-client",
+    "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/ --access public",
+    "bun:publish:npm": "bun publish --access public",
+    "tag:version": "git tag v$(jq -r .version package.json) && git push origin master && git push origin v$(jq -r .version package.json)",
+    "release:mcpb": "bun run mcpb:pack && gh release create v$(jq -r .version package.json) raindrop-mcp.mcpb --title \"Release v$(jq -r .version package.json)\" --notes \"MCP Bundle for Raindrop.io\"",
+    "docs": "typedoc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adeze/raindrop-mcp.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "mcp",
+    "raindrop.io",
+    "modelcontextprotocol",
+    "mcp-server",
+    "raindrop",
+    "bookmarks",
+    "ai-assistant",
+    "llm-tools",
+    "typescript"
+  ],
+  "author": "Adam E",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/adeze/raindrop-mcp/issues"
+  },
+  "homepage": "https://github.com/adeze/raindrop-mcp#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "axios": "^1.13.4",
+    "dotenv": "^17.2.3",
+    "esm": "^3.2.25",
+    "express": "^5.2.1",
+    "openai": "^6.17.0",
+    "openapi-fetch": "^0.15.0",
+    "rate-limiter-flexible": "^9.1.0",
+    "simple-oauth2": "^5.1.0",
+    "zod": "^4.3.6",
+    "zod-to-json-schema": "^3.25.1"
+  },
+  "devDependencies": {
+    "@anthropic-ai/dxt": "^0.2.6",
+    "@modelcontextprotocol/inspector": "^0.19.0",
+    "@openapitools/openapi-generator-cli": "^2.28.0",
+    "@types/bun": "^1.3.8",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.2.0",
+    "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "openapi-typescript": "^7.10.1",
+    "prettier": "^3.8.1",
+    "supertest": "^7.2.2",
+    "typedoc": "^0.28.16",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "vitest-mock-extended": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  }
 }

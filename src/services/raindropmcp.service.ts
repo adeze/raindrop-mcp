@@ -121,34 +121,39 @@ export class RaindropMCPService {
   }
 
   constructor() {
-    this.raindropService = new RaindropService();
-    this.server = new McpServer({
-      name: "raindrop-mcp",
-      version: SERVER_VERSION,
-      description:
-        "MCP Server for Raindrop.io with advanced interactive capabilities",
-    });
-    this.registerDeclarativeTools();
-    this.registerResources();
-    this.registerResourceHandlers();
-    this.registerPromptHandlers();
+    try {
+      this.raindropService = new RaindropService();
+      this.server = new McpServer({
+        name: "raindrop-mcp",
+        version: SERVER_VERSION,
+        description:
+          "MCP Server for Raindrop.io with advanced interactive capabilities",
+      });
 
-    // CRITICAL: Re-register capabilities AFTER all initialization is complete
-    // The SDK's setResourceRequestHandlers() (called by registerResource) overwrites
-    // capabilities, so we must re-register here to ensure subscribe:true is preserved
-    this.server.server.registerCapabilities({
-      logging: {},
-      resources: { subscribe: true, listChanged: true },
-      prompts: { listChanged: true },
-      tools: { listChanged: true },
-      experimental: {
-        elicitation: {
-          supported: true,
-          description:
-            "Destructive and ambiguous actions require confirmation or clarification.",
+      // CRITICAL: Register capabilities FIRST before registering handlers
+      // The SDK needs to know what capabilities are enabled before setting handlers
+      this.server.server.registerCapabilities({
+        logging: {},
+        resources: { subscribe: true, listChanged: true },
+        prompts: { listChanged: true },
+        tools: { listChanged: true },
+        experimental: {
+          elicitation: {
+            supported: true,
+            description:
+              "Destructive and ambiguous actions require confirmation or clarification.",
+          },
         },
-      },
-    });
+      });
+
+      this.registerDeclarativeTools();
+      this.registerResources();
+      this.registerResourceHandlers();
+      this.registerPromptHandlers();
+    } catch (err) {
+      console.error("Failed to initialize RaindropMCPService:", err);
+      throw err;
+    }
   }
 
   private asyncHandler<T extends (...args: any[]) => Promise<any>>(fn: T): T {
@@ -172,9 +177,6 @@ export class RaindropMCPService {
             .replace(/\b\w/g, (l) => l.toUpperCase()),
           description: config.description,
           inputSchema: (config.inputSchema as z.ZodObject<any>).shape,
-          _meta: {
-            execution: config.execution || { taskSupport: "forbidden" },
-          },
         },
         this.asyncHandler(async (args: any, extra: any) =>
           config.handler(args, {
