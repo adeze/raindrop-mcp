@@ -12,6 +12,9 @@ export interface ToolConfig<I = unknown, O = unknown> {
   inputSchema: z.ZodTypeAny;
   outputSchema?: z.ZodTypeAny;
   handler: (args: I, context: ToolHandlerContext) => Promise<O>;
+  execution?: {
+    taskSupport?: "supported" | "forbidden";
+  };
 }
 
 export type McpContent =

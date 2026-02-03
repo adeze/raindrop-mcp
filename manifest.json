@@ -1,7 +1,7 @@
 {
   "dxt_version": "0.1",
   "name": "@adeze/raindrop-mcp",
-  "version": "2.1.2",
+  "version": "2.2.1",
   "description": "MCP Server for Raindrop.io",
   "author": {
     "name": "Adam E"
@@ -13,9 +13,7 @@
     "entry_point": "build/index.js",
     "mcp_config": {
       "command": "node",
-      "args": [
-        "${__dirname}/build/index.js"
-      ],
+      "args": ["build/index.js"],
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${user_config.api_key}"
       }
@@ -30,12 +28,7 @@
       "sensitive": true
     }
   },
-  "keywords": [
-    "raindrop.io",
-    "raindrop",
-    "bookmarks",
-    "productivity"
-  ],
+  "keywords": ["raindrop.io", "raindrop", "bookmarks", "productivity"],
   "license": "MIT",
   "repository": {
     "type": "git",

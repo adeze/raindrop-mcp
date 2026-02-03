@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { defineTool } from "./common.js";
 import type { ToolHandlerContext } from "./common.js";
+import { defineTool } from "./common.js";
 
 const BulkEditRaindropsInputSchema = z.object({
   collectionId: z.number().describe("Collection to update raindrops in"),
@@ -45,6 +45,9 @@ const bulkEditRaindropsTool = defineTool({
     "Bulk update tags, favorite status, media, cover, or move bookmarks to another collection.",
   inputSchema: BulkEditRaindropsInputSchema,
   outputSchema: BulkEditRaindropsOutputSchema,
+  execution: {
+    taskSupport: "supported",
+  },
   handler: async (
     args: z.infer<typeof BulkEditRaindropsInputSchema>,
     _context?: ToolHandlerContext,

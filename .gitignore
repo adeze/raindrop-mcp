@@ -7,6 +7,10 @@ dist
 *.tgz
 build/
 
+# MCP build artifacts (intermediate and distribution)
+*.mcpb
+*.dxt
+
 # code coverage
 coverage
 *.lcov

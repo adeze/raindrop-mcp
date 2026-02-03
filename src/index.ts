@@ -9,15 +9,28 @@
  * @see StdioServerTransport
  */
 
-
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { config } from 'dotenv';
-import { RaindropMCPService } from './services/raindropmcp.service.js';
-import { createLogger } from './utils/logger.js';
+import { config } from "dotenv";
+import { RaindropMCPService } from "./services/raindropmcp.service.js";
+import { createLogger } from "./utils/logger.js";
 
 config({ quiet: true }); // Load .env file quietly
 
-const logger = createLogger('mcp-stdio');
+const logger = createLogger("mcp-stdio");
+
+// Validate required environment variables early to prevent silent crashes
+if (!process.env.RAINDROP_ACCESS_TOKEN) {
+  console.error(
+    "ERROR: RAINDROP_ACCESS_TOKEN environment variable is required",
+  );
+  console.error(
+    "Please set your Raindrop.io API token before starting the server.",
+  );
+  console.error(
+    "Visit https://app.raindrop.io/settings/integrations to generate a token.",
+  );
+  process.exit(1);
+}
 
 /**
  * Bootstraps the STDIO-based MCP server.
@@ -36,30 +49,30 @@ export async function main(): Promise<void> {
   const cleanup = raindropMCP.cleanup.bind(raindropMCP);
 
   await server.connect(transport);
-  logger.info('MCP server connected via STDIO transport');
+  logger.info("MCP server connected via STDIO transport");
 
   // Handle graceful shutdown on SIGINT
   process.on("SIGINT", async () => {
-    logger.info('Received SIGINT, shutting down gracefully');
+    logger.info("Received SIGINT, shutting down gracefully");
     try {
       await cleanup();
       await server.close();
-      logger.info('Server shut down completed');
+      logger.info("Server shut down completed");
     } catch (error) {
-      logger.error('Error during shutdown:', error);
+      logger.error("Error during shutdown:", error);
     }
     process.exit(0);
   });
 
   // Handle graceful shutdown on SIGTERM
   process.on("SIGTERM", async () => {
-    logger.info('Received SIGTERM, shutting down gracefully');
+    logger.info("Received SIGTERM, shutting down gracefully");
     try {
       await cleanup();
       await server.close();
-      logger.info('Server shut down completed');
+      logger.info("Server shut down completed");
     } catch (error) {
-      logger.error('Error during shutdown:', error);
+      logger.error("Error during shutdown:", error);
     }
     process.exit(0);
   });

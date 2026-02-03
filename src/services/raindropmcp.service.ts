@@ -1,20 +1,22 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
-  GetPromptRequestSchema,
-  ListPromptsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  type Prompt,
+    GetPromptRequestSchema,
+    ListPromptsRequestSchema,
+    ListResourcesRequestSchema,
+    ReadResourceRequestSchema,
+    SubscribeRequestSchema,
+    UnsubscribeRequestSchema,
+    type Prompt,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import pkg from "../../package.json";
 import { buildToolConfigs } from "../tools/index.js";
-import RaindropService from "./raindrop.service.js";
 import {
-  NotFoundError,
-  ValidationError,
-  UpstreamError,
+    NotFoundError,
+    UpstreamError,
+    ValidationError,
 } from "../types/mcpErrors.js";
+import RaindropService from "./raindrop.service.js";
 
 const SERVER_VERSION = pkg.version;
 
@@ -34,6 +36,7 @@ export class RaindropMCPService {
   private server: McpServer;
   public raindropService: RaindropService;
   private resources: Record<string, any> = {};
+  private resourceSubscriptions: Set<string> = new Set(); // Track resource subscriptions
   private prompts: Array<
     Prompt & {
       messages?: Array<{ role: string; content: string }>;
@@ -125,11 +128,19 @@ export class RaindropMCPService {
       description:
         "MCP Server for Raindrop.io with advanced interactive capabilities",
     });
+    this.registerDeclarativeTools();
+    this.registerResources();
+    this.registerResourceHandlers();
+    this.registerPromptHandlers();
+
+    // CRITICAL: Re-register capabilities AFTER all initialization is complete
+    // The SDK's setResourceRequestHandlers() (called by registerResource) overwrites
+    // capabilities, so we must re-register here to ensure subscribe:true is preserved
     this.server.server.registerCapabilities({
       logging: {},
-      resources: { subscribe: false, listChanged: true },
+      resources: { subscribe: true, listChanged: true },
       prompts: { listChanged: true },
-      tools: {},
+      tools: { listChanged: true },
       experimental: {
         elicitation: {
           supported: true,
@@ -138,10 +149,6 @@ export class RaindropMCPService {
         },
       },
     });
-    this.registerDeclarativeTools();
-    this.registerResources();
-    this.registerResourceHandlers();
-    this.registerPromptHandlers();
   }
 
   private asyncHandler<T extends (...args: any[]) => Promise<any>>(fn: T): T {
@@ -165,6 +172,9 @@ export class RaindropMCPService {
             .replace(/\b\w/g, (l) => l.toUpperCase()),
           description: config.description,
           inputSchema: (config.inputSchema as z.ZodObject<any>).shape,
+          _meta: {
+            execution: config.execution || { taskSupport: "forbidden" },
+          },
         },
         this.asyncHandler(async (args: any, extra: any) =>
           config.handler(args, {
@@ -225,6 +235,25 @@ export class RaindropMCPService {
       this.asyncHandler(async (request: any) => {
         const contents = await this.readResource(request.params.uri);
         return { contents };
+      }),
+    );
+
+    // Add resource subscription handlers for protocol 2025-11-25
+    this.server.server.setRequestHandler(
+      SubscribeRequestSchema,
+      this.asyncHandler(async (request: any) => {
+        const { uri } = request.params;
+        this.resourceSubscriptions.add(uri);
+        return {}; // Empty object indicates successful subscription
+      }),
+    );
+
+    this.server.server.setRequestHandler(
+      UnsubscribeRequestSchema,
+      this.asyncHandler(async (request: any) => {
+        const { uri } = request.params;
+        this.resourceSubscriptions.delete(uri);
+        return {}; // Empty object indicates successful unsubscription
       }),
     );
   }
