@@ -42,7 +42,7 @@ docs/
 # Environment files
 
 .env\*
-!.env.example
+.env.example
 
 # Lock files and dependencies manifest
 
@@ -56,6 +56,8 @@ yarn.lock
 
 _.dxt
 _.mcpb
+raindrop-mcp.mcpb
+.mcpbignore
 
 # Temp files
 
