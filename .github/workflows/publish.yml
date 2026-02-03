@@ -8,6 +8,7 @@ on:
 permissions:
   id-token: write
   contents: write
+  packages: write
 
 jobs:
   publish:
@@ -40,6 +41,11 @@ jobs:
 
       - name: Publish to npm (via Trusted Publisher)
         run: npm publish --provenance --access public
+
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish --registry=https://npm.pkg.github.com --access public
 
       - name: Create GitHub Release
         run: |
