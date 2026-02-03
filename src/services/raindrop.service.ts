@@ -1,15 +1,15 @@
 // Simple, clean openapi-fetch REST client
 import createClient from "openapi-fetch";
 import { RateLimiterMemory } from "rate-limiter-flexible";
+import {
+    AuthError,
+    NotFoundError,
+    RateLimitError,
+    UpstreamError,
+    ValidationError,
+} from "../types/mcpErrors.js";
 import type { components, paths } from "../types/raindrop.schema.js";
 import { createLogger } from "../utils/logger.js";
-import {
-  AuthError,
-  NotFoundError,
-  RateLimitError,
-  UpstreamError,
-  ValidationError,
-} from "../types/mcpErrors.js";
 
 type Bookmark = components["schemas"]["Bookmark"];
 type Collection = components["schemas"]["Collection"];
@@ -29,7 +29,9 @@ export default class RaindropService {
       },
     });
 
-    const points = Number(process.env.RAINDROP_RATE_LIMIT_POINTS || 60);
+    // Conservative rate limiting: 30 points per 60 seconds (2 requests/second max)
+    // Provides buffer for Raindrop.io's rate limits and reduces spikes
+    const points = Number(process.env.RAINDROP_RATE_LIMIT_POINTS || 30);
     const duration = Number(
       process.env.RAINDROP_RATE_LIMIT_DURATION_SECONDS || 60,
     );
@@ -65,27 +67,55 @@ export default class RaindropService {
     });
   }
 
-  private async withRateLimit<T>(fn: () => Promise<T>): Promise<T> {
+  private async withRateLimit<T>(
+    fn: () => Promise<T>,
+    retryCount = 0,
+  ): Promise<T> {
+    const maxRetries = 3;
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.consume("global");
       }
       return await fn();
     } catch (err: any) {
-      if (
-        err instanceof AuthError ||
-        err instanceof NotFoundError ||
-        err instanceof RateLimitError
-      ) {
+      // Non-retryable errors: auth, not found, validation
+      if (err instanceof AuthError || err instanceof NotFoundError) {
         throw err;
       }
+
+      // Handle rate limiter rejection (msBeforeNext is set by rate-limiter-flexible)
       if (err?.msBeforeNext !== undefined) {
         const retryMs = Math.max(0, Number(err.msBeforeNext));
+        const waitTimeMs = Math.min(retryMs + 500, 5000); // Add buffer, cap at 5s
+
+        if (retryCount < maxRetries) {
+          this.logger.warn(
+            `Rate limited, retrying in ${Math.ceil(waitTimeMs / 1000)}s (attempt ${retryCount + 1}/${maxRetries})`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, waitTimeMs));
+          return this.withRateLimit(fn, retryCount + 1);
+        }
+
         throw new RateLimitError(
-          `Rate limit exceeded, retry after ${Math.ceil(retryMs / 1000)}s`,
+          `Rate limit exceeded after ${maxRetries} retries. Retry after ${Math.ceil(retryMs / 1000)}s`,
           err,
         );
       }
+
+      // Retry transient upstream errors with exponential backoff
+      if (err instanceof UpstreamError && retryCount < maxRetries) {
+        const backoffMs = Math.min(500 * Math.pow(2, retryCount), 5000); // 500ms, 1s, 2s, capped at 5s
+        this.logger.warn(
+          `Transient error, retrying in ${Math.ceil(backoffMs / 1000)}s (attempt ${retryCount + 1}/${maxRetries}): ${err.message}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        return this.withRateLimit(fn, retryCount + 1);
+      }
+
+      if (err instanceof RateLimitError) {
+        throw err;
+      }
+
       throw err instanceof Error
         ? err
         : new UpstreamError("Unknown upstream error", err);
