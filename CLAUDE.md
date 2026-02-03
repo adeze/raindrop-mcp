@@ -6,7 +6,7 @@
 
 ### Version Information
 
-- **Current version**: 2.1.2
+- **Current version**: 2.3.0
 - **Node.js**: >=18.0.0 required
 - **Bun**: >=1.0.0 required
 - **MCP SDK**: ^1.25.3
@@ -16,7 +16,7 @@
 - ✅ **Full MCP Protocol Compliance**: Implements MCP SDK v1.25.3 with proper tool/resource registration
 - ✅ **Dynamic Resource System**: Access any collection or bookmark by ID without pre-registration
 - ✅ **Real-time API Data**: Resources fetch live data from Raindrop.io APIs on-demand
-- ✅ **Comprehensive Testing**: 11 test cases with real API validation
+- ✅ **Comprehensive Testing**: 45 tests with real API validation
 - ✅ **Type Safety**: Full TypeScript implementation with Zod validation schemas
 
 ## External References
@@ -50,12 +50,12 @@ npx @adeze/raindrop-mcp@latest
 - **Production**: `bun run start:prod` (from build) or `bun run run` (CLI executable)
 - **HTTP Server**: `bun run start:http` (starts HTTP transport on port 3002)
 - **Type checking**: `bun run type-check`
-- **Testing**: `bun run test` or `bun run test:coverage`
+- **Testing**: `bun run test`, `bun run test:coverage`, `bun run test:e2e`
 - **Building**: `bun run build` (creates build/ directory with index.js and server.js)
 - **Debugging**:
   - MCP Inspector STDIO: `bun run inspector`
   - MCP Inspector HTTP: `bun run inspector:http-server`
-- **Maintenance**: `bun run clean` (removes build/), `bun run dxt:pack` (creates DXT package)
+- **Maintenance**: `bun run clean` (removes build/), `bun run mcpb:pack` (creates MCPB bundle)
 - **Versioning**: `bun run bump:patch|minor|major`
 
 ### MCP Configuration
@@ -114,10 +114,10 @@ Add to your `.mcp.json` file:
 
 **Smithery Configuration**: This project includes a `smithery.yaml` configuration file for [Smithery](https://smithery.ai/), which allows easy discovery and installation of MCP servers.
 
-**DXT Package**: The project can be packaged as a DXT (Developer Extension) for easy distribution:
+**MCPB Bundle**: The project is packaged as an MCP Bundle (MCPB) for distribution:
 
-- Build DXT: `bun run dxt:pack`
-- Package includes CLI executable and HTTP server
+- Build MCPB: `bun run mcpb:pack`
+- Bundle includes CLI executable and HTTP server
 - Configurable via `manifest.json` with user-friendly API key setup
 
 ## Architecture
@@ -127,7 +127,6 @@ Add to your `.mcp.json` file:
 ```
 src/
 ├── index.ts                    # STDIO server entry point
-├── cli.ts                      # CLI executable entry point
 ├── server.ts                   # HTTP server entry point (port 3002)
 ├── services/
 │   ├── raindrop.service.ts     # Core Raindrop.io API client
@@ -160,7 +159,7 @@ The main MCP server implementation that wraps the MCP SDK:
 **Tool Management:**
 
 - **Declarative Configuration**: Tools defined using `ToolConfig` interfaces with Zod schemas
-- **Currently Registered**: 9 active tools covering diagnostics, collections, bookmarks, tags, and highlights
+- **Currently Registered**: 10 active tools covering diagnostics, collections, bookmarks, tags, and highlights
 - **Dynamic Discovery**: `listTools()` method returns all available tools with metadata
 
 **Public API Methods:**
@@ -196,11 +195,10 @@ Optimized Raindrop.io API client with 25-30% code reduction through:
 
 - **STDIO server** (`src/index.ts`): Standard MCP protocol over stdin/stdout
 - **HTTP server** (`src/server.ts`): Web-based MCP protocol (port 3002)
-- **CLI executable** (`src/cli.ts`): Direct command-line usage
 
 ## Tools and Resources
 
-### Currently Registered Tools (9 tools)
+### Currently Registered Tools (10 tools)
 
 #### **System & Diagnostics (1 tool)**
 
@@ -208,12 +206,12 @@ Optimized Raindrop.io API client with 25-30% code reduction through:
 
 #### **Collection Management (2 tools)**
 
-- `collection_list` - List all collections for the authenticated user (returns resource links)
+- `collection_list` - List all collections for the authenticated user (returns `resource` content)
 - `collection_manage` - Create, update, or delete collections with operation parameter
 
 #### **Bookmark Management (2 tools)**
 
-- `bookmark_search` - Search bookmarks with advanced filtering (returns resource links)
+- `bookmark_search` - Search bookmarks with advanced filtering (returns `resource` content)
 - `bookmark_manage` - Create, update, or delete bookmarks with operation parameter
 
 #### **Tag Management (1 tool)**
@@ -332,7 +330,7 @@ Current tests validate against real API responses:
 - `.env` - Environment variables (API tokens)
 - `raindrop.yaml` - OpenAPI specification
 - `smithery.yaml` - Smithery configuration
-- `manifest.json` - DXT manifest
+- `manifest.json` - MCPB manifest
 - `LOGGING_DIAGNOSTICS.md` - Logging documentation
 
 ### Future Tool Expansion

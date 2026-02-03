@@ -20,12 +20,12 @@ export interface ToolConfig<I = unknown, O = unknown> {
 export type McpContent =
   | { type: "text"; text: string; _meta?: Record<string, unknown> }
   | {
-      type: "resource_link";
-      name: string;
-      uri: string;
-      description: string;
-      mimeType: string;
-      _meta?: Record<string, unknown>;
+      type: "resource";
+      resource: {
+        uri: string;
+        mimeType?: string;
+        text?: string;
+      };
     };
 
 export const defineTool = <I, O>(config: ToolConfig<I, O>) => config;
@@ -36,21 +36,40 @@ export const textContent = (text: string): McpContent => ({
 });
 
 export const makeCollectionLink = (collection: any): McpContent => ({
-  type: "resource_link",
-  uri: `mcp://collection/${collection._id}`,
-  name: collection.title || "Untitled Collection",
-  description:
-    collection.description ||
-    `Collection with ${collection.count || 0} bookmarks`,
-  mimeType: "application/json",
+  type: "resource",
+  resource: {
+    uri: `mcp://collection/${collection._id}`,
+    mimeType: "application/json",
+    text: JSON.stringify(
+      {
+        _id: collection._id,
+        title: collection.title || "Untitled Collection",
+        count: collection.count || 0,
+        description: collection.description,
+      },
+      null,
+      2,
+    ),
+  },
 });
 
 export const makeBookmarkLink = (bookmark: any): McpContent => ({
-  type: "resource_link",
-  uri: `mcp://raindrop/${bookmark._id}`,
-  name: bookmark.title || "Untitled",
-  description: bookmark.excerpt || "No description",
-  mimeType: "application/json",
+  type: "resource",
+  resource: {
+    uri: `mcp://raindrop/${bookmark._id}`,
+    mimeType: "application/json",
+    text: JSON.stringify(
+      {
+        _id: bookmark._id,
+        title: bookmark.title || "Untitled",
+        link: bookmark.link,
+        excerpt: bookmark.excerpt,
+        tags: bookmark.tags,
+      },
+      null,
+      2,
+    ),
+  },
 });
 
 export const setIfDefined = (

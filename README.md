@@ -18,7 +18,7 @@ This project provides a Model Context Protocol (MCP) server for interacting with
 - **Import/Export**: Initiate and check the status of bookmark imports and exports.
 - **Trash Management**: Empty the trash.
 - **MCP Compliance**: Exposes Raindrop.io functionalities as MCP resources and tools.
-- **Optimized Tools**: Enhanced tool structure with 9 core tools using modern `resource_link` patterns for efficient data access.
+- **Optimized Tools**: Enhanced tool structure with 10 core tools using modern `resource` content for efficient data access.
 - **AI-Friendly Interface**: Clear naming conventions and comprehensive parameter documentation.
 - **Streaming Support**: Provides real-time SSE (Server-Sent Events) endpoints for streaming bookmark updates.
 - **Built with TypeScript**: Strong typing for better maintainability.
@@ -127,9 +127,9 @@ Connect your MCP client (like an LLM agent) to the running server process via st
 ### **Available Tools (10 total):**
 
 - **diagnostics** - Server diagnostic information
-- **collection_list** - List all collections (returns `resource_link` to individual collections)
+- **collection_list** - List all collections (returns `resource` content for collections)
 - **collection_manage** - Create, update, or delete collections
-- **bookmark_search** - Search bookmarks (returns `resource_link` to individual bookmarks)
+- **bookmark_search** - Search bookmarks (returns `resource` content for bookmarks)
 - **bookmark_manage** - Create, update, or delete bookmarks
 - **tag_manage** - Rename, merge, or delete tags
 - **highlight_manage** - Create, update, or delete highlights
@@ -199,7 +199,7 @@ Returns a text message indicating success and the number of modified bookmarks.
 }
 ```
 
-The modern tools use the efficient `resource_link` pattern - they return lightweight links to resources instead of full data, allowing clients to fetch complete data only when needed via the dynamic resource URIs.
+The modern tools use MCP `resource` content - they return resource payloads with embedded JSON text so clients can fetch or reuse data consistently via dynamic resource URIs.
 
 ### MCP Configuration
 
@@ -275,11 +275,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **DXT Manifest:** Automated packaging and release via GitHub CLI.
 - **Continuous Integration:** Version tagging and manifest publishing are fully automated.
 
-## 📋 Recent Enhancements (v2.1.2)
+## 📋 Recent Enhancements (v2.3.0)
 
 ### **MCP Resource Links Implementation** ✨ NEW
 
-- **Modern `resource_link` pattern** following MCP SDK v1.25.3 best practices
+- **Modern `resource` content** following MCP SDK v1.25.3 best practices
 - **Efficient data access** - tools return lightweight links instead of full data payloads
 - **Better performance** - clients fetch full bookmark/collection data only when needed
 - **Seamless integration** with existing dynamic resource system (`mcp://raindrop/{id}`)
@@ -293,7 +293,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### **Tool Optimization**
 
-- **Resource-efficient responses** - bookmark/collection lists return `resource_link` objects
+- **Resource-efficient responses** - bookmark/collection lists return `resource` objects
 - **Dynamic resource access** - `mcp://collection/{id}` and `mcp://raindrop/{id}` patterns
 - **Better UX** - clients can display lists without loading full data
 - **MCP compliance** - follows official SDK patterns and examples

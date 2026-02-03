@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { ValidationError } from "../types/mcpErrors.js";
 import {
-  TagInputSchema,
-  TagOutputSchema,
+    TagInputSchema,
+    TagOutputSchema,
 } from "../types/raindrop-zod.schemas.js";
-import { defineTool } from "./common.js";
 import type { ToolHandlerContext } from "./common.js";
+import { defineTool } from "./common.js";
 
 const tagManageTool = defineTool({
   name: "tag_manage",
@@ -19,10 +20,10 @@ const tagManageTool = defineTool({
     switch (args.operation) {
       case "rename": {
         if (!args.tagNames || !args.newName)
-          throw new Error("tagNames and newName required for rename");
+          throw new ValidationError("tagNames and newName required for rename");
         const [primaryTag] = args.tagNames;
         if (!primaryTag)
-          throw new Error("tagNames must include at least one value");
+          throw new ValidationError("tagNames must include at least one value");
         return raindropService.renameTag(
           args.collectionId,
           primaryTag,
@@ -31,7 +32,7 @@ const tagManageTool = defineTool({
       }
       case "merge": {
         if (!args.tagNames || !args.newName)
-          throw new Error("tagNames and newName required for merge");
+          throw new ValidationError("tagNames and newName required for merge");
         return raindropService.mergeTags(
           args.collectionId,
           args.tagNames,
@@ -39,11 +40,14 @@ const tagManageTool = defineTool({
         );
       }
       case "delete": {
-        if (!args.tagNames) throw new Error("tagNames required for delete");
+        if (!args.tagNames)
+          throw new ValidationError("tagNames required for delete");
         return raindropService.deleteTags(args.collectionId, args.tagNames);
       }
       default:
-        throw new Error(`Unsupported operation: ${String(args.operation)}`);
+        throw new ValidationError(
+          `Unsupported operation: ${String(args.operation)}`,
+        );
     }
   },
 });

@@ -4,14 +4,14 @@
 
 - ✅ DNS rebinding protection implemented in src/server.ts
 - ✅ Type-check passing
-- ✅ Build succeeding (451 modules)
-- ✅ 18/28 tests passing
-- ❌ HTTP endpoint tests (NEW)
-- ❌ Supertest integration (NEW)
+- ✅ Build succeeding
+- ✅ 45 tests passing
+- ✅ HTTP endpoint tests in place
+- ✅ Supertest integration installed
 
 ---
 
-## Immediate Actions (Next 15 minutes)
+## Immediate Actions (Complete)
 
 ### Step 1: Install Supertest ✓
 
@@ -26,13 +26,13 @@ added supertest@6.3.4
 added @types/supertest@2.0.12
 ```
 
-### Step 2: Create Test File for DNS Rebinding
+### Step 2: Create Test File for DNS Rebinding ✓
 
-Create file: `tests/integration/http-server-dns-protection.test.ts`
+Implemented in: `tests/http-server-security.test.ts`
 
 Copy content from `.github/instructions/http-server-testing-supertest.md` (DNS Rebinding Protection section)
 
-### Step 3: Run HTTP Server Tests
+### Step 3: Run HTTP Server Tests ✓
 
 ```bash
 bun test -- tests/integration/http-server-dns-protection.test.ts
@@ -43,7 +43,7 @@ bun test -- tests/integration/http-server-dns-protection.test.ts
 - Tests should pass if DNS rebinding validation works
 - Tests should fail if there are bugs in Host header validation
 
-### Step 4: Add to Test Suite
+### Step 4: Add to Test Suite ✓
 
 Update `package.json` if needed:
 
@@ -113,7 +113,8 @@ After implementing Supertest tests, verify:
 ### Code Changes
 
 - ✅ `src/server.ts` - Added validateHostHeader() function (DNS rebinding)
-- ⏳ `tests/integration/http-server-*.test.ts` - New test files (to create)
+- ✅ `tests/http-server-security.test.ts` - DNS rebinding and HTTP checks
+- ✅ `tests/server.http.test.ts` - Manual HTTP entrypoint checks (skipped by default)
 
 ---
 

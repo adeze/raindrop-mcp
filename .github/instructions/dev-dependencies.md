@@ -278,7 +278,7 @@ Automate semantic versioning and changelog generation.
 - Automates version bumps based on commit messages
 - Integrates with GitHub releases and npm
 - Generates CHANGELOG.md from conventional commits
-- Used by `bun run release:dxt` workflow
+- Used by `bun run release:mcpb` workflow
 
 **Current Setup:**
 

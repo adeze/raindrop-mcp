@@ -1,15 +1,16 @@
 import { z } from "zod";
+import { ValidationError } from "../types/mcpErrors.js";
 import {
-  CollectionManageInputSchema,
-  CollectionOutputSchema,
+    CollectionManageInputSchema,
+    CollectionOutputSchema,
 } from "../types/raindrop-zod.schemas.js";
-import {
-  defineTool,
-  makeCollectionLink,
-  setIfDefined,
-  textContent,
-} from "./common.js";
 import type { ToolHandlerContext } from "./common.js";
+import {
+    defineTool,
+    makeCollectionLink,
+    setIfDefined,
+    textContent,
+} from "./common.js";
 
 const CollectionListInputSchema = z.object({});
 
@@ -61,11 +62,12 @@ const collectionManageTool = defineTool({
   ) => {
     switch (args.operation) {
       case "create": {
-        if (!args.title) throw new Error("title is required for create");
+        if (!args.title)
+          throw new ValidationError("title is required for create");
         return raindropService.createCollection(args.title);
       }
       case "update": {
-        if (!args.id) throw new Error("id is required for update");
+        if (!args.id) throw new ValidationError("id is required for update");
         const updatePayload: Record<string, unknown> = {};
         setIfDefined(updatePayload, "title", args.title);
         setIfDefined(updatePayload, "color", args.color);
@@ -73,12 +75,14 @@ const collectionManageTool = defineTool({
         return raindropService.updateCollection(args.id, updatePayload as any);
       }
       case "delete": {
-        if (!args.id) throw new Error("id is required for delete");
+        if (!args.id) throw new ValidationError("id is required for delete");
         await raindropService.deleteCollection(args.id);
         return { deleted: true };
       }
       default:
-        throw new Error(`Unsupported operation: ${String(args.operation)}`);
+        throw new ValidationError(
+          `Unsupported operation: ${String(args.operation)}`,
+        );
     }
   },
 });

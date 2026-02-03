@@ -14,20 +14,20 @@
 
 ---
 
-## The MCP Testing Reality (2024)
+## The MCP Testing Reality (2026)
 
 | Testing Need         | Solution                            | Status           | Your Project     |
 | -------------------- | ----------------------------------- | ---------------- | ---------------- |
 | Unit testing tools   | Vitest + mocks                      | Stable           | ✅ Already using |
 | Protocol testing     | InMemoryTransport                   | Official         | ✅ Already using |
 | Manual validation    | MCP Inspector                       | Official         | ✅ Already using |
-| HTTP testing         | Supertest                           | Proven (Node.js) | ⏳ Add this      |
+| HTTP testing         | Supertest                           | Proven (Node.js) | ✅ Already using |
 | Advanced mocking     | vitest-mock-extended                | Optional         | ❌ Skip for now  |
 | Performance testing  | autocannon                          | Optional         | ❌ Skip for now  |
-| MCP-specific helpers | None exist yet                      | N/A              | N/A              |
+| MCP-specific helpers | MCPJam SDK                          | Available        | ✅ Optional      |
 | v2 test config       | @modelcontextprotocol/vitest-config | Pre-alpha        | ⏳ Wait for v2   |
 
-**Bottom line:** You already have the best setup. Supertest is the only worthwhile addition.
+**Bottom line:** You already have the best setup. MCPJam SDK adds optional integration/LLM tests.
 
 ---
 
@@ -77,9 +77,9 @@
 
 ---
 
-## What's Missing (And Why Supertest Helps)
+## What's Covered (And Why It Matters)
 
-### Current Gap: HTTP Testing
+### HTTP Testing (Covered)
 
 Your HTTP server (`src/server.ts`) handles:
 
@@ -109,7 +109,7 @@ const res = await request(server)
   .expect(403); // Verify DNS rebinding works
 ```
 
-**Install:** `bun add -D supertest @types/supertest` (30 seconds)
+**Status:** Implemented in `tests/http-server-security.test.ts` and `tests/server.http.test.ts`.
 
 ---
 
@@ -171,10 +171,10 @@ test('POST /mcp responds with correct status', async () => {
 
 ### Phase 0 (Right Now) ✅
 
-- Review existing tests (18/28 passing)
+- Review existing tests (45 passing)
 - Understand what's already covered
 
-### Phase 1 (10 minutes) ⏳
+### Phase 1 (10 minutes) ✅
 
 ```bash
 bun add -D supertest @types/supertest

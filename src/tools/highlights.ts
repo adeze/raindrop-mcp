@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { ValidationError } from "../types/mcpErrors.js";
 import {
-  HighlightInputSchema,
-  HighlightOutputSchema,
+    HighlightInputSchema,
+    HighlightOutputSchema,
 } from "../types/raindrop-zod.schemas.js";
-import { defineTool, setIfDefined } from "./common.js";
 import type { ToolHandlerContext } from "./common.js";
+import { defineTool, setIfDefined } from "./common.js";
 
 const HighlightManageInputSchema = HighlightInputSchema.extend({
   operation: z.enum(["create", "update", "delete"]),
@@ -24,7 +25,7 @@ const highlightManageTool = defineTool({
     switch (args.operation) {
       case "create": {
         if (!args.bookmarkId || !args.text)
-          throw new Error("bookmarkId and text required for create");
+          throw new ValidationError("bookmarkId and text required for create");
         const createPayload: Record<string, unknown> = { text: args.text };
         setIfDefined(createPayload, "note", args.note);
         setIfDefined(createPayload, "color", args.color);
@@ -34,7 +35,7 @@ const highlightManageTool = defineTool({
         );
       }
       case "update": {
-        if (!args.id) throw new Error("id required for update");
+        if (!args.id) throw new ValidationError("id required for update");
         const updatePayload: Record<string, unknown> = {};
         setIfDefined(updatePayload, "text", args.text);
         setIfDefined(updatePayload, "note", args.note);
@@ -42,12 +43,14 @@ const highlightManageTool = defineTool({
         return raindropService.updateHighlight(args.id, updatePayload as any);
       }
       case "delete": {
-        if (!args.id) throw new Error("id required for delete");
+        if (!args.id) throw new ValidationError("id required for delete");
         await raindropService.deleteHighlight(args.id);
         return { deleted: true };
       }
       default:
-        throw new Error(`Unsupported operation: ${String(args.operation)}`);
+        throw new ValidationError(
+          `Unsupported operation: ${String(args.operation)}`,
+        );
     }
   },
 });

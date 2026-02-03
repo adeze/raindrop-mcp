@@ -25,7 +25,7 @@ Deliver production-ready enhancements to the Raindrop MCP server while preservin
   - `mcp-inspector/SKILL.md` - Protocol inspection and debugging
   - `mcp-refactoring/SKILL.md` - Tool refactoring for LLM optimization
   - `mcp-testing/SKILL.md` - Testing strategies with Vitest and Inspector
-  - `dxt-packaging/SKILL.md` - Desktop Extension packaging and distribution
+  - `dxt-packaging/SKILL.md` - MCPB packaging and distribution (legacy DXT references)
   - `publishing/SKILL.md` - Publishing and release workflows
 - Sort imports: external → internal
 - Use async/await consistently
@@ -52,6 +52,7 @@ bun run dev:http         # HTTP server on :3002
 # Testing & Quality
 bun run test             # Run all tests
 bun run test:coverage    # With coverage report
+bun run test:e2e         # MCPJam integration tests (requires build + token)
 bun run type-check       # TypeScript validation
 
 # Building & Running
@@ -73,8 +74,8 @@ bun run bun:update                 # Conservative updates
 
 # Release & Distribution
 bun run bump:patch|minor|major    # Bump version
-bun run dxt:pack                  # Package DXT bundle
-bun run release:dxt               # Create GitHub release
+bun run mcpb:pack                 # Package MCPB bundle
+bun run release:mcpb              # Create GitHub release
 bun run tag:version               # Tag & push version
 ```
 
@@ -96,7 +97,7 @@ bun run tag:version               # Tag & push version
 
 - **Centralized Management**: Tool registration and resource handling in `RaindropMCPService`
 - **Dynamic Resources**: `mcp://collection/{id}`, `mcp://raindrop/{id}` fetch live data via `RaindropService`
-- **Resource Links**: Tools use `resource_link` patterns for efficient data access
+- **Resource Content**: Tools emit `resource` content with `uri`, `mimeType`, and embedded JSON `text`
 - **Authentication**: Requires `RAINDROP_ACCESS_TOKEN` environment variable (never hard-code)
 
 ## Documentation & Release Process
@@ -113,7 +114,7 @@ bun run tag:version               # Tag & push version
 1. Run `bun run type-check` and `bun run test` (all passing)
 2. Update version in documentation if needed
 3. Ensure manifest parity across STDIO/HTTP entry points
-4. Build and test DXT package: `bun run dxt:pack`
+4. Build and test MCPB package: `bun run mcpb:pack`
 5. Bump version: `bun run bump:patch|minor|major`
-6. Create release: `bun run release:dxt`
+6. Create release: `bun run release:mcpb`
 7. Note any manual test steps or breaking changes

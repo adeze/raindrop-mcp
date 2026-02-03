@@ -1,26 +1,33 @@
 {
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "raindrop-key",
-      "description": "Raindrop Access Token",
-      "password": true
-    }
-  ],
-
-  "servers": {
-    "raindrop": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["build/index.js"],
-      "envFile": "${workspaceFolder}/.env",
-      "env": {
-        "RAINDROP_ACCESS_TOKEN": "${input:raindrop-key}"
-      },
-      "dev": {
-        "watch": "build/**/*.js",
-        "debug": { "type": "node" }
-      }
-    }
-  }
+	"servers": {
+		"raindrop": {
+			"type": "stdio",
+			"command": "node",
+			"args": [
+				"build/index.js"
+			],
+			"envFile": "${workspaceFolder}/.env",
+			"env": {
+				"RAINDROP_ACCESS_TOKEN": "${input:raindrop-key}"
+			},
+			"dev": {
+				"watch": "build/**/*.js",
+				"debug": {
+					"type": "node"
+				}
+			}
+		},
+		"MCPJam Inspector": {
+			"url": "https://docs.mcpjam.com/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "raindrop-key",
+			"description": "Raindrop Access Token",
+			"password": true
+		}
+	]
 }

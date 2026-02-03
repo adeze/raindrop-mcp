@@ -72,7 +72,7 @@ const bulkEditRaindropsTool = defineTool({
       errorMessage?: string;
       modified?: number;
     };
-    if (!result.result) {
+    if (!result.Upstreamresult) {
       throw new Error(result.errorMessage || "Bulk edit failed");
     }
 

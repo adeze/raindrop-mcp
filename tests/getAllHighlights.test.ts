@@ -1,39 +1,29 @@
-
-import axios from 'axios';
-import { config } from 'dotenv';
-import { describe, expect, it } from 'vitest';
+import { config } from "dotenv";
+import { describe, expect, it } from "vitest";
+import RaindropService from "../src/services/raindrop.service.js";
 
 config();
-const raindropAccessToken = process.env.RAINDROP_ACCESS_TOKEN;
 
-
-
-describe('.env configuration', () => {
-  it('should load RAINDROP_ACCESS_TOKEN from environment variables and emit its value', () => {
+describe(".env configuration", () => {
+  it("should load RAINDROP_ACCESS_TOKEN from environment variables", () => {
     const accessToken = process.env.RAINDROP_ACCESS_TOKEN;
-  
-    // Emit the value for debugging (will show in Vitest output if test fails)
-    expect(accessToken, `RAINDROP_ACCESS_TOKEN value: ${accessToken}`).toBeDefined();
+    expect(accessToken).toBeDefined();
+    expect(typeof accessToken).toBe("string");
   });
 });
 
-describe('Raindrop API Integration', () => {
-  it('fetches highlights from the API', async () => {
-    if (!raindropAccessToken) {
-      throw new Error('RAINDROP_ACCESS_TOKEN environment variable is required. Please check your .env file or environment settings.');
+describe("Raindrop Highlights API", () => {
+  it("fetches highlights from the API using RaindropService", async () => {
+    if (!process.env.RAINDROP_ACCESS_TOKEN) {
+      console.warn("Skipping test: RAINDROP_ACCESS_TOKEN not set");
+      return;
     }
 
-    const api = axios.create({
-      baseURL: 'https://api.raindrop.io/rest/v1',
-      headers: {
-        Authorization: `Bearer ${raindropAccessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const service = new RaindropService();
+    const highlights = await service.getAllHighlights();
 
-    const userHighlightsResponse = await api.get('/highlights');
-    expect(userHighlightsResponse.status).toBe(200);
-    expect(userHighlightsResponse.data).toHaveProperty('items');
-    expect(Array.isArray(userHighlightsResponse.data.items)).toBe(true);
+    expect(highlights).toBeDefined();
+    expect(Array.isArray(highlights)).toBe(true);
+    // Highlights array may be empty if user has no highlights
   });
 });

@@ -1,16 +1,16 @@
 import { z } from "zod";
+import { ValidationError } from "../types/mcpErrors.js";
 import {
-  BookmarkInputSchema,
-  BookmarkOutputSchema,
-  CollectionManageInputSchema,
+    BookmarkInputSchema,
+    BookmarkOutputSchema
 } from "../types/raindrop-zod.schemas.js";
-import {
-  defineTool,
-  makeBookmarkLink,
-  setIfDefined,
-  textContent,
-} from "./common.js";
 import type { ToolHandlerContext } from "./common.js";
+import {
+    defineTool,
+    makeBookmarkLink,
+    setIfDefined,
+    textContent,
+} from "./common.js";
 
 const BookmarkSearchInputSchema = z.object({
   search: z.string().optional().describe("Full-text search query"),
@@ -120,7 +120,7 @@ const bookmarkManageTool = defineTool({
         );
       }
       case "update": {
-        if (!args.id) throw new Error("id is required for update");
+        if (!args.id) throw new ValidationError("id is required for update");
         const updatePayload: Record<string, unknown> = {
           link: args.url,
           title: args.title,
@@ -131,12 +131,14 @@ const bookmarkManageTool = defineTool({
         return raindropService.updateBookmark(args.id, updatePayload as any);
       }
       case "delete": {
-        if (!args.id) throw new Error("id is required for delete");
+        if (!args.id) throw new ValidationError("id is required for delete");
         await raindropService.deleteBookmark(args.id);
         return { deleted: true };
       }
       default:
-        throw new Error(`Unsupported operation: ${String(args.operation)}`);
+        throw new ValidationError(
+          `Unsupported operation: ${String(args.operation)}`,
+        );
     }
   },
 });

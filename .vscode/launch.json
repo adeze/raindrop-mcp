@@ -21,6 +21,15 @@
         "${workspaceFolder}/build/index.js"
       ],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug MCPJam Integration Tests",
+      "runtimeExecutable": "bun",
+      "args": ["test", "tests/mcpjam.integration.test.ts"],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }

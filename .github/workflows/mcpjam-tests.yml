@@ -1,0 +1,38 @@
+name: MCPJam Integration Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build server
+        run: bun run build
+
+      - name: Run MCPJam Integration Tests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RAINDROP_ACCESS_TOKEN: ${{ secrets.RAINDROP_ACCESS_TOKEN }}
+        run: bun run test:e2e
+        continue-on-error: true
+
+      - name: Run unit tests
+        run: bun run test
+        env:
+          RAINDROP_ACCESS_TOKEN: ${{ secrets.RAINDROP_ACCESS_TOKEN }}

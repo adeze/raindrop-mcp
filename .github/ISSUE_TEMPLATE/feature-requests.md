@@ -33,7 +33,7 @@ labels: enhancement
 - [ ] Declarative Tool Registration (centralized config, zod schemas)
 - [ ] Pagination & Sampling for large lists
 - [ ] Resource Linking (collections → bookmarks, bookmarks → highlights)
-- [ ] DXT Manifest & Inspector Integration improvements
+- [ ] MCPB Manifest & Inspector Integration improvements
 
 ---
 

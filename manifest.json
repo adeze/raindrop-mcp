@@ -1,11 +1,15 @@
 {
   "manifest_version": "0.3",
   "name": "@adeze/raindrop-mcp",
-  "version": "2.2.1",
-  "description": "MCP Server for Raindrop.io",
+  "display_name": "Raindrop.io MCP Server",
+  "version": "2.3.0",
+  "description": "MCP Server for Raindrop.io bookmark management",
+  "long_description": "This Model Context Protocol server provides comprehensive access to Raindrop.io bookmarking service. Features include: CRUD operations for collections and bookmarks, advanced search with filters, tag management (rename, merge, delete), text highlights retrieval, collection organization, file uploads, reminders, import/export, and trash management. Fully MCP-compliant with resources, tools, and prompts for AI assistants.",
   "author": {
     "name": "Adam E"
   },
+  "homepage": "https://github.com/adeze/raindrop-mcp",
+  "documentation": "https://github.com/adeze/raindrop-mcp#readme",
   "support": "https://github.com/adeze/raindrop-mcp/issues",
   "icon": "icon_128.png",
   "server": {
@@ -13,22 +17,96 @@
     "entry_point": "build/index.js",
     "mcp_config": {
       "command": "node",
-      "args": ["build/index.js"],
+      "args": ["${__dirname}/build/index.js"],
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${user_config.api_key}"
       }
+    }
+  },
+  "tools": [
+    {
+      "name": "bookmark_search",
+      "description": "Search bookmarks with filters (tags, domain, type, date range)"
+    },
+    {
+      "name": "bookmark_manage",
+      "description": "Create, update, or delete bookmarks"
+    },
+    {
+      "name": "getRaindrop",
+      "description": "Get a single bookmark by ID"
+    },
+    {
+      "name": "listRaindrops",
+      "description": "List bookmarks in a collection"
+    },
+    {
+      "name": "bulk_edit_raindrops",
+      "description": "Bulk edit multiple bookmarks at once"
+    },
+    {
+      "name": "collection_list",
+      "description": "List all collections"
+    },
+    {
+      "name": "collection_manage",
+      "description": "Create, update, or delete collections"
+    },
+    {
+      "name": "highlight_manage",
+      "description": "Get, create, or delete text highlights"
+    },
+    {
+      "name": "tag_manage",
+      "description": "Rename, merge, or delete tags"
+    },
+    {
+      "name": "diagnostics",
+      "description": "Get server diagnostics and configuration"
+    }
+  ],
+  "tools_generated": false,
+  "prompts": [
+    {
+      "name": "organize_by_topic",
+      "description": "Analyze bookmarks and suggest collections and tags for organization",
+      "text": "You are a bookmarking assistant that organizes Raindrop.io items by topic and intent. Given a list of bookmarks, propose a target collection and 3-6 tags per item. Propose concise collection moves and tag sets."
+    },
+    {
+      "name": "find_duplicates",
+      "description": "Identify potential duplicate bookmarks using URL and title similarity",
+      "text": "You detect duplicate bookmarks. Consider URL normalization, title similarity, and canonical forms. Return suspected duplicate pairs from the provided bookmark list."
+    },
+    {
+      "name": "export_markdown",
+      "description": "Render bookmarks as Markdown list with title, link, tags, and excerpt",
+      "text": "Format bookmarks as markdown bullet list using this pattern: [Title](URL) — excerpt — tags: tag1, tag2."
+    }
+  ],
+  "prompts_generated": false,
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
     }
   },
   "user_config": {
     "api_key": {
       "type": "string",
       "title": "Raindrop Access Token",
-      "description": "see the readme.md file",
+      "description": "Your Raindrop.io API token. Visit https://app.raindrop.io/settings/integrations to generate one.",
       "required": true,
       "sensitive": true
     }
   },
-  "keywords": ["raindrop.io", "raindrop", "bookmarks", "productivity"],
+  "keywords": [
+    "raindrop.io",
+    "raindrop",
+    "bookmarks",
+    "productivity",
+    "mcp",
+    "ai"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

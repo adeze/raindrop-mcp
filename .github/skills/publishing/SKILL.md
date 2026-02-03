@@ -53,7 +53,7 @@ Update version numbers in ALL four files to maintain consistency:
 **Files to update:**
 
 1. **package.json** - Already updated by `bun pm version`
-2. **manifest.json** - DXT manifest version (lines 2-4)
+2. **manifest.json** - MCPB manifest version (lines 2-4)
 3. **CLAUDE.md** - Project guidelines (around line 8)
 4. **README.md** - User documentation (around line 278)
 
@@ -62,9 +62,9 @@ Update version numbers in ALL four files to maintain consistency:
 ```json
 // manifest.json
 {
-  "dxt_version": "0.1",
-  "name": "@adeze/raindrop-mcp",
-  "version": "X.X.X",
+   "manifest_version": "0.3",
+   "name": "@adeze/raindrop-mcp",
+   "version": "X.X.X",
 ```
 
 ```markdown

@@ -1,4 +1,4 @@
-name: Publish DXT Manifest
+name: Publish MCPB Bundle
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish-dxt:
+  publish-mcpb:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -40,13 +40,13 @@ jobs:
       - name: Build package
         run: bun run build
 
-      - name: Pack DXT manifest
-        run: bun run dxt:pack
+      - name: Pack MCPB bundle
+        run: bun run mcpb:pack
 
-      - name: Create GitHub Release with DXT
+      - name: Create GitHub Release with MCPB
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
         run: |
           CURRENT_VERSION=$(jq -r .version package.json)
-          gh release create v$CURRENT_VERSION raindrop-mcp.dxt --title "Release v$CURRENT_VERSION" --notes "DXT manifest for MCP"
+          gh release create v$CURRENT_VERSION raindrop-mcp.mcpb --title "Release v$CURRENT_VERSION" --notes "MCPB bundle for Raindrop MCP"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
