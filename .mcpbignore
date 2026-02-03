@@ -1,0 +1,76 @@
+# Development and build artifacts
+
+.git/
+.github/
+\*.md
+!README.md
+.DS_Store
+.vscode/
+.idea/
+
+# Source files (only include compiled build/)
+
+src/
+tsconfig.json
+tsdoc.json
+typedoc.json
+vitest.config.ts
+
+# Tests
+
+tests/
+coverage/
+_.test.ts
+_.spec.ts
+
+# Build tools and configs
+
+.eslintrc*
+.prettierrc*
+nightwatch.conf.cjs
+openapitools.json
+
+# API specs (large files not needed in bundle)
+
+raindrop-complete.yaml
+raindrop.yaml
+
+# Documentation build
+
+docs/
+
+# Environment files
+
+.env\*
+!.env.example
+
+# Lock files and dependencies manifest
+
+# Note: node_modules/ is included (bundled dependencies)
+
+bun.lockb
+package-lock.json
+yarn.lock
+
+# Build artifacts that shouldn't be in source
+
+_.dxt
+_.mcpb
+
+# Temp files
+
+tmp/
+temp/
+_.log
+_.backup
+\*.local
+
+# Project-specific
+
+smithery.yaml
+REFACTORING_SUMMARY.md
+LOGGING_DIAGNOSTICS.md
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+raindrop-mcp.code-workspace

@@ -1,5 +1,5 @@
 {
-  "dxt_version": "0.1",
+  "manifest_version": "0.3",
   "name": "@adeze/raindrop-mcp",
   "version": "2.2.1",
   "description": "MCP Server for Raindrop.io",
