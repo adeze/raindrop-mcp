@@ -77,7 +77,7 @@ npx @adeze/raindrop-mcp
 4.  **Build and Run:**
     ```bash
     bun run build
-    bun start
+    bun run start:http
     ```
 
 ## Inspector CLI & VS Code Integration
