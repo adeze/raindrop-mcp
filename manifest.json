@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "@adeze/raindrop-mcp",
   "display_name": "Raindrop.io MCP Server",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "MCP Server for Raindrop.io bookmark management",
   "long_description": "This Model Context Protocol server provides comprehensive access to Raindrop.io bookmarking service. Features include: CRUD operations for collections and bookmarks, advanced search with filters, tag management (rename, merge, delete), text highlights retrieval, collection organization, file uploads, reminders, import/export, and trash management. Fully MCP-compliant with resources, tools, and prompts for AI assistants.",
   "author": {

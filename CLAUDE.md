@@ -6,7 +6,7 @@
 
 ### Version Information
 
-- **Current version**: 2.3.1
+- **Current version**: 2.3.2
 - **Node.js**: >=18.0.0 required
 - **Bun**: >=1.0.0 required
 - **MCP SDK**: ^1.25.3
