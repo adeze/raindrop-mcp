@@ -1,0 +1,8 @@
+{
+  "track_id": "cleanup_20260306",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-03-06T12:00:00Z",
+  "updated_at": "2026-03-06T12:00:00Z",
+  "description": "Implement advanced bookmark cleanup and organization tools (library audit, trash cleanup, and suggestions)."
+}
