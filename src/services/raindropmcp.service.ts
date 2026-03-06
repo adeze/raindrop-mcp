@@ -291,16 +291,16 @@ export class RaindropMCPService {
       outputSchema: unknown;
     }>
   > {
-    // Return all registered tools from the MCP server, ensuring each has a description
-    const tools = ((this.server as any)._tools || []).map((tool: any) => ({
-      id: tool.id || tool.name,
-      name: tool.name,
+    const registeredTools = (this.server as any)._registeredTools || {};
+    const tools = Object.entries(registeredTools).map(([name, tool]: [string, any]) => ({
+      id: name,
+      name: name,
       description: tool.description || "",
       inputSchema: tool.inputSchema || {},
       outputSchema: tool.outputSchema || {},
     }));
 
-    // Also include tools from our toolConfigs if the server's _tools is empty
+    // Also include tools from our toolConfigs if the server's tools is empty
     if (tools.length === 0) {
       return toolConfigs.map((config) => ({
         id: config.name,
@@ -323,7 +323,8 @@ export class RaindropMCPService {
    * @returns Tool response
    */
   public async callTool(toolId: string, input: any): Promise<any> {
-    const tool = (this.server as any)._tools?.find((t: any) => t.id === toolId);
+    const registeredTools = (this.server as any)._registeredTools || {};
+    const tool = registeredTools[toolId];
     if (!tool || typeof tool.handler !== "function") {
       throw new Error(`Tool with id "${toolId}" not found or has no handler.`);
     }

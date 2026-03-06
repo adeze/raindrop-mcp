@@ -1,5 +1,6 @@
 import { bookmarkTools } from "./bookmarks.js";
 import { bulkTools } from "./bulk.js";
+import { cleanupTools } from "./cleanup.js";
 import { collectionTools } from "./collections.js";
 import { createDiagnosticsTool } from "./diagnostics.js";
 import { highlightTools } from "./highlights.js";
@@ -24,6 +25,7 @@ export const buildToolConfigs = (options: { serverVersion: string }) => {
     ...tagTools,
     ...highlightTools,
     ...bulkTools,
+    ...cleanupTools,
   ];
 
   return { toolConfigs, getEnabledToolNames };
