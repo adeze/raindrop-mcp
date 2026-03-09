@@ -13,14 +13,14 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Duplicate Discovery and Batching' (Protocol in workflow.md) [checkpoint: 328a1fa]
 
 ## Phase 3: Optimized Bulk Deletion Implementation
-- [x] Task: Implement the core loop for iterating through collections and batching removals (50 per page) [checkpoint: e569da5]
-- [x] Task: Write failing tests for bulk removal within a single collection context [checkpoint: e569da5]
-- [x] Task: Implement bulk removal logic using `bulk_edit_raindrops` (operation: "remove") to pass tests [checkpoint: e569da5]
-- [x] Task: Conductor - User Manual Verification 'Phase 3: Optimized Bulk Deletion Implementation' (Protocol in workflow.md) [checkpoint: e569da5]
+- [x] Task: Implement the core loop for iterating through collections and batching removals (50 per page) [checkpoint: 3cb61ac]
+- [x] Task: Write failing tests for bulk removal within a single collection context [checkpoint: 3cb61ac]
+- [x] Task: Implement bulk removal logic using `bulk_edit_raindrops` (operation: "remove") to pass tests [checkpoint: 3cb61ac]
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Optimized Bulk Deletion Implementation' (Protocol in workflow.md) [checkpoint: 3cb61ac]
 
 ## Phase 4: Supporting Logic (Dry Run, Fail Fast, Output Format)
-- [ ] Task: Implement `dryRun` flag support to report counts without execution
-- [ ] Task: Implement `Fail Fast` error policy for `bulk_edit` failures
-- [ ] Task: Implement the minimal "Output Format" (Action, Count, Errors only)
-- [ ] Task: Write integration tests covering all support flags and the final reported format
+- [x] Task: Implement `dryRun` flag support to report counts without execution [checkpoint: 3cb61ac]
+- [x] Task: Implement `Fail Fast` error policy for `bulk_edit` failures [checkpoint: 3cb61ac]
+- [x] Task: Implement the minimal "Output Format" (Action, Count, Errors only) [checkpoint: 3cb61ac]
+- [x] Task: Write integration tests covering all support flags and the final reported format [checkpoint: 3cb61ac]
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Supporting Logic (Dry Run, Fail Fast, Output Format)' (Protocol in workflow.md)
