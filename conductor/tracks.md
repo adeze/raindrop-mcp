@@ -6,6 +6,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: Implement advanced bookmark cleanup and organization tools**
   *Link: [./tracks/cleanup_20260306/](./tracks/cleanup_20260306/)*
-
-- [x] **Track: Optimize Duplicate Deletion (Efficient Pattern)**
-  *Link: [./tracks/duplicate_cleanup_20260309/](./tracks/duplicate_cleanup_20260309/)*
