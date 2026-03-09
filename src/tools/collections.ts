@@ -1,18 +1,23 @@
 import { z } from "zod";
 import { ValidationError } from "../types/mcpErrors.js";
 import {
-    CollectionManageInputSchema,
-    CollectionOutputSchema,
+  CollectionManageInputSchema,
+  CollectionOutputSchema,
 } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
 import {
-    defineTool,
-    makeCollectionLink,
-    setIfDefined,
-    textContent,
+  defineTool,
+  makeCollectionLink,
+  setIfDefined,
+  textContent,
 } from "./common.js";
 
-const CollectionListInputSchema = z.object({});
+const CollectionListInputSchema = z.object({
+  skipCache: z
+    .boolean()
+    .optional()
+    .describe("Force a fresh fetch from the API, bypassing the local cache"),
+});
 
 const CollectionListOutputSchema = z.object({
   content: z.array(
@@ -38,10 +43,10 @@ const collectionListTool = defineTool({
   inputSchema: CollectionListInputSchema,
   outputSchema: CollectionListOutputSchema,
   handler: async (
-    _args: z.infer<typeof CollectionListInputSchema>,
+    args: z.infer<typeof CollectionListInputSchema>,
     { raindropService }: ToolHandlerContext,
   ) => {
-    const collections = await raindropService.getCollections();
+    const collections = await raindropService.getCollections(args.skipCache);
     const content = [
       textContent(`Found ${collections.length} collections`),
       ...collections.map(makeCollectionLink),
@@ -52,13 +57,24 @@ const collectionListTool = defineTool({
 
 const getCollectionTreeTool = defineTool({
   name: "get_collection_tree",
-  description: "Returns a hierarchical view of all collections with full breadcrumb paths.",
-  inputSchema: z.object({}),
-  handler: async (_args, { raindropService }: ToolHandlerContext) => {
-    const tree = await raindropService.getCollectionTree();
-    
+  description:
+    "Returns a hierarchical view of all collections with full breadcrumb paths.",
+  inputSchema: z.object({
+    skipCache: z
+      .boolean()
+      .optional()
+      .describe("Force a fresh fetch from the API, bypassing the local cache"),
+  }),
+  handler: async (
+    args: { skipCache?: boolean },
+    { raindropService }: ToolHandlerContext,
+  ) => {
+    const tree = await raindropService.getCollectionTree(args.skipCache);
+
     const formatNode = (node: any, indent = 0): string => {
-      let result = "  ".repeat(indent) + `- ${node.title} (ID: ${node._id}, Path: ${node.path}, Items: ${node.count || 0})\n`;
+      let result =
+        "  ".repeat(indent) +
+        `- ${node.title} (ID: ${node._id}, Path: ${node.path}, Items: ${node.count || 0})\n`;
       if (node.children && node.children.length > 0) {
         node.children.forEach((child: any) => {
           result += formatNode(child, indent + 1);

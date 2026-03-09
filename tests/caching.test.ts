@@ -114,4 +114,25 @@ describe("RaindropService Caching Logic", () => {
     await service.getBookmarks({ search: "test" });
     expect(mockGet).toHaveBeenCalledTimes(4);
   });
+
+  it("should bypass cache when skipCache is true", async () => {
+    const mockGet = (service as any).client.GET;
+    mockGet.mockResolvedValue({ data: { items: [], count: 0 } });
+
+    // First call - populates cache
+    await service.getCollections();
+    expect(mockGet).toHaveBeenCalledTimes(1);
+
+    // Second call with skipCache: true - should bypass cache and call API
+    await service.getCollections(true);
+    expect(mockGet).toHaveBeenCalledTimes(2);
+
+    // Same for bookmarks
+    mockGet.mockResolvedValue({ data: { item: { _id: 123 } } });
+    await service.getBookmark(123);
+    expect(mockGet).toHaveBeenCalledTimes(3);
+
+    await service.getBookmark(123, true);
+    expect(mockGet).toHaveBeenCalledTimes(4);
+  });
 });

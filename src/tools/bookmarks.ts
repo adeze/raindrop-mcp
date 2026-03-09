@@ -41,6 +41,10 @@ const BookmarkSearchInputSchema = z.object({
     .enum(["link", "article", "image", "video", "document", "audio"])
     .optional()
     .describe("Filter by media type"),
+  skipCache: z
+    .boolean()
+    .optional()
+    .describe("Force a fresh fetch from the API, bypassing the local cache"),
 });
 
 const BookmarkSearchOutputSchema = z.object({
@@ -55,6 +59,10 @@ const BookmarkManageInputSchema = BookmarkInputSchema.extend({
 
 const GetRaindropInputSchema = z.object({
   id: z.string().min(1, "Bookmark ID is required"),
+  skipCache: z
+    .boolean()
+    .optional()
+    .describe("Force a fresh fetch from the API, bypassing the local cache"),
 });
 
 const GetRaindropOutputSchema = z.object({
@@ -68,6 +76,10 @@ const ListRaindropsInputSchema = z.object({
   page: z.number().optional().describe("Page number for pagination"),
   perPage: z.number().optional().describe("Items per page (max 50)"),
   sort: z.string().optional().describe("Sort order"),
+  skipCache: z
+    .boolean()
+    .optional()
+    .describe("Force a fresh fetch from the API, bypassing the local cache"),
 });
 
 const ListRaindropsOutputSchema = z.object({
@@ -103,7 +115,10 @@ const bookmarkSearchTool = defineTool({
     setIfDefined(query, "createdEnd", args.createdEnd);
     setIfDefined(query, "media", args.media);
 
-    const result = await raindropService.getBookmarks(query as any);
+    const result = await raindropService.getBookmarks(
+      query as any,
+      args.skipCache,
+    );
 
     const content = [textContent(`Found ${result.count} bookmarks`)];
     result.items.forEach((bookmark: any) => {
@@ -173,7 +188,10 @@ const getRaindropTool = defineTool({
     args: z.infer<typeof GetRaindropInputSchema>,
     { raindropService }: ToolHandlerContext,
   ) => {
-    const bookmark = await raindropService.getBookmark(parseInt(args.id));
+    const bookmark = await raindropService.getBookmark(
+      parseInt(args.id),
+      args.skipCache,
+    );
     return { content: [makeBookmarkLink(bookmark)] };
   },
 });
@@ -187,12 +205,15 @@ const listRaindropsTool = defineTool({
     args: z.infer<typeof ListRaindropsInputSchema>,
     { raindropService }: ToolHandlerContext,
   ) => {
-    const result = await raindropService.getBookmarks({
-      collection: args.collectionId,
-      page: args.page,
-      perPage: args.perPage || 50,
-      sort: args.sort,
-    });
+    const result = await raindropService.getBookmarks(
+      {
+        collection: args.collectionId,
+        page: args.page,
+        perPage: args.perPage || 50,
+        sort: args.sort,
+      },
+      args.skipCache,
+    );
 
     const content = [
       textContent(
