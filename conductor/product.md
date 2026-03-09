@@ -17,6 +17,7 @@ To bridge the gap between AI assistants and personal information management by p
 - **Tag Management:** Rename, merge, and delete tags across bookmarks.
 - **Highlight Support:** Read and manage highlights from saved articles.
 - **Bulk Operations:** Perform actions on multiple bookmarks simultaneously.
+- **Optimized Maintenance:** Automated tools for cleaning up duplicates and broken links using token-efficient patterns.
 - **Diagnostics:** Built-in server health and metadata reporting.
 
 ## User Experience Goals
