@@ -1,15 +1,15 @@
 # Implementation Plan: Optimize Duplicate Deletion (Efficient Pattern)
 
 ## Phase 1: Research and Integration
-- [x] Task: Review current `bulk` and `cleanup` tool implementations in `src/tools/` [checkpoint: eb7681d]
-- [x] Task: Identify the best hook point for the "Efficient Pattern" (either `bulk_edit_raindrops` or a new higher-level function) [checkpoint: eb7681d]
-- [x] Task: Conductor - User Manual Verification 'Phase 1: Research and Integration' (Protocol in workflow.md) [checkpoint: eb7681d]
+- [x] Task: Review current `bulk` and `cleanup` tool implementations in `src/tools/` [checkpoint: a113299]
+- [x] Task: Identify the best hook point for the "Efficient Pattern" (either `bulk_edit_raindrops` or a new higher-level function) [checkpoint: a113299]
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Research and Integration' (Protocol in workflow.md) [checkpoint: a113299]
 
 ## Phase 2: Duplicate Discovery and Batching
-- [~] Task: Implement the "Global Search for Count" logic for initial estimation
-- [ ] Task: Implement "Per-Collection Discovery" for duplicates using `collection + duplicate:true` search
-- [ ] Task: Write failing tests for collection-scoped duplicate retrieval
-- [ ] Task: Implement collection-scoped duplicate retrieval logic to pass tests
+- [x] Task: Implement the "Global Search for Count" logic for initial estimation [checkpoint: a113299]
+- [x] Task: Implement "Per-Collection Discovery" for duplicates using `collection + duplicate:true` search [checkpoint: a113299]
+- [x] Task: Write failing tests for collection-scoped duplicate retrieval [checkpoint: a113299]
+- [x] Task: Implement collection-scoped duplicate retrieval logic to pass tests [checkpoint: a113299]
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Duplicate Discovery and Batching' (Protocol in workflow.md)
 
 ## Phase 3: Optimized Bulk Deletion Implementation

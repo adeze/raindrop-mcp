@@ -110,4 +110,124 @@ const cleanupCollectionsTool = defineTool({
   },
 });
 
-export const cleanupTools = [libraryAuditTool, emptyTrashTool, cleanupCollectionsTool];
+/**
+ * Tool to remove duplicate bookmarks using an optimized pattern.
+ */
+const removeDuplicatesTool = defineTool({
+  name: "remove_duplicates",
+  description: "Optimized duplicate deletion pattern. Scans all collections and removes duplicates in batches of 50 to minimize round-trips. Supports dry run to report counts without deleting.",
+  inputSchema: z.object({
+    dryRun: z.boolean().optional().default(true).describe("If true, only reports the number of duplicates found without deleting them."),
+  }),
+  handler: async (args: { dryRun?: boolean }, { raindropService, reportProgress }: ToolHandlerContext) => {
+    const progress = typeof reportProgress === 'function' ? reportProgress : () => {};
+    progress({ progress: 0, total: 100 });
+
+    // Step 1: Global Search for Count (Initial Estimation)
+    const globalDuplicates = await raindropService.getBookmarks({ duplicates: true, perPage: 1 });
+    const totalEstimated = globalDuplicates.count;
+
+    if (totalEstimated === 0) {
+      return {
+        content: [textContent("No duplicates found in the entire library.")],
+      };
+    }
+
+    // Step 2: Per-Collection Discovery
+    const collections = await raindropService.getCollections();
+    const collectionDuplicatesMap = new Map<number, number[]>();
+    let totalFound = 0;
+
+    // Add "Unsorted" (0) and "Trash" (-99) if needed, but getCollections usually returns user collections
+    // The pattern says "Iterate through all user collections"
+    const allCollectionIds = [0, ...collections.map(c => c._id).filter((id): id is number => id !== undefined)];
+
+    for (let i = 0; i < allCollectionIds.length; i++) {
+      const colId = allCollectionIds[i];
+      if (colId === undefined) continue; // Should not happen with filter
+      progress({ progress: 10 + (i / allCollectionIds.length) * 40, total: 100 });
+      
+      const colDuplicates = await raindropService.getBookmarks({ 
+        collection: colId, 
+        duplicates: true,
+        perPage: 50 // Get first batch to see if any exist
+      });
+
+      if (colDuplicates.count > 0) {
+        // Fetch all duplicate IDs for this collection if more than one page
+        let allIds = colDuplicates.items.map(item => item._id).filter((id): id is number => id !== undefined);
+        if (colDuplicates.count > 50) {
+          const totalPages = Math.ceil(colDuplicates.count / 50);
+          for (let p = 1; p < totalPages; p++) {
+            const nextBatch = await raindropService.getBookmarks({
+              collection: colId,
+              duplicates: true,
+              perPage: 50,
+              page: p
+            });
+            allIds = allIds.concat(nextBatch.items.map(item => item._id).filter((id): id is number => id !== undefined));
+          }
+        }
+        collectionDuplicatesMap.set(colId, allIds);
+        totalFound += allIds.length;
+      }
+    }
+
+    if (totalFound === 0) {
+      return {
+        content: [textContent(`Global search estimated ${totalEstimated} duplicates, but per-collection scan found none. This may be due to cross-collection duplicates which cannot be safely bulk-deleted.`)],
+      };
+    }
+
+    if (args.dryRun) {
+      let report = `Dry Run: Found ${totalFound} duplicates across ${collectionDuplicatesMap.size} collections.\n`;
+      collectionDuplicatesMap.forEach((ids, colId) => {
+        const colName = colId === 0 ? "Unsorted" : (collections.find(c => c._id === colId)?.title || `ID: ${colId}`);
+        report += `- ${colName}: ${ids.length} duplicates\n`;
+      });
+      report += "\nTo delete these items, call this tool again with 'dryRun: false'.";
+      return { content: [textContent(report)] };
+    }
+
+    // Step 3: Optimized Bulk Deletion
+    let totalDeleted = 0;
+    const errors: { collectionId: number; ids: number[]; message: string }[] = [];
+
+    const collectionEntries = Array.from(collectionDuplicatesMap.entries());
+    for (let i = 0; i < collectionEntries.length; i++) {
+      const entry = collectionEntries[i];
+      if (!entry) continue;
+      const [colId, ids] = entry;
+      progress({ progress: 50 + (i / collectionEntries.length) * 50, total: 100 });
+
+      // Batch in groups of 50
+      for (let j = 0; j < ids.length; j += 50) {
+        const batch = ids.slice(j, j + 50);
+        try {
+          const success = await raindropService.batchDeleteBookmarksInCollection(colId, batch);
+          if (success) {
+            totalDeleted += batch.length;
+          } else {
+            errors.push({ collectionId: colId, ids: batch, message: "API returned failure" });
+            // Fail Fast policy
+            return {
+              content: [textContent(`Fail Fast: Stopped after error in collection ${colId}. Total deleted so far: ${totalDeleted}.\nErrors: ${JSON.stringify(errors)}`)]
+            };
+          }
+        } catch (error: any) {
+          errors.push({ collectionId: colId, ids: batch, message: error.message });
+          // Fail Fast policy
+          return {
+            content: [textContent(`Fail Fast: Stopped after exception in collection ${colId}: ${error.message}. Total deleted so far: ${totalDeleted}.\nErrors: ${JSON.stringify(errors)}`)]
+          };
+        }
+      }
+    }
+
+    return {
+      content: [textContent(`Successfully deleted ${totalDeleted} duplicates across ${collectionDuplicatesMap.size} collections.`)]
+    };
+  }
+});
+
+export const cleanupTools = [libraryAuditTool, emptyTrashTool, cleanupCollectionsTool, removeDuplicatesTool];
