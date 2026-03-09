@@ -1,15 +1,15 @@
 import { z } from "zod";
 import { ValidationError } from "../types/mcpErrors.js";
 import {
-    BookmarkInputSchema,
-    BookmarkOutputSchema
+  BookmarkInputSchema,
+  BookmarkOutputSchema,
 } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
 import {
-    defineTool,
-    makeBookmarkLink,
-    setIfDefined,
-    textContent,
+  defineTool,
+  makeBookmarkLink,
+  setIfDefined,
+  textContent,
 } from "./common.js";
 
 const BookmarkSearchInputSchema = z.object({
@@ -29,6 +29,18 @@ const BookmarkSearchInputSchema = z.object({
   notag: z.boolean().optional().describe("Filter by items without tags"),
   highlight: z.boolean().optional().describe("Only bookmarks with highlights"),
   domain: z.string().optional().describe("Filter by domain"),
+  createdStart: z
+    .string()
+    .optional()
+    .describe("Filter by creation date (start, ISO 8601)"),
+  createdEnd: z
+    .string()
+    .optional()
+    .describe("Filter by creation date (end, ISO 8601)"),
+  media: z
+    .enum(["link", "article", "image", "video", "document", "audio"])
+    .optional()
+    .describe("Filter by media type"),
 });
 
 const BookmarkSearchOutputSchema = z.object({
@@ -50,7 +62,9 @@ const GetRaindropOutputSchema = z.object({
 });
 
 const ListRaindropsInputSchema = z.object({
-  collectionId: z.number().describe("Collection ID to list bookmarks from (use 0 for All)"),
+  collectionId: z
+    .number()
+    .describe("Collection ID to list bookmarks from (use 0 for All)"),
   page: z.number().optional().describe("Page number for pagination"),
   perPage: z.number().optional().describe("Items per page (max 50)"),
   sort: z.string().optional().describe("Sort order"),
@@ -85,6 +99,9 @@ const bookmarkSearchTool = defineTool({
     setIfDefined(query, "notag", args.notag);
     setIfDefined(query, "highlight", args.highlight);
     setIfDefined(query, "domain", args.domain);
+    setIfDefined(query, "createdStart", args.createdStart);
+    setIfDefined(query, "createdEnd", args.createdEnd);
+    setIfDefined(query, "media", args.media);
 
     const result = await raindropService.getBookmarks(query as any);
 
@@ -177,9 +194,10 @@ const listRaindropsTool = defineTool({
       sort: args.sort,
     });
 
-
     const content = [
-      textContent(`Page ${args.page || 0} - Found ${result.items.length} bookmarks (Total: ${result.count})`),
+      textContent(
+        `Page ${args.page || 0} - Found ${result.items.length} bookmarks (Total: ${result.count})`,
+      ),
     ];
     result.items.forEach((bookmark: any) =>
       content.push(makeBookmarkLink(bookmark)),

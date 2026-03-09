@@ -2,11 +2,11 @@
 import createClient from "openapi-fetch";
 import { RateLimiterMemory } from "rate-limiter-flexible";
 import {
-    AuthError,
-    NotFoundError,
-    RateLimitError,
-    UpstreamError,
-    ValidationError,
+  AuthError,
+  NotFoundError,
+  RateLimitError,
+  UpstreamError,
+  ValidationError,
 } from "../types/mcpErrors.js";
 import type { components, paths } from "../types/raindrop.schema.js";
 import { createLogger } from "../utils/logger.js";
@@ -166,7 +166,9 @@ export default class RaindropService {
   /**
    * Get all collections organized as a tree with breadcrumb paths.
    */
-  async getCollectionTree(): Promise<Array<Collection & { path: string; children: any[] }>> {
+  async getCollectionTree(): Promise<
+    Array<Collection & { path: string; children: any[] }>
+  > {
     const collections = await this.getCollections();
     const tree: any[] = [];
     const map = new Map<number, any>();
@@ -253,7 +255,10 @@ export default class RaindropService {
         params: { path: { id } },
         body,
       });
-      return { link: data?.link || "", access: [...((data?.access as any[]) || [])] };
+      return {
+        link: data?.link || "",
+        access: [...((data?.access as any[]) || [])],
+      };
     });
   }
 
@@ -276,12 +281,15 @@ export default class RaindropService {
       notag?: boolean;
       highlight?: boolean;
       domain?: string;
+      createdStart?: string;
+      createdEnd?: string;
+      media?: string;
     } = {},
   ): Promise<{ items: Bookmark[]; count: number }> {
     return this.withRateLimit(async () => {
       const query: any = {};
       const searchParts = params.search ? [params.search] : [];
-      
+
       if (params.tags) query.tag = params.tags.join(",");
       if (params.tag) query.tag = params.tag;
       if (params.important !== undefined) {
@@ -290,9 +298,9 @@ export default class RaindropService {
       if (params.page) query.page = params.page;
       if (params.perPage) query.perpage = params.perPage;
       if (params.sort) query.sort = params.sort;
-      
+
       if (params.duplicates === true) {
-        searchParts.push("duplicates:true");
+        searchParts.push("duplicate:true");
       }
       if (params.broken === true) {
         searchParts.push("broken:true");
@@ -303,7 +311,17 @@ export default class RaindropService {
       if (params.highlight === true) {
         searchParts.push("highlights:true");
       }
-      
+
+      if (params.createdStart) {
+        searchParts.push(`created:>=${params.createdStart}`);
+      }
+      if (params.createdEnd) {
+        searchParts.push(`created:<=${params.createdEnd}`);
+      }
+      if (params.media) {
+        searchParts.push(`type:${params.media}`);
+      }
+
       if (searchParts.length > 0) {
         query.search = searchParts.join(" ");
       }
@@ -313,7 +331,7 @@ export default class RaindropService {
       const options = params.collection
         ? { params: { path: { id: params.collection }, query } }
         : { params: { query } };
-      
+
       const { data } = await (this.client as any).GET(endpoint, options);
       return {
         items: (data?.items as Bookmark[]) || [],
@@ -332,16 +350,17 @@ export default class RaindropService {
         params: { path: { id } },
       });
       if (!data?.item) throw new NotFoundError("Bookmark not found");
-      return (data.item as any) as Bookmark;
+      return data.item as any as Bookmark;
     });
   }
-
 
   /**
    * Fetch AI-powered suggestions for a URL or existing bookmark.
    * Raindrop.io API: POST /raindrop/suggest or GET /raindrop/{id}/suggest
    */
-  async getSuggestions(target: string | number): Promise<components["schemas"]["SuggestionsResponse"]> {
+  async getSuggestions(
+    target: string | number,
+  ): Promise<components["schemas"]["SuggestionsResponse"]> {
     return this.withRateLimit(async () => {
       if (typeof target === "number") {
         const { data } = await this.client.GET("/raindrop/{id}/suggest", {
@@ -592,22 +611,24 @@ export default class RaindropService {
    * Fetch user statistics (total bookmarks, collections, highlights, tags)
    * Raindrop.io API: GET /user/stats, /collections, and /tags/0
    */
-  async getUserStats(): Promise<components["schemas"]["UserStatsResponse"]["stats"]> {
+  async getUserStats(): Promise<
+    components["schemas"]["UserStatsResponse"]["stats"]
+  > {
     return this.withRateLimit(async () => {
       // 1. Get system counts from /user/stats (bookmarks, trash)
       const statsResponse = await this.client.GET("/user/stats");
       const statsData = statsResponse.data as any;
-      
+
       // 2. Get collection count from /collections
       const collectionsResponse = await this.client.GET("/collections");
-      
+
       // 3. Get tag count from /tags/0
       const tagsResponse = await this.client.GET("/tags/0");
 
       const items = statsData?.items || [];
       const totalBookmarks = items.find((i: any) => i._id === 0)?.count || 0;
       const trashCount = items.find((i: any) => i._id === -99)?.count || 0;
-      
+
       return {
         bookmarks: totalBookmarks,
         trash: trashCount,
