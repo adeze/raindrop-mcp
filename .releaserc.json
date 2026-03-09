@@ -10,6 +10,12 @@
       }
     ],
     [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "jq \".version = \\\"${nextRelease.version}\\\"\" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json && bun run mcpb:pack"
+      }
+    ],
+    [
       "@semantic-release/changelog",
       {
         "changelogFile": "CHANGELOG.md"
@@ -22,6 +28,16 @@
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
-    "@semantic-release/github"
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "raindrop-mcp.mcpb",
+            "label": "Raindrop.io MCP Bundle"
+          }
+        ]
+      }
+    ]
   ]
 }
