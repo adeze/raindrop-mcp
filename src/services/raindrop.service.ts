@@ -348,8 +348,28 @@ export default class RaindropService {
       createdEnd?: string;
       media?: string;
     } = {},
+    skipCache = false,
   ): Promise<{ items: Bookmark[]; count: number }> {
-    return this.withRateLimit(async () => {
+    // Generate cache key from sorted params
+    const cacheKey = JSON.stringify(
+      Object.keys(params)
+        .sort()
+        .reduce((obj: any, key) => {
+          obj[key] = (params as any)[key];
+          return obj;
+        }, {}),
+    );
+
+    if (!skipCache) {
+      const cached = await this.cacheSearch.get(cacheKey);
+      if (cached) {
+        this.logger.debug("Cache HIT: getBookmarks");
+        return cached as { items: Bookmark[]; count: number };
+      }
+    }
+
+    this.logger.debug("Cache MISS: getBookmarks");
+    const result = await this.withRateLimit(async () => {
       const query: any = {};
       const searchParts = params.search ? [params.search] : [];
 
@@ -401,6 +421,9 @@ export default class RaindropService {
         count: data?.count || 0,
       };
     });
+
+    await this.cacheSearch.set(cacheKey, result, 300000); // 5 minute TTL
+    return result;
   }
 
   /**
@@ -545,6 +568,13 @@ export default class RaindropService {
     if (updates.important !== undefined) body.important = updates.important;
     if (updates.broken !== undefined) body.broken = updates.broken;
     const { data } = await this.client.PUT("/raindrops", { body });
+
+    // Invalidate caches
+    await this.cacheSearch.clear();
+    for (const id of ids) {
+      await this.cacheBookmarks.delete(`id:${id}`);
+    }
+
     return !!data?.result;
   }
 
@@ -566,6 +596,15 @@ export default class RaindropService {
         params: { path: { id: collectionId } as any },
         body: updates,
       });
+
+      // Invalidate caches
+      await this.cacheSearch.clear();
+      if (updates.ids) {
+        for (const id of updates.ids) {
+          await this.cacheBookmarks.delete(`id:${id}`);
+        }
+      }
+
       return !!(data as any)?.result;
     });
   }
@@ -583,6 +622,17 @@ export default class RaindropService {
         params: { path: { id: collectionId } as any },
         body: ids ? { ids } : undefined,
       });
+
+      // Invalidate caches
+      await this.cacheSearch.clear();
+      if (ids) {
+        for (const id of ids) {
+          await this.cacheBookmarks.delete(`id:${id}`);
+        }
+      } else {
+        await this.cacheBookmarks.clear();
+      }
+
       return !!(data as any)?.result;
     });
   }
@@ -602,6 +652,10 @@ export default class RaindropService {
   async removeEmptyCollections(): Promise<boolean> {
     return this.withRateLimit(async () => {
       const { data } = await this.client.PUT("/collections/clean");
+
+      // Invalidate collections cache
+      await this.cacheCollections.clear();
+
       return !!(data as any)?.result;
     });
   }
@@ -645,6 +699,11 @@ export default class RaindropService {
       body: { tags },
     };
     const { data } = await (this.client as any).DELETE(endpoint, options);
+
+    // Invalidate search and bookmark caches
+    await this.cacheSearch.clear();
+    await this.cacheBookmarks.clear();
+
     return !!data?.result;
   }
 
@@ -663,6 +722,11 @@ export default class RaindropService {
       body: { from: oldName, to: newName },
     };
     const { data } = await (this.client as any).PUT(endpoint, options);
+
+    // Invalidate search and bookmark caches
+    await this.cacheSearch.clear();
+    await this.cacheBookmarks.clear();
+
     return !!data?.result;
   }
 
@@ -681,6 +745,11 @@ export default class RaindropService {
       body: { tags, to: newName },
     };
     const { data } = await (this.client as any).PUT(endpoint, options);
+
+    // Invalidate search and bookmark caches
+    await this.cacheSearch.clear();
+    await this.cacheBookmarks.clear();
+
     return !!data?.result;
   }
 
@@ -772,6 +841,10 @@ export default class RaindropService {
           color: (highlight.color ?? "yellow") as HighlightColor,
         },
       });
+
+      // Invalidate bookmark cache
+      await this.cacheBookmarks.delete(`id:${bookmarkId}`);
+
       if (!data?.item) throw new UpstreamError("Failed to create highlight");
       return data.item as Highlight;
     });
@@ -794,6 +867,11 @@ export default class RaindropService {
         params: { path: { id } },
         body: updates,
       });
+
+      // We don't easily know the bookmark ID here, so clear all bookmark caches or just hope highlights are viewed via bookmark fetch
+      // For safety, clear all bookmarks cache since highlights are nested
+      await this.cacheBookmarks.clear();
+
       if (!data?.item) throw new UpstreamError("Failed to update highlight");
       return data.item as Highlight;
     });
@@ -809,5 +887,8 @@ export default class RaindropService {
         params: { path: { id } },
       });
     });
+
+    // Same as update
+    await this.cacheBookmarks.clear();
   }
 }
