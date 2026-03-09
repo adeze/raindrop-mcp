@@ -85,6 +85,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/dxt": "^0.2.6",
+    "@eslint/js": "^10.0.1",
     "@mcpjam/sdk": "^0.8.6",
     "@modelcontextprotocol/inspector": "^0.21.1",
     "@openapitools/openapi-generator-cli": "^2.30.2",
