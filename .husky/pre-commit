@@ -1,2 +1,2 @@
-npm run lint
-npm run type-check
+bun run lint-staged
+bun run type-check

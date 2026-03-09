@@ -45,7 +45,17 @@
     "release": "semantic-release",
     "release:mcpb": "bun run mcpb:pack && gh release create v$(jq -r .version package.json) raindrop-mcp.mcpb --title \"Release v$(jq -r .version package.json)\" --notes \"MCP Bundle for Raindrop.io\"",
     "docs": "typedoc",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint-staged": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "repository": {
     "type": "git",
@@ -106,6 +116,7 @@
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "semantic-release": "^25.0.3",
