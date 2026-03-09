@@ -114,8 +114,9 @@ bun run tag:version               # Tag & push version
 
 1. Run `bun run type-check` and `bun run test` (all passing)
 2. Update version in documentation if needed
-3. Ensure manifest parity across STDIO/HTTP entry points
-4. Build and test MCPB package: `bun run mcpb:pack`
-5. Bump version: `bun run bump:patch|minor|major`
-6. Create release: `bun run release:mcpb`
-7. Note any manual test steps or breaking changes
+3. **Manifest Sync**: Ensure `manifest.json` version and details exactly match `package.json` and the semantic release version before building the `.mcpb` file.
+4. Ensure manifest parity across STDIO/HTTP entry points
+5. Build and test MCPB package: `bun run mcpb:pack`
+6. Bump version: `bun run bump:patch|minor|major`
+7. Create release: `bun run release:mcpb`
+8. Note any manual test steps or breaking changes

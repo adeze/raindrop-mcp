@@ -36,7 +36,7 @@
     "bun:update": "bun update",
     "update:deps": "npx npm-check-updates -u && bun install",
     "update:deps:interactive": "npx npm-check-updates -i && bun install",
-    "mcpb:pack": "bun run build && npx @anthropic-ai/mcpb@latest pack . raindrop-mcp.mcpb && npx @anthropic-ai/mcpb@latest clean raindrop-mcp.mcpb",
+    "mcpb:pack": "jq \".version = \\\"$(jq -r .version package.json)\\\"\" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json && bun run build && npx @anthropic-ai/mcpb@latest pack . raindrop-mcp.mcpb && npx @anthropic-ai/mcpb@latest clean raindrop-mcp.mcpb",
     "generate:schema": "npx openapi-typescript ./raindrop-complete.yaml -o ./src/types/raindrop.schema.d.ts --tsconfig ./tsconfig.json --export-type --useUnionTypes --immutable",
     "generate:client": "npx @openapitools/openapi-generator-cli generate -i ./raindrop-complete.yaml -g typescript-axios -o src/services/raindrop-client",
     "bun:publish:github": "bun publish --registry=https://npm.pkg.github.com/ --access public",
