@@ -6,16 +6,16 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Research and Integration' (Protocol in workflow.md) [checkpoint: a113299]
 
 ## Phase 2: Duplicate Discovery and Batching
-- [x] Task: Implement the "Global Search for Count" logic for initial estimation [checkpoint: 0ced4f3]
-- [x] Task: Implement "Per-Collection Discovery" for duplicates using `collection + duplicate:true` search [checkpoint: 0ced4f3]
-- [x] Task: Write failing tests for collection-scoped duplicate retrieval [checkpoint: 0ced4f3]
-- [x] Task: Implement collection-scoped duplicate retrieval logic to pass tests [checkpoint: 0ced4f3]
-- [x] Task: Conductor - User Manual Verification 'Phase 2: Duplicate Discovery and Batching' (Protocol in workflow.md) [checkpoint: 0ced4f3]
+- [x] Task: Implement the "Global Search for Count" logic for initial estimation [checkpoint: 328a1fa]
+- [x] Task: Implement "Per-Collection Discovery" for duplicates using `collection + duplicate:true` search [checkpoint: 328a1fa]
+- [x] Task: Write failing tests for collection-scoped duplicate retrieval [checkpoint: 328a1fa]
+- [x] Task: Implement collection-scoped duplicate retrieval logic to pass tests [checkpoint: 328a1fa]
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Duplicate Discovery and Batching' (Protocol in workflow.md) [checkpoint: 328a1fa]
 
 ## Phase 3: Optimized Bulk Deletion Implementation
-- [ ] Task: Implement the core loop for iterating through collections and batching removals (50 per page)
-- [ ] Task: Write failing tests for bulk removal within a single collection context
-- [ ] Task: Implement bulk removal logic using `bulk_edit_raindrops` (operation: "remove") to pass tests
+- [x] Task: Implement the core loop for iterating through collections and batching removals (50 per page) [checkpoint: 328a1fa]
+- [x] Task: Write failing tests for bulk removal within a single collection context [checkpoint: 328a1fa]
+- [x] Task: Implement bulk removal logic using `bulk_edit_raindrops` (operation: "remove") to pass tests [checkpoint: 328a1fa]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Optimized Bulk Deletion Implementation' (Protocol in workflow.md)
 
 ## Phase 4: Supporting Logic (Dry Run, Fail Fast, Output Format)

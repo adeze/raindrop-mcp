@@ -83,4 +83,30 @@ describe("remove_duplicates tool", () => {
     expect(firstContent.text).toContain("Successfully deleted 2 duplicates");
     expect(mockService.batchDeleteBookmarksInCollection).toHaveBeenCalledTimes(2);
   });
+
+  it("batches deletions in groups of 50", async () => {
+    const manyIds = Array.from({ length: 120 }, (_, i) => i + 1);
+    const manyItems = manyIds.map(id => ({ _id: id }));
+    // 1. Global search
+    mockService.getBookmarks.mockResolvedValueOnce({ count: 120, items: [] });
+    // 2. Get collections
+    mockService.getCollections.mockResolvedValueOnce([{ _id: 123, title: "Test" }]);
+    // 3. Unsorted
+    mockService.getBookmarks.mockResolvedValueOnce({ count: 0, items: [] });
+    // 4. Test Collection (Discovery)
+    mockService.getBookmarks.mockResolvedValueOnce({ count: 120, items: manyItems.slice(0, 50) });
+    mockService.getBookmarks.mockResolvedValueOnce({ count: 120, items: manyItems.slice(50, 100) });
+    mockService.getBookmarks.mockResolvedValueOnce({ count: 120, items: manyItems.slice(100, 120) });
+    // 5. Deletions (3 batches: 50, 50, 20)
+    mockService.batchDeleteBookmarksInCollection.mockResolvedValue(true);
+
+    const result = await removeDuplicates.handler({ dryRun: false }, { raindropService: mockService } as any);
+
+    const firstContent = result.content[0] as { type: "text"; text: string };
+    expect(firstContent.text).toContain("Successfully deleted 120 duplicates");
+    expect(mockService.batchDeleteBookmarksInCollection).toHaveBeenCalledTimes(3);
+    expect(mockService.batchDeleteBookmarksInCollection).toHaveBeenNthCalledWith(1, 123, manyIds.slice(0, 50));
+    expect(mockService.batchDeleteBookmarksInCollection).toHaveBeenNthCalledWith(2, 123, manyIds.slice(50, 100));
+    expect(mockService.batchDeleteBookmarksInCollection).toHaveBeenNthCalledWith(3, 123, manyIds.slice(100, 120));
+  });
 });
