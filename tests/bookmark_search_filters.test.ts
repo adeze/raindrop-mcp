@@ -32,6 +32,7 @@ describe("bookmark_search tool with new filters", () => {
         createdStart: "2023-01-01T00:00:00Z",
         createdEnd: "2023-12-31T23:59:59Z",
       }),
+      undefined,
     );
   });
 
@@ -46,6 +47,7 @@ describe("bookmark_search tool with new filters", () => {
       expect.objectContaining({
         media: "image",
       }),
+      undefined,
     );
   });
 
@@ -60,6 +62,7 @@ describe("bookmark_search tool with new filters", () => {
       expect.objectContaining({
         duplicates: true,
       }),
+      undefined,
     );
   });
 });

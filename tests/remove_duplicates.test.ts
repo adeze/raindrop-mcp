@@ -27,6 +27,7 @@ describe("remove_duplicates tool", () => {
     expect(firstContent.text).toContain("No duplicates found");
     expect(mockService.getBookmarks).toHaveBeenCalledWith(
       expect.objectContaining({ duplicates: true, perPage: 1 }),
+      undefined,
     );
   });
 
