@@ -6,11 +6,11 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Research and Integration' (Protocol in workflow.md) [checkpoint: a113299]
 
 ## Phase 2: Duplicate Discovery and Batching
-- [x] Task: Implement the "Global Search for Count" logic for initial estimation [checkpoint: a113299]
-- [x] Task: Implement "Per-Collection Discovery" for duplicates using `collection + duplicate:true` search [checkpoint: a113299]
-- [x] Task: Write failing tests for collection-scoped duplicate retrieval [checkpoint: a113299]
-- [x] Task: Implement collection-scoped duplicate retrieval logic to pass tests [checkpoint: a113299]
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Duplicate Discovery and Batching' (Protocol in workflow.md)
+- [x] Task: Implement the "Global Search for Count" logic for initial estimation [checkpoint: 0ced4f3]
+- [x] Task: Implement "Per-Collection Discovery" for duplicates using `collection + duplicate:true` search [checkpoint: 0ced4f3]
+- [x] Task: Write failing tests for collection-scoped duplicate retrieval [checkpoint: 0ced4f3]
+- [x] Task: Implement collection-scoped duplicate retrieval logic to pass tests [checkpoint: 0ced4f3]
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Duplicate Discovery and Batching' (Protocol in workflow.md) [checkpoint: 0ced4f3]
 
 ## Phase 3: Optimized Bulk Deletion Implementation
 - [ ] Task: Implement the core loop for iterating through collections and batching removals (50 per page)
