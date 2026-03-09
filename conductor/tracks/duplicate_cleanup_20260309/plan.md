@@ -13,10 +13,10 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Duplicate Discovery and Batching' (Protocol in workflow.md) [checkpoint: 328a1fa]
 
 ## Phase 3: Optimized Bulk Deletion Implementation
-- [x] Task: Implement the core loop for iterating through collections and batching removals (50 per page) [checkpoint: 328a1fa]
-- [x] Task: Write failing tests for bulk removal within a single collection context [checkpoint: 328a1fa]
-- [x] Task: Implement bulk removal logic using `bulk_edit_raindrops` (operation: "remove") to pass tests [checkpoint: 328a1fa]
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Optimized Bulk Deletion Implementation' (Protocol in workflow.md)
+- [x] Task: Implement the core loop for iterating through collections and batching removals (50 per page) [checkpoint: e569da5]
+- [x] Task: Write failing tests for bulk removal within a single collection context [checkpoint: e569da5]
+- [x] Task: Implement bulk removal logic using `bulk_edit_raindrops` (operation: "remove") to pass tests [checkpoint: e569da5]
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Optimized Bulk Deletion Implementation' (Protocol in workflow.md) [checkpoint: e569da5]
 
 ## Phase 4: Supporting Logic (Dry Run, Fail Fast, Output Format)
 - [ ] Task: Implement `dryRun` flag support to report counts without execution
