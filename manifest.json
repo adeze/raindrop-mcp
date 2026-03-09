@@ -83,6 +83,14 @@
     {
       "name": "cleanup_collections",
       "description": "Remove empty collections (requires confirmation)"
+    },
+    {
+      "name": "remove_duplicates",
+      "description": "Optimized duplicate deletion pattern (scans all collections)"
+    },
+    {
+      "name": "suggest_tags",
+      "description": "Suggest relevant tags based on metadata using AI sampling"
     }
   ],
   "tools_generated": false,
