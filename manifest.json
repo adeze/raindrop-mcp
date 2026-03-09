@@ -2,9 +2,9 @@
   "manifest_version": "0.3",
   "name": "@adeze/raindrop-mcp",
   "display_name": "Raindrop.io MCP Server",
-  "version": "2.3.2",
+  "version": "2.3.7",
   "description": "MCP Server for Raindrop.io bookmark management",
-  "long_description": "This Model Context Protocol server provides comprehensive access to Raindrop.io bookmarking service. Features include: CRUD operations for collections and bookmarks, advanced search with filters, tag management (rename, merge, delete), text highlights retrieval, collection organization, file uploads, reminders, import/export, and trash management. Fully MCP-compliant with resources, tools, and prompts for AI assistants.",
+  "long_description": "This Model Context Protocol server provides comprehensive access to Raindrop.io bookmarking service. Features include: modular tool architecture, AI organization via sampling, hierarchical collection trees, library health diagnostics, and advanced cleanup (broken link/duplicate detection). Fully MCP-compliant with resources, tools, prompts, and sampling capabilities.",
   "author": {
     "name": "Adam E"
   },
@@ -21,48 +21,71 @@
       "env": {
         "RAINDROP_ACCESS_TOKEN": "${user_config.api_key}"
       }
+    },
+    "capabilities": {
+      "mcp_sampler": true
     }
   },
   "tools": [
     {
-      "name": "bookmark_search",
-      "description": "Search bookmarks with filters (tags, domain, type, date range)"
-    },
-    {
-      "name": "bookmark_manage",
-      "description": "Create, update, or delete bookmarks"
-    },
-    {
-      "name": "getRaindrop",
-      "description": "Get a single bookmark by ID"
-    },
-    {
-      "name": "listRaindrops",
-      "description": "List bookmarks in a collection"
-    },
-    {
-      "name": "bulk_edit_raindrops",
-      "description": "Bulk edit multiple bookmarks at once"
+      "name": "diagnostics",
+      "description": "Server diagnostic information and library health metrics"
     },
     {
       "name": "collection_list",
-      "description": "List all collections"
+      "description": "List all collections as a flat list"
+    },
+    {
+      "name": "get_collection_tree",
+      "description": "Hierarchical view of collections with full breadcrumb paths"
     },
     {
       "name": "collection_manage",
       "description": "Create, update, or delete collections"
     },
     {
-      "name": "highlight_manage",
-      "description": "Get, create, or delete text highlights"
+      "name": "bookmark_search",
+      "description": "Advanced search with filters, tags, and pagination"
+    },
+    {
+      "name": "bookmark_manage",
+      "description": "Create, update, or delete individual bookmarks"
+    },
+    {
+      "name": "get_raindrop",
+      "description": "Fetch a single bookmark by ID"
+    },
+    {
+      "name": "list_raindrops",
+      "description": "List bookmarks for a collection with pagination"
+    },
+    {
+      "name": "get_suggestions",
+      "description": "AI-powered organization advice for a URL or bookmark"
+    },
+    {
+      "name": "bulk_edit_raindrops",
+      "description": "Bulk update, move, or remove bookmarks in a collection"
     },
     {
       "name": "tag_manage",
       "description": "Rename, merge, or delete tags"
     },
     {
-      "name": "diagnostics",
-      "description": "Get server diagnostics and configuration"
+      "name": "highlight_manage",
+      "description": "Create, update, or delete highlights"
+    },
+    {
+      "name": "library_audit",
+      "description": "Scan library for broken links, duplicates, and untagged items"
+    },
+    {
+      "name": "empty_trash",
+      "description": "Permanently empty the trash (requires confirmation)"
+    },
+    {
+      "name": "cleanup_collections",
+      "description": "Remove empty collections (requires confirmation)"
     }
   ],
   "tools_generated": false,
@@ -105,7 +128,8 @@
     "bookmarks",
     "productivity",
     "mcp",
-    "ai"
+    "ai",
+    "sampling"
   ],
   "license": "MIT",
   "repository": {

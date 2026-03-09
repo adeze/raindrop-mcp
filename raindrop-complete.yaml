@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Raindrop.io API
   description: Complete API specification for Raindrop.io bookmark management service
-  version: 1.2.0
+  version: 2.3.7
   contact:
     name: Raindrop.io API
     url: https://developer.raindrop.io
