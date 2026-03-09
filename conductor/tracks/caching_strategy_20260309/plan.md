@@ -2,19 +2,19 @@
 
 ## Phase 1: Setup and Integration
 
-- [ ] Task: Install `keyv` and `@keyv/memory` packages.
-- [ ] Task: Initialize `Keyv` instances in `RaindropService` for Collections, Bookmarks, and Search.
-- [ ] Task: Write failing unit tests for basic cache `set` and `get` operations within the service.
-- [ ] Task: Implement basic cache setup to pass the tests.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Setup and Integration' (Protocol in workflow.md)
+- [x] Task: Install `keyv` package. [checkpoint: 06aae2b]
+- [x] Task: Initialize `Keyv` instances in `RaindropService` for Collections, Bookmarks, and Search. [checkpoint: c65bc5b]
+- [x] Task: Write failing unit tests for basic cache `set` and `get` operations within the service. [checkpoint: c65bc5b]
+- [x] Task: Implement basic cache setup to pass the tests. [checkpoint: c65bc5b]
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Setup and Integration' (Protocol in workflow.md) [checkpoint: c65bc5b]
 
 ## Phase 2: Implementation for Collections and Bookmarks
 
-- [ ] Task: Integrate caching into `getCollections()` with a 1-hour TTL.
-- [ ] Task: Integrate caching into `getBookmark()` with a 15-minute TTL.
-- [ ] Task: Write failing tests for cache hits and TTL expiration for these methods.
-- [ ] Task: Implement the cache logic to pass tests.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation for Collections and Bookmarks' (Protocol in workflow.md)
+- [x] Task: Integrate caching into `getCollections()` with a 1-hour TTL. [checkpoint: c65bc5b]
+- [x] Task: Integrate caching into `getBookmark()` with a 15-minute TTL. [checkpoint: c65bc5b]
+- [x] Task: Write failing tests for cache hits and TTL expiration for these methods. [checkpoint: c65bc5b]
+- [x] Task: Implement the cache logic to pass tests. [checkpoint: c65bc5b]
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Implementation for Collections and Bookmarks' (Protocol in workflow.md) [checkpoint: c65bc5b]
 
 ## Phase 3: Search Caching and Invalidation
 
