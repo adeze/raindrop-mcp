@@ -2,14 +2,14 @@ import { config } from "dotenv";
 import { beforeEach, describe, expect, it } from "vitest";
 import RaindropService from "../src/services/raindrop.service.js";
 import type { components } from "../src/types/raindrop.schema.js";
-type Collection = components["schemas"]["Collection"];
-type Bookmark = components["schemas"]["Bookmark"];
-type Highlight = components["schemas"]["Highlight"];
-type Tag = components["schemas"]["Tag"];
+type _Collection = components["schemas"]["Collection"];
+type _Bookmark = components["schemas"]["Bookmark"];
+type _Highlight = components["schemas"]["Highlight"];
+type _Tag = components["schemas"]["Tag"];
 config();
 
 // Test constants for known collection and raindrop IDs (populate these as needed)
-const TEST_COLLECTION_ID = 55725911; // <-- set your known collection ID here
+const _TEST_COLLECTION_ID = 55725911; // <-- set your known collection ID here
 const TEST_RAINDROP_ID = 1286757883; // <-- set your known raindrop/bookmark ID here
 
 describe("RaindropService Read-Only API Integration", () => {
@@ -23,6 +23,16 @@ describe("RaindropService Read-Only API Integration", () => {
     const user = await service.getUserInfo();
     expect(user).toBeDefined();
     expect(user).toHaveProperty("email");
+  });
+
+  it("fetches user stats", async () => {
+    const stats = await service.getUserStats();
+    expect(stats).toBeDefined();
+    if (stats) {
+      expect(stats.bookmarks).toBeDefined();
+      expect(stats.collections).toBeDefined();
+      console.log("Stats from service:", stats);
+    }
   });
 
   it("fetches highlights for a specific bookmark (may return empty or 404)", async () => {

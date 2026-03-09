@@ -304,9 +304,17 @@ export type paths = {
          * @description Retrieves bookmarks from a specific collection with filtering options
          */
         readonly get: operations["getBookmarksByCollection"];
-        readonly put?: never;
+        /**
+         * Update multiple bookmarks in a collection
+         * @description Update properties of multiple bookmarks in a specific collection at once
+         */
+        readonly put: operations["batchUpdateBookmarksInCollection"];
         readonly post?: never;
-        readonly delete?: never;
+        /**
+         * Delete multiple bookmarks or empty collection
+         * @description Delete multiple bookmarks in a specific collection or empty trash/collection
+         */
+        readonly delete: operations["batchDeleteBookmarksInCollection"];
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
@@ -856,6 +864,40 @@ export type paths = {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/raindrop/suggest": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** Suggest tags and collections for a new URL */
+        readonly post: operations["suggestForUrl"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/raindrop/{id}/suggest": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** Suggest tags and collections for an existing bookmark */
+        readonly get: operations["suggestForBookmark"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/filters": {
         readonly parameters: {
             readonly query?: never;
@@ -971,6 +1013,19 @@ export type components = {
             };
             /** @description Text highlights for this bookmark */
             readonly highlights?: readonly components["schemas"]["Highlight"][];
+            /** @description List of media/covers associated with the raindrop */
+            readonly media?: readonly {
+                /** Format: uri */
+                readonly link?: string;
+            }[];
+            /** @description Details about the permanent copy (cached version) */
+            readonly cache?: {
+                /** @enum {string} */
+                readonly status?: "ready" | "retry" | "failed";
+                readonly size?: number;
+                /** Format: date-time */
+                readonly created?: string;
+            };
         };
         readonly Highlight: {
             /** @description Unique highlight ID */
@@ -1291,11 +1346,21 @@ export type components = {
         };
         readonly UserStatsResponse: {
             readonly result: boolean;
-            readonly stats: {
+            readonly items?: readonly {
+                readonly _id?: number;
+                readonly count?: number;
+            }[];
+            readonly meta?: {
+                readonly broken?: {
+                    readonly count?: number;
+                };
+            };
+            readonly stats?: {
                 readonly bookmarks?: number;
                 readonly collections?: number;
                 readonly highlights?: number;
                 readonly tags?: number;
+                readonly trash?: number;
             };
         };
         readonly CollectionStatsResponse: {
@@ -1511,6 +1576,8 @@ export type components = {
         readonly DuplicatesFilter: boolean;
         /** @description Filter by broken links */
         readonly BrokenFilter: boolean;
+        /** @description Filter by items without tags */
+        readonly NotagFilter: boolean;
         /** @description Filter by presence of highlights */
         readonly HighlightFilter: boolean;
         /** @description Filter by domain */
@@ -1907,6 +1974,8 @@ export interface operations {
                 readonly duplicates?: components["parameters"]["DuplicatesFilter"];
                 /** @description Filter by broken links */
                 readonly broken?: components["parameters"]["BrokenFilter"];
+                /** @description Filter by items without tags */
+                readonly notag?: components["parameters"]["NotagFilter"];
                 /** @description Filter by presence of highlights */
                 readonly highlight?: components["parameters"]["HighlightFilter"];
                 /** @description Filter by domain */
@@ -1948,6 +2017,8 @@ export interface operations {
                 readonly duplicates?: components["parameters"]["DuplicatesFilter"];
                 /** @description Filter by broken links */
                 readonly broken?: components["parameters"]["BrokenFilter"];
+                /** @description Filter by items without tags */
+                readonly notag?: components["parameters"]["NotagFilter"];
                 /** @description Filter by presence of highlights */
                 readonly highlight?: components["parameters"]["HighlightFilter"];
                 /** @description Filter by domain */
@@ -1973,6 +2044,63 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["BookmarksResponse"];
+                };
+            };
+        };
+    };
+    readonly batchUpdateBookmarksInCollection: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                /** @description Collection ID */
+                readonly id: components["parameters"]["CollectionId"];
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["BatchUpdateBookmarksRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Bookmarks updated successfully */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ResultResponse"];
+                };
+            };
+        };
+    };
+    readonly batchDeleteBookmarksInCollection: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                /** @description Collection ID */
+                readonly id: components["parameters"]["CollectionId"];
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: {
+            readonly content: {
+                readonly "application/json": {
+                    /** @description Array of bookmark IDs to delete */
+                    readonly ids?: readonly number[];
+                };
+            };
+        };
+        readonly responses: {
+            /** @description Bookmarks deleted successfully */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["ResultResponse"];
                 };
             };
         };
@@ -2861,6 +2989,55 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["ExportStatusResponse"];
+                };
+            };
+        };
+    };
+    readonly suggestForUrl: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: {
+            readonly content: {
+                readonly "application/json": {
+                    /** Format: uri */
+                    readonly link: string;
+                };
+            };
+        };
+        readonly responses: {
+            /** @description Suggestions retrieved successfully */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["SuggestionsResponse"];
+                };
+            };
+        };
+    };
+    readonly suggestForBookmark: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path: {
+                readonly id: number;
+            };
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Suggestions retrieved successfully */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["SuggestionsResponse"];
                 };
             };
         };

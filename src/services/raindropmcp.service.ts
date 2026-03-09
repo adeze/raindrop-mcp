@@ -21,7 +21,7 @@ import RaindropService from "./raindrop.service.js";
 const SERVER_VERSION = pkg.version;
 
 // Build tool configurations from modularized tool definitions
-const { toolConfigs, getEnabledToolNames } = buildToolConfigs({
+const { toolConfigs } = buildToolConfigs({
   serverVersion: SERVER_VERSION,
 });
 
@@ -181,6 +181,7 @@ export class RaindropMCPService {
         this.asyncHandler(async (args: any, extra: any) =>
           config.handler(args, {
             raindropService: this.raindropService,
+            mcpServer: this.server.server, // Pass the underlying McpServer instance
             ...extra,
           }),
         ),

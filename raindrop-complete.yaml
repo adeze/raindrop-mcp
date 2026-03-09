@@ -319,6 +319,7 @@ paths:
         - $ref: '#/components/parameters/ImportantFilter'
         - $ref: '#/components/parameters/DuplicatesFilter'
         - $ref: '#/components/parameters/BrokenFilter'
+        - $ref: '#/components/parameters/NotagFilter'
         - $ref: '#/components/parameters/HighlightFilter'
         - $ref: '#/components/parameters/DomainFilter'
         - $ref: '#/components/parameters/PerPage'
@@ -344,6 +345,7 @@ paths:
         - $ref: '#/components/parameters/ImportantFilter'
         - $ref: '#/components/parameters/DuplicatesFilter'
         - $ref: '#/components/parameters/BrokenFilter'
+        - $ref: '#/components/parameters/NotagFilter'
         - $ref: '#/components/parameters/HighlightFilter'
         - $ref: '#/components/parameters/DomainFilter'
         - $ref: '#/components/parameters/PerPage'
@@ -355,6 +357,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BookmarksResponse'
+
+    put:
+      operationId: batchUpdateBookmarksInCollection
+      summary: Update multiple bookmarks in a collection
+      description: Update properties of multiple bookmarks in a specific collection at once
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateBookmarksRequest'
+      responses:
+        '200':
+          description: Bookmarks updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultResponse'
+
+    delete:
+      operationId: batchDeleteBookmarksInCollection
+      summary: Delete multiple bookmarks or empty collection
+      description: Delete multiple bookmarks in a specific collection or empty trash/collection
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Array of bookmark IDs to delete
+      responses:
+        '200':
+          description: Bookmarks deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultResponse'
 
   /raindrops:
     get:
@@ -1077,6 +1125,46 @@ paths:
                 $ref: '#/components/schemas/ExportStatusResponse'
 
   # Filters
+  /raindrop/suggest:
+    post:
+      operationId: suggestForUrl
+      summary: Suggest tags and collections for a new URL
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [link]
+              properties:
+                link:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Suggestions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestionsResponse'
+
+  /raindrop/{id}/suggest:
+    get:
+      operationId: suggestForBookmark
+      summary: Suggest tags and collections for an existing bookmark
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Suggestions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestionsResponse'
+
   /filters:
     get:
       operationId: getAvailableFilters
@@ -1166,6 +1254,13 @@ components:
       schema:
         type: boolean
       description: Filter by broken links
+
+    NotagFilter:
+      name: notag
+      in: query
+      schema:
+        type: boolean
+      description: Filter by items without tags
 
     HighlightFilter:
       name: highlight
@@ -1367,6 +1462,27 @@ components:
           items:
             $ref: '#/components/schemas/Highlight'
           description: Text highlights for this bookmark
+        media:
+          type: array
+          items:
+            type: object
+            properties:
+              link:
+                type: string
+                format: uri
+          description: List of media/covers associated with the raindrop
+        cache:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [ready, retry, failed]
+            size:
+              type: integer
+            created:
+              type: string
+              format: date-time
+          description: Details about the permanent copy (cached version)
       required:
         - _id
         - link
@@ -1836,6 +1952,23 @@ components:
       properties:
         result:
           type: boolean
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: integer
+              count:
+                type: integer
+        meta:
+          type: object
+          properties:
+            broken:
+              type: object
+              properties:
+                count:
+                  type: integer
         stats:
           type: object
           properties:
@@ -1847,9 +1980,10 @@ components:
               type: integer
             tags:
               type: integer
+            trash:
+              type: integer
       required:
         - result
-        - stats
 
     CollectionStatsResponse:
       type: object

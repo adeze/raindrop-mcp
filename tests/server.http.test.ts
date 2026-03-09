@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const PORT = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT) : 3002;
 const BASE_URL = `http://localhost:${PORT}`;
 
-let serverProcess: any;
+let _serverProcess: any;
 
 // Helper to start/stop the server for integration tests
 beforeAll(async () => {

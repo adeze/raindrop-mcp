@@ -256,7 +256,7 @@ const server = http.createServer(async (req, res) => {
       let body: any = undefined;
       try {
         body = raw ? JSON.parse(raw) : undefined;
-      } catch (err) {
+      } catch (_err) {
         logger.warn("Invalid JSON body on /mcp");
       }
 
@@ -361,7 +361,7 @@ app.listen = (port: number, cb?: () => void) => server.listen(port, cb);
 // Instantiate the shared MCP service and get the server instance
 const raindropMCP = new RaindropMCPService();
 const mcpServer = raindropMCP.getServer();
-const cleanup = raindropMCP.cleanup.bind(raindropMCP);
+const _cleanup = raindropMCP.cleanup.bind(raindropMCP);
 
 /**
  * MCP protocol endpoint with session management and transport handling.

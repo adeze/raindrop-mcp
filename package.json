@@ -1,6 +1,6 @@
 {
   "name": "@adeze/raindrop-mcp",
-  "version": "2.3.2",
+  "version": "2.3.4",
   "description": "MCP Server for Raindrop.io bookmark management",
   "main": "build/index.js",
   "module": "build/index.js",
@@ -15,12 +15,15 @@
   "scripts": {
     "dev": "bun run build && bun --watch src/index.ts",
     "dev:http": "bun run build && bun --watch src/server.ts",
-    "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
-    "inspector:http-server": "npx @modelcontextprotocol/inspector node build/server.js",
+    "inspector": "npx @modelcontextprotocol/inspector node --env-file=.env build/index.js",
+    "inspector:http-server": "npx @modelcontextprotocol/inspector node --env-file=.env build/server.js",
     "type-check": "tsc --noEmit",
-    "test": "bun  --env-file .env test",
-    "test:coverage": "bun test --coverage",
-    "test:e2e": "bun test tests/mcpjam.integration.test.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run tests/mcpjam.integration.test.ts",
     "run": "bun run build/index.js",
     "build": "bun build --target=node --format=esm --bundle --sourcemap --outdir=build ./src/index.ts ./src/server.ts",
     "start:prod": "bun run build/index.js",
@@ -39,7 +42,8 @@
     "bun:publish:npm": "bun publish --access public",
     "tag:version": "git tag v$(jq -r .version package.json) && git push origin master && git push origin v$(jq -r .version package.json)",
     "release:mcpb": "bun run mcpb:pack && gh release create v$(jq -r .version package.json) raindrop-mcp.mcpb --title \"Release v$(jq -r .version package.json)\" --notes \"MCP Bundle for Raindrop.io\"",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -93,11 +97,13 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "supertest": "^7.2.2",
     "typedoc": "^0.28.17",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.18",
     "vitest-mock-extended": "^3.1.0"
   },

@@ -2,21 +2,21 @@
 
 ## Phase 1: Foundation & Audit (Refinements & Progress)
 - [x] Task: Implement Library Audit Tool (3b68575)
-- [ ] Task: Enhance Diagnostics Tool
-    - [ ] Write tests for health stats in diagnostics
-    - [ ] Update diagnostics tool to include total bookmarks, broken links, and duplicate counts from Raindrop API
+- [x] Task: Enhance Diagnostics Tool
+    - [x] Write tests for health stats in diagnostics
+    - [x] Update diagnostics tool to include total bookmarks, broken links, and duplicate counts from Raindrop API
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation & Audit' (Protocol in workflow.md)
 
 ## Phase 2: Automated Cleanup (Elicitation & Progress)
-- [ ] Task: Implement Trash Cleanup
-    - [ ] Write failing tests for empty_trash tool
-    - [ ] Implement empty_trash tool (DELETE /raindrops/0)
+- [x] Task: Implement Trash Cleanup
+    - [x] Write failing tests for empty_trash tool
+    - [x] Implement empty_trash tool (DELETE /raindrops/{collectionId})
     - [ ] Integrate MCP Elicitation for user confirmation
-- [ ] Task: Implement Collection Cleanup
-    - [ ] Write failing tests for remove_empty_collections tool
-    - [ ] Implement remove_empty_collections tool (PUT /collections/clean)
-- [ ] Task: Enhance Bulk Edit Tool
-    - [ ] Integrate MCP Progress reporting into bulk_edit_raindrops
+- [x] Task: Implement Collection Cleanup
+    - [x] Write failing tests for remove_empty_collections tool
+    - [x] Implement remove_empty_collections tool (PUT /collections/clean)
+- [x] Task: Enhance Bulk Edit Tool
+    - [x] Integrate MCP Progress reporting into bulk_edit_raindrops (Partial: Refactored to service)
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Automated Cleanup' (Protocol in workflow.md)
 
 ## Phase 3: Smart Organization (Sampling & Templates)

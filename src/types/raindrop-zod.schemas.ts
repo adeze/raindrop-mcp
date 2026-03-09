@@ -36,6 +36,12 @@ export const BookmarkOutputSchema = z.object({
     important: z.boolean().optional(),
     collectionId: z.number().optional(),
     description: z.string().optional(),
+    media: z.array(z.object({ link: z.string().url() })).optional(),
+    cache: z.object({
+        status: z.enum(['ready', 'retry', 'failed']),
+        size: z.number(),
+        created: z.string(),
+    }).optional(),
 });
 
 /**

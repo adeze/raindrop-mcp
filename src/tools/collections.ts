@@ -34,7 +34,7 @@ type CollectionManageArgs = z.infer<typeof CollectionManageInputSchema> & {
 
 const collectionListTool = defineTool({
   name: "collection_list",
-  description: "Lists all Raindrop.io collections.",
+  description: "Lists all Raindrop.io collections as a flat list.",
   inputSchema: CollectionListInputSchema,
   outputSchema: CollectionListOutputSchema,
   handler: async (
@@ -47,6 +47,34 @@ const collectionListTool = defineTool({
       ...collections.map(makeCollectionLink),
     ];
     return { content };
+  },
+});
+
+const getCollectionTreeTool = defineTool({
+  name: "get_collection_tree",
+  description: "Returns a hierarchical view of all collections with full breadcrumb paths.",
+  inputSchema: z.object({}),
+  handler: async (_args, { raindropService }: ToolHandlerContext) => {
+    const tree = await raindropService.getCollectionTree();
+    
+    const formatNode = (node: any, indent = 0): string => {
+      let result = "  ".repeat(indent) + `- ${node.title} (ID: ${node._id}, Path: ${node.path}, Items: ${node.count || 0})\n`;
+      if (node.children && node.children.length > 0) {
+        node.children.forEach((child: any) => {
+          result += formatNode(child, indent + 1);
+        });
+      }
+      return result;
+    };
+
+    let resultText = "Collection Hierarchy:\n";
+    tree.forEach((node) => {
+      resultText += formatNode(node);
+    });
+
+    return {
+      content: [textContent(resultText)],
+    };
   },
 });
 
@@ -87,4 +115,8 @@ const collectionManageTool = defineTool({
   },
 });
 
-export const collectionTools = [collectionListTool, collectionManageTool];
+export const collectionTools = [
+  collectionListTool,
+  getCollectionTreeTool,
+  collectionManageTool,
+];

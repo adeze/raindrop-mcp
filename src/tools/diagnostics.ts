@@ -32,9 +32,28 @@ export const createDiagnosticsTool = (
     inputSchema: DiagnosticsInputSchema,
     outputSchema: DiagnosticsOutputSchema,
     handler: async (
-      _args?: z.infer<typeof DiagnosticsInputSchema>,
-      _context?: ToolHandlerContext,
+      args?: z.infer<typeof DiagnosticsInputSchema>,
+      context?: ToolHandlerContext,
     ): Promise<z.infer<typeof DiagnosticsOutputSchema>> => {
+      const stats = context?.raindropService
+        ? await context.raindropService.getUserStats()
+        : null;
+
+      // Fetch health metrics if service is available
+      let healthDetails = {};
+      if (context?.raindropService) {
+        const [broken, duplicates, untagged] = await Promise.all([
+          context.raindropService.getBookmarks({ broken: true, perPage: 1 }),
+          context.raindropService.getBookmarks({ duplicates: true, perPage: 1 }),
+          context.raindropService.getBookmarks({ notag: true, perPage: 1 }),
+        ]);
+        healthDetails = {
+          brokenCount: broken.count,
+          duplicateCount: duplicates.count,
+          untaggedCount: untagged.count,
+        };
+      }
+
       const diagnosticsData = {
         version: serverVersion,
         mcpProtocolVersion: "2025-11-25",
@@ -44,6 +63,15 @@ export const createDiagnosticsTool = (
         os: process.platform,
         uptime: process.uptime(),
         startTime: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+        libraryHealth: stats
+          ? {
+              totalBookmarks: stats.bookmarks,
+              totalCollections: stats.collections,
+              totalHighlights: stats.highlights,
+              totalTags: stats.tags,
+              ...healthDetails,
+            }
+          : undefined,
         env: {
           NODE_ENV: process.env.NODE_ENV,
           MCP_DEBUG: process.env.MCP_DEBUG,

@@ -129,7 +129,7 @@ export default class RaindropService {
   async getCollections(): Promise<Collection[]> {
     return this.withRateLimit(async () => {
       const { data } = await this.client.GET("/collections");
-      return [...(data?.items || [])];
+      return [...((data?.items as Collection[]) || [])];
     });
   }
 
@@ -143,7 +143,7 @@ export default class RaindropService {
         params: { path: { id } },
       });
       if (!data?.item) throw new NotFoundError("Collection not found");
-      return data.item;
+      return data.item as Collection;
     });
   }
 
@@ -159,8 +159,36 @@ export default class RaindropService {
           params: { path: { parentId } },
         },
       );
-      return [...(data?.items || [])];
+      return [...((data?.items as Collection[]) || [])];
     });
+  }
+
+  /**
+   * Get all collections organized as a tree with breadcrumb paths.
+   */
+  async getCollectionTree(): Promise<Array<Collection & { path: string; children: any[] }>> {
+    const collections = await this.getCollections();
+    const tree: any[] = [];
+    const map = new Map<number, any>();
+
+    // Initialize map
+    collections.forEach((c) => {
+      map.set(c._id, { ...c, children: [], path: c.title });
+    });
+
+    // Build hierarchy and paths
+    collections.forEach((c) => {
+      const node = map.get(c._id);
+      if (c.parent?.$id && map.has(c.parent.$id)) {
+        const parent = map.get(c.parent.$id);
+        parent.children.push(node);
+        node.path = `${parent.path} > ${c.title}`;
+      } else {
+        tree.push(node);
+      }
+    });
+
+    return tree;
   }
 
   /**
@@ -225,7 +253,7 @@ export default class RaindropService {
         params: { path: { id } },
         body,
       });
-      return { link: data?.link || "", access: [...(data?.access || [])] };
+      return { link: data?.link || "", access: [...((data?.access as any[]) || [])] };
     });
   }
 
@@ -245,30 +273,50 @@ export default class RaindropService {
       tag?: string;
       duplicates?: boolean;
       broken?: boolean;
+      notag?: boolean;
       highlight?: boolean;
       domain?: string;
     } = {},
   ): Promise<{ items: Bookmark[]; count: number }> {
     return this.withRateLimit(async () => {
       const query: any = {};
-      if (params.search) query.search = params.search;
+      const searchParts = params.search ? [params.search] : [];
+      
       if (params.tags) query.tag = params.tags.join(",");
       if (params.tag) query.tag = params.tag;
-      if (params.important !== undefined) query.important = params.important;
+      if (params.important !== undefined) {
+        searchParts.push("important:true");
+      }
       if (params.page) query.page = params.page;
       if (params.perPage) query.perpage = params.perPage;
       if (params.sort) query.sort = params.sort;
-      if (params.duplicates !== undefined) query.duplicates = params.duplicates;
-      if (params.broken !== undefined) query.broken = params.broken;
-      if (params.highlight !== undefined) query.highlight = params.highlight;
+      
+      if (params.duplicates === true) {
+        searchParts.push("duplicates:true");
+      }
+      if (params.broken === true) {
+        searchParts.push("broken:true");
+      }
+      if (params.notag === true) {
+        searchParts.push("notag:true");
+      }
+      if (params.highlight === true) {
+        searchParts.push("highlights:true");
+      }
+      
+      if (searchParts.length > 0) {
+        query.search = searchParts.join(" ");
+      }
+
       if (params.domain) query.domain = params.domain;
       const endpoint = params.collection ? "/raindrops/{id}" : "/raindrops/0";
       const options = params.collection
         ? { params: { path: { id: params.collection }, query } }
         : { params: { query } };
+      
       const { data } = await (this.client as any).GET(endpoint, options);
       return {
-        items: data?.items || [],
+        items: (data?.items as Bookmark[]) || [],
         count: data?.count || 0,
       };
     });
@@ -284,7 +332,28 @@ export default class RaindropService {
         params: { path: { id } },
       });
       if (!data?.item) throw new NotFoundError("Bookmark not found");
-      return data.item;
+      return (data.item as any) as Bookmark;
+    });
+  }
+
+
+  /**
+   * Fetch AI-powered suggestions for a URL or existing bookmark.
+   * Raindrop.io API: POST /raindrop/suggest or GET /raindrop/{id}/suggest
+   */
+  async getSuggestions(target: string | number): Promise<components["schemas"]["SuggestionsResponse"]> {
+    return this.withRateLimit(async () => {
+      if (typeof target === "number") {
+        const { data } = await this.client.GET("/raindrop/{id}/suggest", {
+          params: { path: { id: target } },
+        });
+        return data as components["schemas"]["SuggestionsResponse"];
+      } else {
+        const { data } = await this.client.POST("/raindrop/suggest", {
+          body: { link: target },
+        });
+        return data as components["schemas"]["SuggestionsResponse"];
+      }
     });
   }
 
@@ -317,7 +386,7 @@ export default class RaindropService {
         },
       });
       if (!data?.item) throw new UpstreamError("Failed to create bookmark");
-      return data.item;
+      return data.item as Bookmark;
     });
   }
 
@@ -335,7 +404,7 @@ export default class RaindropService {
         body: updates,
       });
       if (!data?.item) throw new UpstreamError("Failed to update bookmark");
-      return data.item;
+      return data.item as Bookmark;
     });
   }
 
@@ -371,6 +440,64 @@ export default class RaindropService {
     if (updates.broken !== undefined) body.broken = updates.broken;
     const { data } = await this.client.PUT("/raindrops", { body });
     return !!data?.result;
+  }
+
+  /**
+   * Batch update bookmarks in a specific collection
+   * Raindrop.io API: PUT /raindrops/{collectionId}
+   */
+  async batchUpdateBookmarksInCollection(
+    collectionId: number,
+    updates: {
+      ids: number[];
+      tags?: string[];
+      important?: boolean;
+      broken?: boolean;
+    },
+  ): Promise<boolean> {
+    return this.withRateLimit(async () => {
+      const { data } = await this.client.PUT("/raindrops/{collectionId}", {
+        params: { path: { id: collectionId } as any },
+        body: updates,
+      });
+      return !!(data as any)?.result;
+    });
+  }
+
+  /**
+   * Batch delete bookmarks in a specific collection or empty trash
+   * Raindrop.io API: DELETE /raindrops/{collectionId}
+   */
+  async batchDeleteBookmarksInCollection(
+    collectionId: number,
+    ids?: number[],
+  ): Promise<boolean> {
+    return this.withRateLimit(async () => {
+      const { data } = await this.client.DELETE("/raindrops/{collectionId}", {
+        params: { path: { id: collectionId } as any },
+        body: ids ? { ids } : undefined,
+      });
+      return !!(data as any)?.result;
+    });
+  }
+
+  /**
+   * Empty trash
+   * Raindrop.io API: DELETE /raindrops/-99
+   */
+  async emptyTrash(): Promise<boolean> {
+    return this.batchDeleteBookmarksInCollection(-99);
+  }
+
+  /**
+   * Remove all empty collections
+   * Raindrop.io API: PUT /collections/clean
+   */
+  async removeEmptyCollections(): Promise<boolean> {
+    return this.withRateLimit(async () => {
+      const { data } = await this.client.PUT("/collections/clean");
+      return !!(data as any)?.result;
+    });
   }
 
   /**
@@ -462,6 +589,36 @@ export default class RaindropService {
   }
 
   /**
+   * Fetch user statistics (total bookmarks, collections, highlights, tags)
+   * Raindrop.io API: GET /user/stats, /collections, and /tags/0
+   */
+  async getUserStats(): Promise<components["schemas"]["UserStatsResponse"]["stats"]> {
+    return this.withRateLimit(async () => {
+      // 1. Get system counts from /user/stats (bookmarks, trash)
+      const statsResponse = await this.client.GET("/user/stats");
+      const statsData = statsResponse.data as any;
+      
+      // 2. Get collection count from /collections
+      const collectionsResponse = await this.client.GET("/collections");
+      
+      // 3. Get tag count from /tags/0
+      const tagsResponse = await this.client.GET("/tags/0");
+
+      const items = statsData?.items || [];
+      const totalBookmarks = items.find((i: any) => i._id === 0)?.count || 0;
+      const trashCount = items.find((i: any) => i._id === -99)?.count || 0;
+      
+      return {
+        bookmarks: totalBookmarks,
+        trash: trashCount,
+        collections: collectionsResponse.data?.items?.length || 0,
+        highlights: 0, // No direct total highlights count available
+        tags: tagsResponse.data?.items?.length || 0,
+      };
+    });
+  }
+
+  /**
    * Fetch highlights for a specific bookmark
    * Raindrop.io API: GET /raindrop/{id}/highlights
    */
@@ -470,7 +627,7 @@ export default class RaindropService {
       params: { path: { id: raindropId } },
     });
     if (!data?.items) throw new Error("No highlights found");
-    return [...data.items];
+    return [...((data.items as Highlight[]) || [])];
   }
 
   /**
@@ -480,8 +637,8 @@ export default class RaindropService {
   async getAllHighlights(): Promise<Highlight[]> {
     return this.withRateLimit(async () => {
       const { data } = await this.client.GET("/raindrops/0");
-      if (!data?.items) return [];
-      return data.items.flatMap((bookmark: any) =>
+      const items = (data as any)?.items || [];
+      return items.flatMap((bookmark: any) =>
         Array.isArray(bookmark.highlights) ? bookmark.highlights : [],
       );
     });
@@ -508,7 +665,7 @@ export default class RaindropService {
         },
       });
       if (!data?.item) throw new UpstreamError("Failed to create highlight");
-      return data.item;
+      return data.item as Highlight;
     });
   }
 
@@ -530,7 +687,7 @@ export default class RaindropService {
         body: updates,
       });
       if (!data?.item) throw new UpstreamError("Failed to update highlight");
-      return data.item;
+      return data.item as Highlight;
     });
   }
 

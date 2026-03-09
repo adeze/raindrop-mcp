@@ -6,18 +6,19 @@
 
 ### Version Information
 
-- **Current version**: 2.3.2
+- **Current version**: 2.3.4
 - **Node.js**: >=18.0.0 required
 - **Bun**: >=1.0.0 required
 - **MCP SDK**: ^1.25.3
 
 ### Key Features
 
-- ✅ **Full MCP Protocol Compliance**: Implements MCP SDK v1.25.3 with proper tool/resource registration
-- ✅ **Dynamic Resource System**: Access any collection or bookmark by ID without pre-registration
-- ✅ **Real-time API Data**: Resources fetch live data from Raindrop.io APIs on-demand
-- ✅ **Comprehensive Testing**: 45 tests with real API validation
-- ✅ **Type Safety**: Full TypeScript implementation with Zod validation schemas
+- ✅ **Full MCP Protocol Compliance**: Implements MCP SDK v1.25.3 with proper tool/resource registration.
+- ✅ **Modular Tool System**: Cleanly separated tool definitions in `src/tools/` for high maintainability.
+- ✅ **Dynamic Resource System**: Access any collection or bookmark by ID without pre-registration.
+- ✅ **AI Suggestions & Sampling**: Integrated AI-powered organization advice using Raindrop's API and MCP Sampling.
+- ✅ **Comprehensive Testing**: 49 tests with real API validation and automated CI/CD.
+- ✅ **Safety Confirmation**: Explicit confirmation logic for destructive operations (`empty_trash`, `cleanup_collections`).
 
 ## External References
 
@@ -129,16 +130,27 @@ src/
 ├── index.ts                    # STDIO server entry point
 ├── server.ts                   # HTTP server entry point (port 3002)
 ├── services/
-│   ├── raindrop.service.ts     # Core Raindrop.io API client
-│   └── raindropmcp.service.ts  # MCP protocol wrapper
+│   ├── raindrop.service.ts     # Core Raindrop.io API client (tree logic, suggestions)
+│   └── raindropmcp.service.ts  # MCP protocol wrapper (orchestration)
+├── tools/                      # MODULAR TOOL DEFINITIONS (Core logic)
+│   ├── bookmarks.ts            # Search, manage, list, get
+│   ├── collections.ts          # List, manage, tree view
+│   ├── cleanup.ts              # Library audit, empty trash, cleanup collections
+│   ├── suggestions.ts          # AI-powered organization advice
+│   ├── highlights.ts           # Highlight management
+│   ├── tags.ts                 # Tag management
+│   ├── bulk.ts                 # Bulk update, move, remove
+│   ├── common.ts               # Shared types, link helpers
+│   └── index.ts                # Tool aggregator factory
 ├── types/                      # TypeScript type definitions and Zod schemas
 └── utils/                      # Utilities (logger, etc.)
 
-tests/
-├── mcp.service.test.ts         # MCP integration tests with real API calls
-└── raindrop.service.test.ts    # Core service layer tests
-
-build/                          # Build output (index.js, server.js)
+tests/                          # COMPREHENSIVE TEST SUITE
+├── mcp.service.test.ts         # MCP protocol integration tests
+├── raindrop.service.test.ts    # Service layer logic tests
+├── library_audit.test.ts       # Specialized audit logic tests
+├── cleanup_destructive.test.ts # Confirmation logic tests
+└── ...
 ```
 
 ### Service Architecture
@@ -198,34 +210,34 @@ Optimized Raindrop.io API client with 25-30% code reduction through:
 
 ## Tools and Resources
 
-### Currently Registered Tools (10 tools)
+### Currently Registered Tools (15 tools)
 
-#### **System & Diagnostics (1 tool)**
+#### **System & Diagnostics**
+- `diagnostics` - Server diagnostic information and library health metrics.
 
-- `diagnostics` - Get MCP server diagnostic information with environment details
+#### **Collection Management**
+- `collection_list` - List all collections as a flat list.
+- `get_collection_tree` - Hierarchical view of collections with full breadcrumb paths.
+- `collection_manage` - Create, update, or delete collections.
 
-#### **Collection Management (2 tools)**
+#### **Bookmark Management**
+- `bookmark_search` - Advanced search with filters, tags, and pagination.
+- `bookmark_manage` - Create, update, or delete individual bookmarks.
+- `get_raindrop` - Fetch a single bookmark by ID.
+- `list_raindrops` - List bookmarks for a collection with pagination.
 
-- `collection_list` - List all collections for the authenticated user (returns `resource` content)
-- `collection_manage` - Create, update, or delete collections with operation parameter
+#### **Cleanup & Audit**
+- `library_audit` - Scan entire library for broken links, duplicates, and untagged items.
+- `empty_trash` - Permanently empty the trash (requires `confirm: true`).
+- `cleanup_collections` - Remove all empty collections (requires `confirm: true`).
 
-#### **Bookmark Management (2 tools)**
+#### **Organization & Suggestions**
+- `get_suggestions` - AI-powered organization advice for a URL or existing bookmark.
+- `bulk_edit_raindrops` - Bulk update, move, or remove bookmarks in a collection.
 
-- `bookmark_search` - Search bookmarks with advanced filtering (returns `resource` content)
-- `bookmark_manage` - Create, update, or delete bookmarks with operation parameter
-
-#### **Tag Management (1 tool)**
-
-- `tag_manage` - Rename, merge, or delete tags with operation parameter
-
-#### **Highlight Management (1 tool)**
-
-- `highlight_manage` - Create, update, or delete highlights with operation parameter
-
-#### **Legacy Tools (2 tools)**
-
-- `getRaindrop` - Fetch a single bookmark by ID (placeholder implementation)
-- `listRaindrops` - List bookmarks for a collection (placeholder implementation)
+#### **Metadata Management**
+- `tag_manage` - Rename, merge, or delete tags.
+- `highlight_manage` - Create, update, or delete highlights.
 
 ### Resource System
 

@@ -17,16 +17,21 @@ Connect Raindrop.io to your AI assistant with a simple MCP server. Use it to org
 
 ## Tools
 
-- **diagnostics** - Server diagnostic information
-- **collection_list** - List all collections
+- **diagnostics** - Server diagnostic information and library health metrics
+- **collection_list** - List all collections as a flat list
+- **get_collection_tree** - Hierarchical view of collections with full breadcrumb paths
 - **collection_manage** - Create, update, or delete collections
-- **bookmark_search** - Search bookmarks
+- **bookmark_search** - Advanced search with filters, tags, and pagination
 - **bookmark_manage** - Create, update, or delete bookmarks
+- **get_raindrop** - Fetch a single bookmark by ID
+- **list_raindrops** - List bookmarks for a collection with pagination
+- **get_suggestions** - AI-powered organization advice (tags/collections) for a URL or bookmark
+- **bulk_edit_raindrops** - Bulk update, move, or remove bookmarks in a specific collection
 - **tag_manage** - Rename, merge, or delete tags
 - **highlight_manage** - Create, update, or delete highlights
-- **getRaindrop** - Fetch single bookmark by ID (legacy)
-- **listRaindrops** - List bookmarks for a collection (legacy)
-- **bulk_edit_raindrops** - Bulk update tags, favorite status, media, cover, or move bookmarks
+- **library_audit** - Scan library for broken links, duplicates, and untagged items
+- **empty_trash** - Permanently empty the trash (requires confirmation)
+- **cleanup_collections** - Remove empty collections (requires confirmation)
 
 ## Install
 
@@ -77,7 +82,27 @@ Add this to your MCP client configuration:
 
 - Issues: https://github.com/adeze/raindrop-mcp/issues
 
-## 📋 Recent Enhancements (v2.3.2)
+## 📋 Recent Enhancements (v2.3.4)
+
+### Smart Organization & Hierarchy
+
+- **AI Suggestions**: New `get_suggestions` tool provides organizational advice using Raindrop's API and MCP Sampling.
+- **Collection Tree**: `get_collection_tree` tool provides a hierarchical view with full breadcrumb paths.
+- **Bulk Move**: Added `move` operation to `bulk_edit_raindrops` for efficient library organization.
+- **Pagination Support**: Standardized `list_raindrops` and `bookmark_search` with pagination for large libraries.
+
+### Safety & Quality
+
+- **Confirmation Logic**: Destructive tools (`empty_trash`, `cleanup_collections`) now require explicit confirmation.
+- **Standardized Naming**: All tools now use consistent snake_case naming conventions.
+- **CI/CD Pipeline**: Enhanced GitHub Actions with automated linting, type-checking, and cross-transport tests.
+- **Code Quality**: Established ESLint and Prettier configurations for maintainable development.
+
+## 📋 Previous Enhancements (v2.3.3)
+
+### Advanced Cleanup & Library Audit
+
+## 📋 Previous Enhancements (v2.3.2)
 
 ### MCP Resource Links Implementation
 

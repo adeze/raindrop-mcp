@@ -10,10 +10,11 @@ Deliver production-ready enhancements to the Raindrop MCP server while preservin
 
 **Primary Reference**: `CLAUDE.md` for project overview, version info, capabilities, and architecture
 
-- Mirror declarative `toolConfigs` pattern when adding tools/resources
-- Reuse Zod schemas from `src/types/` for validation
-- Validate destructive operations (delete, merge, etc.) with clear preconditions
-- Provide meaningful error messages for all operations
+- **Modular Tools**: Always add new tools to domain-specific files in `src/tools/` (e.g., `bookmarks.ts`, `cleanup.ts`).
+- **Standardized Naming**: Use `snake_case` for all tool names (e.g., `list_raindrops`, `get_raindrop`).
+- **Sampling**: Leverage the `mcpServer` instance in `ToolHandlerContext` for AI-powered features via `createMessage`.
+- **Safety**: Ensure destructive tools (`delete`, `empty`, `remove`) require a `confirm: true` parameter.
+- **Resource Links**: Prefer returning `resource` contents (URI links) for lists instead of heavy JSON payloads.
 
 ### GitHub Copilot / Code Generation Agents
 

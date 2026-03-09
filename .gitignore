@@ -67,3 +67,6 @@ raindrop-mcp.code-workspace
 # Ignore backup files
 **/*.backup
 
+# Private inspector config
+mcp-inspector.config.json
+

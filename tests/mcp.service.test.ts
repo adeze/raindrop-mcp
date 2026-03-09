@@ -171,7 +171,7 @@ describe("RaindropMCPService", () => {
     if (!diagnosticsTool) {
       throw new Error("Diagnostics tool not found in tool list");
     }
-    expect(diagnosticsTool.name).toBe("Diagnostics");
+    expect(diagnosticsTool.name).toBe("diagnostics");
     expect(diagnosticsTool.description).toContain("Diagnostics");
   });
 

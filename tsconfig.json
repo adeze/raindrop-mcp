@@ -19,7 +19,7 @@
     "noEmit": true,
 
     // Best practices
-    "strict": true, // Disable all strict checks
+    "strict": true,
     "skipLibCheck": true,
     "declaration": true,
     "sourceMap": true, // Enable .js.map files for debugging
@@ -27,7 +27,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "useUnknownInCatchVariables": true,

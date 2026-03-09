@@ -3,84 +3,73 @@ import type { ToolHandlerContext } from "./common.js";
 import { defineTool } from "./common.js";
 
 const BulkEditRaindropsInputSchema = z.object({
-  collectionId: z.number().describe("Collection to update raindrops in"),
+  collectionId: z.number().describe("Source collection ID where raindrops are currently located"),
+  operation: z.enum(["update", "remove", "move"]).default("update").describe("Action to perform"),
+  toCollectionId: z.number().optional().describe("Target collection ID for 'move' operation"),
   ids: z
     .array(z.number())
     .optional()
     .describe(
-      "Array of raindrop IDs to update. If omitted, all in collection are updated.",
+      "Array of raindrop IDs. If omitted for update, all in collection may be affected. Required for remove and move.",
     ),
   important: z.boolean().optional().describe("Mark as favorite (true/false)"),
   tags: z
     .array(z.string())
     .optional()
     .describe("Tags to set. Empty array removes all tags."),
-  media: z
-    .array(z.string())
-    .optional()
-    .describe("Media URLs to set. Empty array removes all media."),
-  cover: z
-    .string()
-    .optional()
-    .describe("Cover URL. Use <screenshot> for auto screenshot."),
-  collection: z
-    .object({ $id: z.number() })
-    .optional()
-    .describe("Move to another collection."),
-  nested: z.boolean().optional().describe("Include nested collections."),
-});
-
-const BulkEditRaindropsOutputSchema = z.object({
-  content: z.array(
-    z.object({
-      type: z.string(),
-      text: z.string(),
-    }),
-  ),
 });
 
 const bulkEditRaindropsTool = defineTool({
   name: "bulk_edit_raindrops",
   description:
-    "Bulk update tags, favorite status, media, cover, or move bookmarks to another collection.",
+    "Bulk update, move, or remove bookmarks in a specific collection.",
   inputSchema: BulkEditRaindropsInputSchema,
-  outputSchema: BulkEditRaindropsOutputSchema,
-  execution: {
-    taskSupport: "supported",
-  },
   handler: async (
     args: z.infer<typeof BulkEditRaindropsInputSchema>,
-    _context?: ToolHandlerContext,
+    { raindropService }: ToolHandlerContext,
   ) => {
-    const body: Record<string, unknown> = {};
-    if (args.ids) body.ids = args.ids;
-    if (args.important !== undefined) body.important = args.important;
-    if (args.tags) body.tags = args.tags;
-    if (args.media) body.media = args.media;
-    if (args.cover) body.cover = args.cover;
-    if (args.collection) body.collection = args.collection;
-    if (args.nested !== undefined) body.nested = args.nested;
-
-    const url = `https://api.raindrop.io/rest/v1/raindrops/${args.collectionId}`;
-    const response = await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const result = (await response.json()) as {
-      result: boolean;
-      errorMessage?: string;
-      modified?: number;
-    };
-    if (!result.result) {
-      throw new Error(result.errorMessage || "Bulk edit failed");
+    if (args.operation === "remove") {
+      if (!args.ids || args.ids.length === 0) {
+        throw new Error("IDs are required for remove operation");
+      }
+      const success = await raindropService.batchDeleteBookmarksInCollection(args.collectionId, args.ids);
+      return {
+        content: [{ type: "text", text: success ? `Successfully removed ${args.ids.length} bookmarks.` : "Failed to remove bookmarks." }]
+      };
     }
 
+    if (args.operation === "move") {
+      if (!args.ids || args.ids.length === 0) {
+        throw new Error("IDs are required for move operation");
+      }
+      if (args.toCollectionId === undefined) {
+        throw new Error("toCollectionId is required for move operation");
+      }
+      
+      // Moving is essentially a batch update of the collection ID
+      const success = await raindropService.batchUpdateBookmarks(args.ids, {
+        collection: args.toCollectionId
+      });
+
+      return {
+        content: [{ type: "text", text: success ? `Successfully moved ${args.ids.length} bookmarks to collection ${args.toCollectionId}.` : "Failed to move bookmarks." }]
+      };
+    }
+
+    // Default: update
+    const updates: any = {
+      ids: args.ids || [],
+    };
+    if (args.important !== undefined) updates.important = args.important;
+    if (args.tags) updates.tags = args.tags;
+
+    const success = await raindropService.batchUpdateBookmarksInCollection(args.collectionId, updates);
+    
     return {
       content: [
         {
           type: "text",
-          text: `Updated ${result.modified ?? "unknown number of"} raindrops in collection ${args.collectionId}`,
+          text: success ? `Bulk update in collection ${args.collectionId} successful.` : "Bulk update failed.",
         },
       ],
     };

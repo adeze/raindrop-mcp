@@ -26,6 +26,7 @@ const BookmarkSearchInputSchema = z.object({
   tag: z.string().optional().describe("Single tag to filter by"),
   duplicates: z.boolean().optional().describe("Include duplicate bookmarks"),
   broken: z.boolean().optional().describe("Include broken links"),
+  notag: z.boolean().optional().describe("Filter by items without tags"),
   highlight: z.boolean().optional().describe("Only bookmarks with highlights"),
   domain: z.string().optional().describe("Filter by domain"),
 });
@@ -49,8 +50,10 @@ const GetRaindropOutputSchema = z.object({
 });
 
 const ListRaindropsInputSchema = z.object({
-  collectionId: z.string().min(1, "Collection ID is required"),
-  limit: z.number().min(1).max(100).optional(),
+  collectionId: z.number().describe("Collection ID to list bookmarks from (use 0 for All)"),
+  page: z.number().optional().describe("Page number for pagination"),
+  perPage: z.number().optional().describe("Items per page (max 50)"),
+  sort: z.string().optional().describe("Sort order"),
 });
 
 const ListRaindropsOutputSchema = z.object({
@@ -79,6 +82,7 @@ const bookmarkSearchTool = defineTool({
     setIfDefined(query, "tag", args.tag);
     setIfDefined(query, "duplicates", args.duplicates);
     setIfDefined(query, "broken", args.broken);
+    setIfDefined(query, "notag", args.notag);
     setIfDefined(query, "highlight", args.highlight);
     setIfDefined(query, "domain", args.domain);
 
@@ -144,7 +148,7 @@ const bookmarkManageTool = defineTool({
 });
 
 const getRaindropTool = defineTool({
-  name: "getRaindrop",
+  name: "get_raindrop",
   description: "Fetch a single Raindrop.io bookmark by ID.",
   inputSchema: GetRaindropInputSchema,
   outputSchema: GetRaindropOutputSchema,
@@ -158,8 +162,8 @@ const getRaindropTool = defineTool({
 });
 
 const listRaindropsTool = defineTool({
-  name: "listRaindrops",
-  description: "List Raindrop.io bookmarks for a collection.",
+  name: "list_raindrops",
+  description: "List Raindrop.io bookmarks for a collection with pagination.",
   inputSchema: ListRaindropsInputSchema,
   outputSchema: ListRaindropsOutputSchema,
   handler: async (
@@ -167,12 +171,15 @@ const listRaindropsTool = defineTool({
     { raindropService }: ToolHandlerContext,
   ) => {
     const result = await raindropService.getBookmarks({
-      collection: parseInt(args.collectionId),
-      perPage: args.limit || 50,
+      collection: args.collectionId,
+      page: args.page,
+      perPage: args.perPage || 50,
+      sort: args.sort,
     });
 
+
     const content = [
-      textContent(`Found ${result.count} bookmarks in collection`),
+      textContent(`Page ${args.page || 0} - Found ${result.items.length} bookmarks (Total: ${result.count})`),
     ];
     result.items.forEach((bookmark: any) =>
       content.push(makeBookmarkLink(bookmark)),
