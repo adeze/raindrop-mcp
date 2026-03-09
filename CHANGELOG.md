@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.3.7] - 2026-03-09
+## [2.3.8] - 2026-03-09
 
 ### Fixed
-- **Publish Workflow**: Corrected registry-specific authentication for GitHub Packages.
+- **Version Sync**: Synchronized all metadata files (`package.json`, `manifest.json`, OpenAPI specs) to ensure consistent deployment.
+- **MCPB Manifest**: Updated the bundle manifest with the new toolset and versioning.
+
+## [2.3.7] - 2026-03-09
 
 ## [2.3.6] - 2026-03-09
 
