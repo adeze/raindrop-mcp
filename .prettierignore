@@ -1,0 +1,8 @@
+node_modules
+build
+docs
+src/types/raindrop.schema.d.ts
+src/services/raindrop-client
+raindrop-complete.yaml
+raindrop.yaml
+bun.lock
