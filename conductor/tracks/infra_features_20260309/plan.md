@@ -17,8 +17,8 @@
 
 ## Phase 3: AI-Powered Auto-tagging (Sampling)
 
-- [ ] Task: Research MCP Sampling `createMessage` patterns within the server's `ToolHandlerContext`.
-- [ ] Task: Define and register the `suggest_tags` tool in a new `src/tools/suggestions.ts` file.
-- [ ] Task: Write failing tests for the `suggest_tags` tool, mocking the MCP `createMessage` call.
-- [ ] Task: Implement the prompt construction and sampling logic to provide relevant tag suggestions.
+- [x] Task: Research MCP Sampling `createMessage` patterns within the server's `ToolHandlerContext`. [checkpoint: 9384cf2]
+- [x] Task: Define and register the `suggest_tags` tool in a new `src/tools/suggestions.ts` file. [checkpoint: 9384cf2]
+- [x] Task: Write failing tests for the `suggest_tags` tool, mocking the MCP `createMessage` call. [checkpoint: 9384cf2]
+- [x] Task: Implement the prompt construction and sampling logic to provide relevant tag suggestions. [checkpoint: 9384cf2]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: AI-Powered Auto-tagging (Sampling)' (Protocol in workflow.md)

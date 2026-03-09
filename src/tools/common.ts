@@ -3,6 +3,13 @@ import RaindropService from "../services/raindrop.service.js";
 
 export interface ToolHandlerContext {
   raindropService: RaindropService;
+  mcpServer: any;
+  mcpReq?: {
+    requestSampling: (params: any) => Promise<any>;
+    elicitInput: (params: any) => Promise<any>;
+    log: (level: string, message: string, logger?: string) => Promise<void>;
+  };
+  reportProgress?: (progress: { progress: number; total: number }) => void;
   [key: string]: unknown;
 }
 
