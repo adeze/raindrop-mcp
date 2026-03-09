@@ -2,10 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.3.6] - 2026-03-09
+## [2.3.7] - 2026-03-09
 
 ### Fixed
-- **Publish Workflow**: Resolved authentication issues when publishing to GitHub Packages registry.
+- **Publish Workflow**: Corrected registry-specific authentication for GitHub Packages.
+
+## [2.3.6] - 2026-03-09
 
 ## [2.3.5] - 2026-03-09
 

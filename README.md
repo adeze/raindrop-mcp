@@ -82,7 +82,7 @@ Add this to your MCP client configuration:
 
 - Issues: https://github.com/adeze/raindrop-mcp/issues
 
-## 📋 Recent Enhancements (v2.3.6)
+## 📋 Recent Enhancements (v2.3.7)
 
 ### Smart Organization & Hierarchy
 
