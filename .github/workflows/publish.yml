@@ -33,6 +33,9 @@ jobs:
       - name: Build package
         run: bun run build
 
+      - name: Pack MCPB bundle
+        run: bun run mcpb:pack
+
       - name: Publish to npm (via Trusted Publisher)
         uses: actions/setup-node@v4
         with:
@@ -55,7 +58,7 @@ jobs:
           CURRENT_VERSION=$(jq -r .version package.json)
           # Delete existing release if it exists
           gh release delete v$CURRENT_VERSION --yes || true
-          # Create new release
-          gh release create v$CURRENT_VERSION --title "Release v$CURRENT_VERSION" --notes "MCP Server for Raindrop.io"
+          # Create new release with MCPB bundle attached
+          gh release create v$CURRENT_VERSION raindrop-mcp.mcpb --title "Release v$CURRENT_VERSION" --notes "MCP Server for Raindrop.io (including .mcpb bundle)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,11 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.3.8] - 2026-03-09
+## [2.3.9] - 2026-03-09
 
-### Fixed
-- **Version Sync**: Synchronized all metadata files (`package.json`, `manifest.json`, OpenAPI specs) to ensure consistent deployment.
-- **MCPB Manifest**: Updated the bundle manifest with the new toolset and versioning.
+### Changed
+- **Consolidated CI/CD**: Merged MCPB bundle creation and GitHub Release steps into a single unified `publish` workflow.
+
+## [2.3.8] - 2026-03-09
 
 ## [2.3.7] - 2026-03-09
 

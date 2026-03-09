@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Raindrop.io API
   description: Fully documented API for managing bookmarks, collections, tags, files, and filters in Raindrop.io.
-  version: 2.3.8
+  version: 2.3.9
 servers:
   - url: https://api.raindrop.io/rest/v1
     description: Raindrop.io REST API
