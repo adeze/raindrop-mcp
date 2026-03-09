@@ -13,9 +13,9 @@ describe("Library Audit Tool", () => {
 
   it("should have library_audit, empty_trash, and cleanup_collections tools registered", async () => {
     const tools = await mcpService.listTools();
-    expect(tools.find(t => t.id === "library_audit")).toBeDefined();
-    expect(tools.find(t => t.id === "empty_trash")).toBeDefined();
-    expect(tools.find(t => t.id === "cleanup_collections")).toBeDefined();
+    expect(tools.find((t) => t.id === "library_audit")).toBeDefined();
+    expect(tools.find((t) => t.id === "empty_trash")).toBeDefined();
+    expect(tools.find((t) => t.id === "cleanup_collections")).toBeDefined();
   });
 
   it("should return audit summary including broken, duplicate, and untagged items", async () => {

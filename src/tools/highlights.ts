@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { ValidationError } from "../types/mcpErrors.js";
 import {
-    HighlightInputSchema,
-    HighlightOutputSchema,
+  HighlightInputSchema,
+  HighlightOutputSchema,
 } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
 import { defineTool, setIfDefined } from "./common.js";

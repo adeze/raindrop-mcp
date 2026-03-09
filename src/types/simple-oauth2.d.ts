@@ -1,1 +1,1 @@
-declare module 'simple-oauth2';
+declare module "simple-oauth2";

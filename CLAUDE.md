@@ -213,29 +213,35 @@ Optimized Raindrop.io API client with 25-30% code reduction through:
 ### Currently Registered Tools (15 tools)
 
 #### **System & Diagnostics**
+
 - `diagnostics` - Server diagnostic information and library health metrics.
 
 #### **Collection Management**
+
 - `collection_list` - List all collections as a flat list.
 - `get_collection_tree` - Hierarchical view of collections with full breadcrumb paths.
 - `collection_manage` - Create, update, or delete collections.
 
 #### **Bookmark Management**
+
 - `bookmark_search` - Advanced search with filters, tags, and pagination.
 - `bookmark_manage` - Create, update, or delete individual bookmarks.
 - `get_raindrop` - Fetch a single bookmark by ID.
 - `list_raindrops` - List bookmarks for a collection with pagination.
 
 #### **Cleanup & Audit**
+
 - `library_audit` - Scan entire library for broken links, duplicates, and untagged items.
 - `empty_trash` - Permanently empty the trash (requires `confirm: true`).
 - `cleanup_collections` - Remove all empty collections (requires `confirm: true`).
 
 #### **Organization & Suggestions**
+
 - `get_suggestions` - AI-powered organization advice for a URL or existing bookmark.
 - `bulk_edit_raindrops` - Bulk update, move, or remove bookmarks in a collection.
 
 #### **Metadata Management**
+
 - `tag_manage` - Rename, merge, or delete tags.
 - `highlight_manage` - Create, update, or delete highlights.
 

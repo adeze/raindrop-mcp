@@ -1,38 +1,36 @@
 {
+  "version": "0.1.0",
+  "configurations": [
+    {
+      "name": "Bun Test",
+      "type": "bun",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/bun",
+      "args": ["test"],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "NODE_ENV": "test"
+      }
+    }
+  ],
+  "testPatterns": [
+    "tests/**/*.test.ts",
+    "tests/**/*.spec.ts",
+    "**/*.test.js",
+    "**/*.spec.js"
+  ],
+  "testTimeout": 30000,
+  "testEnvironment": "node",
+  "tasks": {
     "version": "0.1.0",
     "configurations": [
-        {
-            "name": "Bun Test",
-            "type": "bun",
-            "request": "launch",
-            "program": "${workspaceFolder}/node_modules/.bin/bun",
-            "args": [
-                "test"
-            ],
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "env": {
-                "NODE_ENV": "test"
-            }
-        }
-    ],
-    "testPatterns": [
-        "tests/**/*.test.ts",
-        "tests/**/*.spec.ts",
-        "**/*.test.js",
-        "**/*.spec.js"
-    ],
-    "testTimeout": 30000,
-    "testEnvironment": "node",
-    "tasks": {
-        "version": "0.1.0",
-        "configurations": [
-            {
-                "label": "Tag and Push Version",
-                "type": "shell",
-                "command": "bun run tag:version",
-                "group": "build"
-            }
-        ]
-    }
+      {
+        "label": "Tag and Push Version",
+        "type": "shell",
+        "command": "bun run tag:version",
+        "group": "build"
+      }
+    ]
+  }
 }

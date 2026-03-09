@@ -1,14 +1,17 @@
 ## 📚 Documentation: HTTP SSE Transport Setup Guide
 
 ### Summary
+
 Create comprehensive documentation for the new HTTP SSE transport implementation, including setup guides, API reference, migration instructions, and troubleshooting.
 
 ### Background
+
 With the addition of HTTP SSE transport support, users need clear documentation on how to use the new transport options, migrate from STDIO, and integrate with web applications.
 
 ### Documentation Requirements
 
 #### 1. Setup and Usage Guide (`HTTP_SSE_GUIDE.md`)
+
 - [ ] **Quick Start**: Minimal setup to get HTTP server running
 - [ ] **Configuration**: Environment variables and options
 - [ ] **Transport Types**: When to use Streamable HTTP vs legacy SSE
@@ -16,6 +19,7 @@ With the addition of HTTP SSE transport support, users need clear documentation 
 - [ ] **Deployment**: Production deployment considerations
 
 #### 2. API Reference Documentation
+
 - [ ] **Endpoints**: Detailed description of all HTTP endpoints
   - `/mcp` - Modern Streamable HTTP transport
   - `/sse` - Legacy SSE connection
@@ -27,19 +31,22 @@ With the addition of HTTP SSE transport support, users need clear documentation 
 - [ ] **Headers**: Required and optional HTTP headers
 
 #### 3. Migration Guide
+
 - [ ] **From STDIO to HTTP**: Step-by-step migration instructions
 - [ ] **Backwards Compatibility**: How existing clients continue working
 - [ ] **Transport Selection**: Decision matrix for choosing transport type
 - [ ] **Performance Considerations**: Scaling and optimization tips
 
 #### 4. Integration Examples
+
 - [ ] **Web Applications**: Browser-based MCP client examples
-- [ ] **Node.js**: Server-side integration examples  
+- [ ] **Node.js**: Server-side integration examples
 - [ ] **Python**: Client examples with aiohttp/requests
 - [ ] **Curl**: Command-line testing examples
 - [ ] **Postman**: Collection for API testing
 
 #### 5. Troubleshooting Guide
+
 - [ ] **Common Issues**: Connection problems and solutions
 - [ ] **Debug Mode**: Using MCP Inspector with HTTP transport
 - [ ] **Session Problems**: Session management troubleshooting
@@ -49,59 +56,75 @@ With the addition of HTTP SSE transport support, users need clear documentation 
 ### Content Structure
 
 #### HTTP_SSE_GUIDE.md
-```markdown
+
+````markdown
 # HTTP SSE Transport Guide
 
 ## Quick Start
+
 1. Start HTTP server: `bun run start:http`
 2. Test connection: `bun run test:http`
 3. Check health: `bun run health`
 
 ## Transport Types
+
 ### Streamable HTTP (Recommended)
+
 - Modern MCP transport
 - Better session management
 - Improved error handling
 
 ### Legacy SSE (Backwards Compatibility)
+
 - Compatible with older clients
 - Server-Sent Events based
 - Gradual migration path
 
 ## API Endpoints
+
 ### POST /mcp
+
 Modern Streamable HTTP transport endpoint...
 
-### GET /sse  
+### GET /sse
+
 Legacy SSE connection endpoint...
 
 ## Client Examples
+
 ### JavaScript/TypeScript
+
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 // ... example code
 ```
+````
 
 ## Deployment
+
 ### Production Considerations
+
 - Use reverse proxy (nginx/apache)
 - Configure CORS for web clients
 - Monitor session counts
 - Set up health checks
+
 ```
 
 #### Integration Examples Directory
 ```
+
 docs/
 ├── integration/
-│   ├── browser-client.html
-│   ├── nodejs-client.js
-│   ├── python-client.py
-│   └── curl-examples.sh
+│ ├── browser-client.html
+│ ├── nodejs-client.js
+│ ├── python-client.py
+│ └── curl-examples.sh
 └── troubleshooting/
-    ├── common-issues.md
-    ├── debug-guide.md
-    └── performance.md
+├── common-issues.md
+├── debug-guide.md
+└── performance.md
+
 ```
 
 ### Acceptance Criteria
@@ -126,7 +149,7 @@ docs/
 - [ ] Links and references are valid
 - [ ] Version information is current
 
-#### Accessibility  
+#### Accessibility
 - [ ] Proper heading structure for navigation
 - [ ] Code blocks with language specification
 - [ ] Clear prerequisites and assumptions
@@ -167,3 +190,4 @@ docs/
 **Priority**: High
 **Effort**: Medium
 **Impact**: High - Essential for user adoption and success
+```

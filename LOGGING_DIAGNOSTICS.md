@@ -32,14 +32,14 @@ The Raindrop MCP Server implements a logging system that is safe for use with bo
 The logger utility provides:
 
 ```typescript
-import { createLogger } from './utils/logger.js';
+import { createLogger } from "./utils/logger.js";
 
-const logger = createLogger('context-name');
+const logger = createLogger("context-name");
 
-logger.debug('Debug message');
-logger.info('Info message');
-logger.warn('Warning message');
-logger.error('Error message', errorObject);
+logger.debug("Debug message");
+logger.info("Info message");
+logger.warn("Warning message");
+logger.error("Error message", errorObject);
 ```
 
 ### Features
@@ -52,16 +52,19 @@ logger.error('Error message', errorObject);
 ### Usage in Different Components
 
 #### STDIO Server (`src/index.ts`)
+
 - Uses logger for all output including errors
-- No console.* calls that could pollute MCP protocol
+- No console.\* calls that could pollute MCP protocol
 - Graceful error handling with proper logging
 
 #### HTTP Servers (`src/http-server-optimized.ts`)
+
 - Uses logger for consistency
 - HTTP mode allows more flexibility but maintains consistent logging
 - Session management and error logging
 
 #### MCP Services
+
 - Internal logging disabled (`capabilities.logging: false`)
 - Uses external logger for diagnostics when needed
 
@@ -95,6 +98,7 @@ The server provides a built-in `diagnostics` tool accessible via MCP:
 ### Usage Examples
 
 #### Basic Diagnostics
+
 ```bash
 # Via MCP Inspector
 npx @modelcontextprotocol/inspector bun run src/index.ts
@@ -107,6 +111,7 @@ curl -X POST http://localhost:3002/mcp \
 ```
 
 #### Detailed Diagnostics (with environment info)
+
 ```bash
 # Include environment variables (sensitive info masked)
 # Call 'diagnostics' tool with: {"includeEnvironment": true}
@@ -114,12 +119,12 @@ curl -X POST http://localhost:3002/mcp \
 
 ## Log Levels
 
-| Level | Description | Use Case |
-|-------|-------------|----------|
+| Level   | Description          | Use Case                     |
+| ------- | -------------------- | ---------------------------- |
 | `debug` | Detailed information | Development, troubleshooting |
-| `info` | General information | Normal operation status |
-| `warn` | Warning conditions | Non-critical issues |
-| `error` | Error conditions | Failures, exceptions |
+| `info`  | General information  | Normal operation status      |
+| `warn`  | Warning conditions   | Non-critical issues          |
+| `error` | Error conditions     | Failures, exceptions         |
 
 ## Configuration
 
@@ -137,24 +142,26 @@ HTTP_PORT=3002
 ### Runtime Configuration
 
 ```typescript
-import { logger } from './utils/logger.js';
+import { logger } from "./utils/logger.js";
 
 // Change log level at runtime
-logger.setLevel('debug');
+logger.setLevel("debug");
 
 // Create contextual logger
-const contextLogger = logger.child('component-name');
+const contextLogger = logger.child("component-name");
 ```
 
 ## Transport-Specific Behavior
 
 ### STDIO Transport
+
 - **Entry Point**: `src/index.ts`
 - **Protocol**: MCP over stdin/stdout
 - **Logging**: stderr only (never pollutes protocol)
 - **Debugging**: Use diagnostics tool or inspector
 
 ### HTTP Transport
+
 - **Entry Point**: `src/http-server-optimized.ts`
 - **Protocol**: MCP over HTTP
 - **Logging**: stderr (consistent with STDIO)
@@ -171,10 +178,11 @@ const contextLogger = logger.child('component-name');
 ### Debug Steps
 
 1. **Check server status**:
+
    ```bash
    # For HTTP server
    curl http://localhost:3002/health
-   
+
    # For STDIO server - use MCP inspector
    npx @modelcontextprotocol/inspector bun run src/index.ts
    ```

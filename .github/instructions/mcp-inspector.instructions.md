@@ -1,5 +1,4 @@
 ---
-
 ---
 
 # MCP Inspector CLI Prompt

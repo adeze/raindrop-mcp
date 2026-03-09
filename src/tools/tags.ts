@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { ValidationError } from "../types/mcpErrors.js";
 import {
-    TagInputSchema,
-    TagOutputSchema,
+  TagInputSchema,
+  TagOutputSchema,
 } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
 import { defineTool } from "./common.js";

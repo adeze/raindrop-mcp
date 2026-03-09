@@ -44,7 +44,10 @@ export const createDiagnosticsTool = (
       if (context?.raindropService) {
         const [broken, duplicates, untagged] = await Promise.all([
           context.raindropService.getBookmarks({ broken: true, perPage: 1 }),
-          context.raindropService.getBookmarks({ duplicates: true, perPage: 1 }),
+          context.raindropService.getBookmarks({
+            duplicates: true,
+            perPage: 1,
+          }),
           context.raindropService.getBookmarks({ notag: true, perPage: 1 }),
         ]);
         healthDetails = {

@@ -1,10 +1,13 @@
 # Specification: Advanced Bookmark Cleanup & Full SDK Conformance
 
 ## Goal
+
 Enhance the Raindrop MCP server with maintenance tools while achieving full conformance and refining all partially implemented Model Context Protocol (MCP) features.
 
 ## Scope
+
 ### Bookmark Cleanup & Refinements
+
 - **Library Audit:** Detect broken links and duplicate bookmarks (Complete).
 - **Automated Cleanup:** Tools for trash and empty collection removal.
 - **Smart Suggestions:** AI-powered organization suggestions.
@@ -12,6 +15,7 @@ Enhance the Raindrop MCP server with maintenance tools while achieving full conf
 - **Progress Refinement:** Extend progress reporting to all bulk/heavy operations (e.g., `bulk_edit`).
 
 ### MCP SDK Conformance
+
 - **Progress Notifications:** Reporting during long-running tasks.
 - **Elicitation:** Explicit confirmation for destructive actions.
 - **Resource Templates:** Formal registration of `mcp://raindrop/{id}` and `mcp://collection/{id}`.
@@ -20,6 +24,7 @@ Enhance the Raindrop MCP server with maintenance tools while achieving full conf
 - **Roots:** Implement the `roots` capability to support local filesystem context for import/export.
 
 ## Tools to Implement/Enhance
+
 1. `library_audit`: Audit with progress reporting.
 2. `empty_trash`: Trash removal with elicitation.
 3. `remove_empty_collections`: Collection cleanup.
@@ -28,6 +33,7 @@ Enhance the Raindrop MCP server with maintenance tools while achieving full conf
 6. `bulk_edit_raindrops`: Enhanced with progress reporting.
 
 ## Technical Details
+
 - Adhere to MCP SDK v1.25+ patterns.
 - Implement `listResourceTemplates` and update `listResources`.
 - Update tool handlers to support `cursor` based pagination.

@@ -1,20 +1,20 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
-    GetPromptRequestSchema,
-    ListPromptsRequestSchema,
-    ListResourcesRequestSchema,
-    ReadResourceRequestSchema,
-    SubscribeRequestSchema,
-    UnsubscribeRequestSchema,
-    type Prompt,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
+  type Prompt,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import pkg from "../../package.json";
 import { buildToolConfigs } from "../tools/index.js";
 import {
-    NotFoundError,
-    UpstreamError,
-    ValidationError,
+  NotFoundError,
+  UpstreamError,
+  ValidationError,
 } from "../types/mcpErrors.js";
 import RaindropService from "./raindrop.service.js";
 
@@ -293,13 +293,15 @@ export class RaindropMCPService {
     }>
   > {
     const registeredTools = (this.server as any)._registeredTools || {};
-    const tools = Object.entries(registeredTools).map(([name, tool]: [string, any]) => ({
-      id: name,
-      name: name,
-      description: tool.description || "",
-      inputSchema: tool.inputSchema || {},
-      outputSchema: tool.outputSchema || {},
-    }));
+    const tools = Object.entries(registeredTools).map(
+      ([name, tool]: [string, any]) => ({
+        id: name,
+        name: name,
+        description: tool.description || "",
+        inputSchema: tool.inputSchema || {},
+        outputSchema: tool.outputSchema || {},
+      }),
+    );
 
     // Also include tools from our toolConfigs if the server's tools is empty
     if (tools.length === 0) {
