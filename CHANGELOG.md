@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.3.4] - 2026-03-09
+## [2.3.5] - 2026-03-09
 
 ### Added
 - **AI Suggestions**: New `get_suggestions` tool providing organizational advice using Raindrop's API and MCP Sampling.
@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - **CI/CD**: Enhanced GitHub Actions workflow with automated linting, type-checking, and cross-transport tests.
 
 ### Changed
-- **Standardized Naming**: All tools renamed to consistent `snake_case` (e.g., `getRaindrop` -> `get_raindrop`, `listRaindrops` -> `list_raindrops`).
+- **Standardized Naming**: All tools renamed to consistent `snake_case` (e.g., `get_raindrop`, `list_raindrops`).
 - **Modular Architecture**: Refactored monolithic service into domain-specific tool modules in `src/tools/`.
 - **Improved README**: Updated documentation with the new toolset and version details.
 
