@@ -18,12 +18,12 @@
 
 ## Phase 3: Search Caching and Invalidation
 
-- [ ] Task: Integrate caching into `getBookmarks()` (search) using hashed query parameters as keys. TTL: 5 minutes.
-- [ ] Task: Implement cache invalidation logic in `createCollection`, `updateCollection`, `deleteCollection`.
-- [ ] Task: Implement cache invalidation logic in `updateBookmark`, `deleteBookmark`.
-- [ ] Task: Write failing tests for automatic cache clearing after modifications.
-- [ ] Task: Implement the invalidation logic to pass tests.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Search Caching and Invalidation' (Protocol in workflow.md)
+- [x] Task: Integrate caching into `getBookmarks()` (search) using hashed query parameters as keys. TTL: 5 minutes. [checkpoint: 24f3f75]
+- [x] Task: Implement cache invalidation logic in `createCollection`, `updateCollection`, `deleteCollection`. [checkpoint: 24f3f75]
+- [x] Task: Implement cache invalidation logic in `updateBookmark`, `deleteBookmark`. [checkpoint: 24f3f75]
+- [x] Task: Write failing tests for automatic cache clearing after modifications. [checkpoint: 24f3f75]
+- [x] Task: Implement the invalidation logic to pass tests. [checkpoint: 24f3f75]
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Search Caching and Invalidation' (Protocol in workflow.md) [checkpoint: 24f3f75]
 
 ## Phase 4: Supporting Features and Observability
 
