@@ -10,10 +10,10 @@
 ## Phase 2: Advanced Search Filter Implementation
 
 - [x] Task: Research Raindrop.io API advanced search syntax for date ranges, domains, and types in `raindrop-complete.yaml`. [checkpoint: 05a5927]
-- [x] Task: Update `BookmarkSearchInputSchema` in `src/tools/bookmarks.ts` to include the new filter parameters. [checkpoint: 883bc96]
-- [x] Task: Write failing tests for the new search filters (date, domain, type, duplicate). [checkpoint: 883bc96]
-- [x] Task: Implement the filter mapping logic in the `bookmark_search` tool to pass the tests. [checkpoint: 883bc96]
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Advanced Search Filter Implementation' (Protocol in workflow.md)
+- [x] Task: Update `BookmarkSearchInputSchema` in `src/tools/bookmarks.ts` to include the new filter parameters. [checkpoint: 9bcd99b]
+- [x] Task: Write failing tests for the new search filters (date, domain, type, duplicate). [checkpoint: 9bcd99b]
+- [x] Task: Implement the filter mapping logic in the `bookmark_search` tool to pass the tests. [checkpoint: 9bcd99b]
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Advanced Search Filter Implementation' (Protocol in workflow.md) [checkpoint: 9bcd99b]
 
 ## Phase 3: AI-Powered Auto-tagging (Sampling)
 
