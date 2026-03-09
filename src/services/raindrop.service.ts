@@ -1,6 +1,7 @@
 // Simple, clean openapi-fetch REST client
 import createClient from "openapi-fetch";
 import { RateLimiterMemory } from "rate-limiter-flexible";
+import Keyv from "keyv";
 import {
   AuthError,
   NotFoundError,
@@ -21,6 +22,11 @@ export default class RaindropService {
   private rateLimiter?: RateLimiterMemory;
   private logger = createLogger("raindrop-service");
 
+  // Caches for different data types
+  private cacheCollections: Keyv;
+  private cacheBookmarks: Keyv;
+  private cacheSearch: Keyv;
+
   constructor(token?: string) {
     this.client = createClient<paths>({
       baseUrl: "https://api.raindrop.io/rest/v1",
@@ -28,6 +34,11 @@ export default class RaindropService {
         Authorization: `Bearer ${token || process.env.RAINDROP_ACCESS_TOKEN}`,
       },
     });
+
+    // Initialize caches
+    this.cacheCollections = new Keyv();
+    this.cacheBookmarks = new Keyv();
+    this.cacheSearch = new Keyv();
 
     // Conservative rate limiting: 30 points per 60 seconds (2 requests/second max)
     // Provides buffer for Raindrop.io's rate limits and reduces spikes
@@ -126,33 +137,67 @@ export default class RaindropService {
    * Fetch all collections
    * Raindrop.io API: GET /collections
    */
-  async getCollections(): Promise<Collection[]> {
-    return this.withRateLimit(async () => {
+  async getCollections(skipCache = false): Promise<Collection[]> {
+    if (!skipCache) {
+      const cached = await this.cacheCollections.get("all");
+      if (cached) {
+        this.logger.debug("Cache HIT: getCollections");
+        return cached as Collection[];
+      }
+    }
+
+    this.logger.debug("Cache MISS: getCollections");
+    const collections = await this.withRateLimit(async () => {
       const { data } = await this.client.GET("/collections");
       return [...((data?.items as Collection[]) || [])];
     });
+
+    await this.cacheCollections.set("all", collections, 3600000); // 1 hour TTL
+    return collections;
   }
 
   /**
    * Fetch a single collection by ID
    * Raindrop.io API: GET /collection/{id}
    */
-  async getCollection(id: number): Promise<Collection> {
-    return this.withRateLimit(async () => {
+  async getCollection(id: number, skipCache = false): Promise<Collection> {
+    if (!skipCache) {
+      const cached = await this.cacheCollections.get(`id:${id}`);
+      if (cached) {
+        this.logger.debug(`Cache HIT: getCollection ${id}`);
+        return cached as Collection;
+      }
+    }
+
+    const collection = await this.withRateLimit(async () => {
       const { data } = await this.client.GET("/collection/{id}", {
         params: { path: { id } },
       });
       if (!data?.item) throw new NotFoundError("Collection not found");
       return data.item as Collection;
     });
+
+    await this.cacheCollections.set(`id:${id}`, collection, 3600000);
+    return collection;
   }
 
   /**
    * Fetch child collections for a parent collection
    * Raindrop.io API: GET /collections/{parentId}/childrens
    */
-  async getChildCollections(parentId: number): Promise<Collection[]> {
-    return this.withRateLimit(async () => {
+  async getChildCollections(
+    parentId: number,
+    skipCache = false,
+  ): Promise<Collection[]> {
+    if (!skipCache) {
+      const cached = await this.cacheCollections.get(`children:${parentId}`);
+      if (cached) {
+        this.logger.debug(`Cache HIT: getChildCollections ${parentId}`);
+        return cached as Collection[];
+      }
+    }
+
+    const collections = await this.withRateLimit(async () => {
       const { data } = await this.client.GET(
         "/collections/{parentId}/childrens",
         {
@@ -161,15 +206,22 @@ export default class RaindropService {
       );
       return [...((data?.items as Collection[]) || [])];
     });
+
+    await this.cacheCollections.set(
+      `children:${parentId}`,
+      collections,
+      3600000,
+    );
+    return collections;
   }
 
   /**
    * Get all collections organized as a tree with breadcrumb paths.
    */
-  async getCollectionTree(): Promise<
-    Array<Collection & { path: string; children: any[] }>
-  > {
-    const collections = await this.getCollections();
+  async getCollectionTree(
+    skipCache = false,
+  ): Promise<Array<Collection & { path: string; children: any[] }>> {
+    const collections = await this.getCollections(skipCache);
     const tree: any[] = [];
     const map = new Map<number, any>();
 
@@ -198,15 +250,19 @@ export default class RaindropService {
    * Raindrop.io API: POST /collection
    */
   async createCollection(title: string, isPublic = false): Promise<Collection> {
-    return this.withRateLimit(async () => {
+    const collection = await this.withRateLimit(async () => {
       if (!title?.trim())
         throw new ValidationError("Collection title is required");
       const { data } = await this.client.POST("/collection", {
         body: { title, public: isPublic },
       });
       if (!data?.item) throw new UpstreamError("Failed to create collection");
-      return data.item;
+      return data.item as Collection;
     });
+
+    // Invalidate collections cache
+    await this.cacheCollections.clear();
+    return collection;
   }
 
   /**
@@ -217,14 +273,18 @@ export default class RaindropService {
     id: number,
     updates: Partial<Collection>,
   ): Promise<Collection> {
-    return this.withRateLimit(async () => {
+    const collection = await this.withRateLimit(async () => {
       const { data } = await this.client.PUT("/collection/{id}", {
         params: { path: { id } },
         body: updates,
       });
       if (!data?.item) throw new UpstreamError("Failed to update collection");
-      return data.item;
+      return data.item as Collection;
     });
+
+    // Invalidate collections cache
+    await this.cacheCollections.clear();
+    return collection;
   }
 
   /**
@@ -237,6 +297,9 @@ export default class RaindropService {
         params: { path: { id } },
       });
     });
+
+    // Invalidate collections cache
+    await this.cacheCollections.clear();
   }
 
   /**
@@ -344,14 +407,25 @@ export default class RaindropService {
    * Fetch a single bookmark by ID
    * Raindrop.io API: GET /raindrop/{id}
    */
-  async getBookmark(id: number): Promise<Bookmark> {
-    return this.withRateLimit(async () => {
+  async getBookmark(id: number, skipCache = false): Promise<Bookmark> {
+    if (!skipCache) {
+      const cached = await this.cacheBookmarks.get(`id:${id}`);
+      if (cached) {
+        this.logger.debug(`Cache HIT: getBookmark ${id}`);
+        return cached as Bookmark;
+      }
+    }
+
+    const bookmark = await this.withRateLimit(async () => {
       const { data } = await this.client.GET("/raindrop/{id}", {
         params: { path: { id } },
       });
       if (!data?.item) throw new NotFoundError("Bookmark not found");
       return data.item as any as Bookmark;
     });
+
+    await this.cacheBookmarks.set(`id:${id}`, bookmark, 900000); // 15 minute TTL
+    return bookmark;
   }
 
   /**
@@ -390,7 +464,7 @@ export default class RaindropService {
       important?: boolean;
     },
   ): Promise<Bookmark> {
-    return this.withRateLimit(async () => {
+    const newBookmark = await this.withRateLimit(async () => {
       if (!bookmark.link)
         throw new ValidationError("Bookmark link is required");
       const { data } = await this.client.POST("/raindrop", {
@@ -407,6 +481,10 @@ export default class RaindropService {
       if (!data?.item) throw new UpstreamError("Failed to create bookmark");
       return data.item as Bookmark;
     });
+
+    // Invalidate search cache (since a new item might affect search results)
+    await this.cacheSearch.clear();
+    return newBookmark;
   }
 
   /**
@@ -417,7 +495,7 @@ export default class RaindropService {
     id: number,
     updates: Partial<Bookmark>,
   ): Promise<Bookmark> {
-    return this.withRateLimit(async () => {
+    const updated = await this.withRateLimit(async () => {
       const { data } = await this.client.PUT("/raindrop/{id}", {
         params: { path: { id } },
         body: updates,
@@ -425,6 +503,11 @@ export default class RaindropService {
       if (!data?.item) throw new UpstreamError("Failed to update bookmark");
       return data.item as Bookmark;
     });
+
+    // Invalidate bookmark and search caches
+    await this.cacheBookmarks.delete(`id:${id}`);
+    await this.cacheSearch.clear();
+    return updated;
   }
 
   /**
@@ -437,6 +520,10 @@ export default class RaindropService {
         params: { path: { id } },
       });
     });
+
+    // Invalidate bookmark and search caches
+    await this.cacheBookmarks.delete(`id:${id}`);
+    await this.cacheSearch.clear();
   }
 
   /**
