@@ -14,6 +14,7 @@
 - **Data Validation:** Zod (schema-driven tool definitions)
 - **Authentication:** simple-oauth2 (for upcoming OAuth integration)
 - **Performance:** rate-limiter-flexible (upstream API protection)
+- **Caching:** Keyv (in-memory caching with TTL support)
 
 ## Infrastructure & Tooling
 

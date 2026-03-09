@@ -24,6 +24,7 @@ To bridge the gap between AI assistants and personal information management by p
 - **Bulk Operations:** Perform actions on multiple bookmarks simultaneously.
 - **Optimized Maintenance:** Automated tools for cleaning up duplicates and broken links using token-efficient patterns.
 - **AI Suggestions:** AI-powered tag and collection suggestions using MCP Sampling.
+- **Intelligent Caching:** Systematic in-memory caching to reduce API round-trips and minimize token usage.
 - **Diagnostics:** Built-in server health and metadata reporting.
 
 ## User Experience Goals
