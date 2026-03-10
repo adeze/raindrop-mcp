@@ -120,7 +120,7 @@ bun run mcpb:pack
 1. Run type-check and tests.
 2. Use Conventional Commits so semantic-release can calculate the next version.
 3. Merge to `master` to trigger release in `.github/workflows/ci.yml`.
-4. Ensure `NPM_TOKEN` exists in repository secrets.
+4. Ensure npm trusted publishing (OIDC) is configured for this repository/package.
 5. Do not manually bump versions, push release tags, or publish npm directly for standard releases.
 
 ## References

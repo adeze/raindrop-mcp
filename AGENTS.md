@@ -114,5 +114,5 @@ bunx semantic-release --dry-run   # Validate release calculation locally (no pub
 3. Run `.github/workflows/release-dry-run.yml` to validate release flow before public publish.
 4. Ensure semantic-release prepare step syncs `manifest.json`, `mcp.json`, and `gemini-extension.json`.
 5. Merge to `master` to trigger the release job in `.github/workflows/ci.yml`.
-6. Ensure `NPM_TOKEN` is configured in repository secrets.
+6. Ensure npm trusted publishing (OIDC) is configured for this repository/package.
 7. Do not manually bump versions or push release tags for standard releases.

@@ -23,8 +23,12 @@ Use this workflow for all standard releases in this repository.
 
 ## Required Secrets
 
-- `NPM_TOKEN`: npm publish token.
 - `GITHUB_TOKEN`: provided by GitHub Actions.
+
+## Publishing Authentication
+
+- npm publish uses GitHub Actions OIDC trusted publishing.
+- No long-lived npm token is required for the standard CI release path.
 
 ## Local Verification Before Merge
 

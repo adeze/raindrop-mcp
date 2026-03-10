@@ -129,8 +129,12 @@ This repository uses `semantic-release` as the only supported release flow.
 
 ### Required secrets
 
-- `NPM_TOKEN` for npm publish access.
 - `GITHUB_TOKEN` is provided by GitHub Actions for release automation.
+
+### npm trusted publishing
+
+- npm publishing is configured via GitHub Actions OIDC trusted publishing.
+- `NPM_TOKEN` is not required for the standard CI release path.
 
 ### Local validation before merge
 

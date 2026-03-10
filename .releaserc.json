@@ -4,15 +4,10 @@
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     [
-      "@semantic-release/npm",
-      {
-        "npmPublish": true
-      }
-    ],
-    [
       "@semantic-release/exec",
       {
-        "prepareCmd": "jq \".version = \\\"${nextRelease.version}\\\"\" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json && jq \".version = \\\"${nextRelease.version}\\\"\" mcp.json > mcp.json.tmp && mv mcp.json.tmp mcp.json && jq \".version = \\\"${nextRelease.version}\\\"\" gemini-extension.json > gemini-extension.json.tmp && mv gemini-extension.json.tmp gemini-extension.json && bun run mcpb:pack"
+        "prepareCmd": "jq \".version = \\\"${nextRelease.version}\\\"\" package.json > package.json.tmp && mv package.json.tmp package.json && jq \".version = \\\"${nextRelease.version}\\\"\" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json && jq \".version = \\\"${nextRelease.version}\\\"\" mcp.json > mcp.json.tmp && mv mcp.json.tmp mcp.json && jq \".version = \\\"${nextRelease.version}\\\"\" gemini-extension.json > gemini-extension.json.tmp && mv gemini-extension.json.tmp gemini-extension.json && bun run mcpb:pack",
+        "publishCmd": "npm publish --access public"
       }
     ],
     [
