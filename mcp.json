@@ -1,0 +1,75 @@
+{
+  "name": "@adeze/raindrop-mcp",
+  "version": "2.4.1",
+  "description": "Raindrop.io MCP Server",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["build/index.js"],
+    "env": {
+      "RAINDROP_ACCESS_TOKEN": "YOUR_RAINDROP_ACCESS_TOKEN"
+    }
+  },
+  "tools": [
+    {
+      "name": "diagnostics",
+      "description": "Server diagnostic information and library health metrics"
+    },
+    {
+      "name": "collection_list",
+      "description": "List all collections as a flat list"
+    },
+    {
+      "name": "get_collection_tree",
+      "description": "Hierarchical view of collections with full breadcrumb paths"
+    },
+    {
+      "name": "collection_manage",
+      "description": "Create, update, or delete collections"
+    },
+    {
+      "name": "bookmark_search",
+      "description": "Advanced search with filters, tags, and pagination"
+    },
+    {
+      "name": "bookmark_manage",
+      "description": "Create, update, or delete bookmarks"
+    },
+    {
+      "name": "get_raindrop",
+      "description": "Fetch a single bookmark by ID"
+    },
+    {
+      "name": "list_raindrops",
+      "description": "List bookmarks for a collection with pagination"
+    },
+    {
+      "name": "get_suggestions",
+      "description": "AI-powered organization advice for a URL or bookmark"
+    },
+    {
+      "name": "bulk_edit_raindrops",
+      "description": "Bulk update, move, or remove bookmarks in a collection"
+    },
+    {
+      "name": "tag_manage",
+      "description": "Rename, merge, or delete tags"
+    },
+    {
+      "name": "highlight_manage",
+      "description": "Create, update, or delete highlights"
+    },
+    {
+      "name": "library_audit",
+      "description": "Scan library for broken links, duplicates, and untagged items"
+    },
+    {
+      "name": "empty_trash",
+      "description": "Permanently empty the trash (requires confirmation)"
+    },
+    {
+      "name": "cleanup_collections",
+      "description": "Remove empty collections (requires confirmation)"
+    }
+  ]
+}

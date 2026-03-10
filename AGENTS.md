@@ -74,10 +74,7 @@ bun run update:deps:interactive    # Interactive updates
 bun run bun:update                 # Conservative updates
 
 # Release & Distribution
-bun run bump:patch|minor|major    # Bump version
-bun run mcpb:pack                 # Package MCPB bundle
-bun run release:mcpb              # Create GitHub release
-bun run tag:version               # Tag & push version
+bunx semantic-release --dry-run   # Validate release calculation locally (no publish)
 ```
 
 ### Project Architecture
@@ -113,10 +110,9 @@ bun run tag:version               # Tag & push version
 ### Release Checklist
 
 1. Run `bun run type-check` and `bun run test` (all passing)
-2. Update version in documentation if needed
-3. **Manifest Sync**: Ensure `manifest.json` version and details exactly match `package.json` and the semantic release version before building the `.mcpb` file.
-4. Ensure manifest parity across STDIO/HTTP entry points
-5. Build and test MCPB package: `bun run mcpb:pack`
-6. Bump version: `bun run bump:patch|minor|major`
-7. Create release: `bun run release:mcpb`
-8. Note any manual test steps or breaking changes
+2. Use Conventional Commits so semantic-release can determine the correct version bump.
+3. Run `.github/workflows/release-dry-run.yml` to validate release flow before public publish.
+4. Ensure semantic-release prepare step syncs `manifest.json`, `mcp.json`, and `gemini-extension.json`.
+5. Merge to `master` to trigger the release job in `.github/workflows/ci.yml`.
+6. Ensure `NPM_TOKEN` is configured in repository secrets.
+7. Do not manually bump versions or push release tags for standard releases.

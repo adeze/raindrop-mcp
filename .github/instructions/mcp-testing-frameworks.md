@@ -375,7 +375,7 @@ describe("Tool Schemas", () => {
 {
   "devDependencies": {
     "vitest": "^4.0.17",
-    "@modelcontextprotocol/sdk": "^1.25.3"
+    "@modelcontextprotocol/sdk": "^1.27.1"
   }
 }
 ```

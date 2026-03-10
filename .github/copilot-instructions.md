@@ -6,7 +6,7 @@ applyTo: "**"
 
 ## Project Context
 
-**Raindrop MCP** is a Model Context Protocol (v2025-11-25) server that integrates Raindrop.io bookmarks into AI assistants. It uses declarative tool registration, dynamic resource handling, and real-time API data fetching. Version: 2.2.1 | Node: >=18 | Build: Bun | Package: .mcpb
+**Raindrop MCP** is a Model Context Protocol (v2025-11-25) server that integrates Raindrop.io bookmarks into AI assistants. It uses declarative tool registration, dynamic resource handling, and real-time API data fetching. Version: 2.4.1 | Node: >=18 | Build: Bun | Package: .mcpb
 
 ## Architecture: Big Picture
 
@@ -38,7 +38,7 @@ Each tool file (`bookmarks.ts`, `collections.ts`, etc.) exports a `toolConfigs` 
 ```typescript
 export const bookmarkTools = [
   defineTool<InputType, OutputType>({
-    name: "get_bookmark",
+    name: "get_raindrop",
     description: "...",
     inputSchema: z.object({ id: z.string() }),
     outputSchema: z.object({ ... }),
@@ -67,7 +67,6 @@ this.server.server.registerCapabilities({
   // ...
 });
 this.registerDeclarativeTools(); // Happens after
-this.registerResources(); // Happens after
 this.registerResourceHandlers(); // Happens after
 ```
 
@@ -117,7 +116,7 @@ bun run type-check       # TypeScript validation (required pre-commit)
 ```bash
 bun run build            # Compile to build/ (index.js, server.js)
 bun run mcpb:pack        # Create raindrop-mcp.mcpb (standard format, ~34 MB)
-bun run bump:patch       # Increment version + git tag
+bun run release          # Run semantic-release (CI-driven release flow)
 ```
 
 ## Code Style & Patterns
@@ -147,26 +146,5 @@ bun run bump:patch       # Increment version + git tag
 
 - **Raindrop**: [developer.raindrop.io](https://developer.raindrop.io)
 - **MCP Protocol**: [modelcontextprotocol.io](https://modelcontextprotocol.io/), spec v2025-11-25
-- **MCP SDK**: [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) v1.25.3
+- **MCP SDK**: [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) ^1.27.1
 - **MCPB Format**: [github.com/modelcontextprotocol/mcpb](https://github.com/modelcontextprotocol/mcpb) (standard package format)
-
-I want to build this as a MCP Bundle, abbreviated as "MCPB". Please follow these steps:
-
-Read the specifications thoroughly:
-https://github.com/anthropics/mcpb/blob/main/README.md - MCPB architecture overview, capabilities, and integration patterns
-https://github.com/anthropics/mcpb/blob/main/MANIFEST.md - Complete bundle manifest structure and field definitions
-https://github.com/anthropics/mcpb/tree/main/examples - Reference implementations including a "Hello World" example
-Create a proper bundle structure:
-Generate a valid manifest.json following the MANIFEST.md spec
-Implement an MCP server using @modelcontextprotocol/sdk with proper tool definitions
-Include proper error handling, security measures, and timeout management
-Follow best development practices:
-Implement proper MCP protocol communication via stdio transport
-Structure tools with clear schemas, validation, and consistent JSON responses
-Make use of the fact that this bundle will be running locally
-Add appropriate logging and debugging capabilities
-Include proper documentation and setup instructions
-Test considerations:
-Validate that all tool calls return properly structured responses
-Verify manifest loads correctly and host integration works
-Generate complete, production-ready code that can be immediately tested. Focus on defensive programming, clear error messages, and following the exact MCPB specifications to ensure compatibility with the ecosystem.

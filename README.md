@@ -13,7 +13,7 @@ Connect Raindrop.io to your AI assistant with a simple MCP server. Use it to org
 - Manage tags (list, rename, merge, delete)
 - Read highlights from bookmarks
 - Bulk edit bookmarks in a collection
-- Import/export bookmarks and manage trash
+- Audit broken links and duplicates, and manage trash
 
 ## Tools
 
@@ -26,14 +26,44 @@ Connect Raindrop.io to your AI assistant with a simple MCP server. Use it to org
 - **get_raindrop** - Fetch a single bookmark by ID
 - **list_raindrops** - List bookmarks for a collection with pagination
 - **get_suggestions** - AI-powered organization advice (tags/collections) for a URL or bookmark
+- **suggest_tags** - Suggest relevant tags from bookmark metadata using AI-assisted analysis
 - **bulk_edit_raindrops** - Bulk update, move, or remove bookmarks in a specific collection
 - **tag_manage** - Rename, merge, or delete tags
 - **highlight_manage** - Create, update, or delete highlights
 - **library_audit** - Scan library for broken links, duplicates, and untagged items
 - **empty_trash** - Permanently empty the trash (requires confirmation)
 - **cleanup_collections** - Remove empty collections (requires confirmation)
+- **remove_duplicates** - Find and remove duplicate bookmarks with safe confirmation flow
 
 ## Install
+
+### Quick Start (One-Liners)
+
+| Tool               | One-Liner Command                                                  |
+| :----------------- | :----------------------------------------------------------------- |
+| **Gemini CLI**     | `gemini extensions install https://github.com/adeze/raindrop-mcp`  |
+| **Codex CLI**      | `codex mcp add raindrop -- npx -y @adeze/raindrop-mcp`             |
+| **Claude Code**    | `claude mcp add raindrop -- npx -y @adeze/raindrop-mcp`            |
+| **GitHub Copilot** | `gh copilot config mcp add raindrop -- npx -y @adeze/raindrop-mcp` |
+| **Vercel Skills**  | `npx skills add adeze/raindrop-mcp`                                |
+
+> **Note**: For tools adding an MCP server via `npx`, you must have the `RAINDROP_ACCESS_TOKEN` environment variable set in your shell or the tool's environment config.
+
+### Vercel Skills (npx skills)
+
+This project is compatible with the [Vercel Skills](https://github.com/vercel/skills) system. All necessary manifests are present:
+
+- `manifest.json`: Standard MCP manifest for server definition.
+- `SKILL.md`: Standardized skill description for agent discovery.
+- `mcp.json`: Root configuration for MCP clients and registries.
+
+To add this server to your local skill directory:
+
+```bash
+npx skills add adeze/raindrop-mcp --global
+```
+
+To contribute this to the [Vercel Skills Registry](https://github.com/vercel/skills/tree/main/registry), submit a Pull Request adding this repository URL to the registry.
 
 ### Claude Desktop (MCPB)
 
@@ -82,7 +112,44 @@ Add this to your MCP client configuration:
 
 - Issues: https://github.com/adeze/raindrop-mcp/issues
 
-## 📋 Recent Enhancements (v2.3.9)
+## Release
+
+This repository uses `semantic-release` as the only supported release flow.
+
+### How publishing works
+
+- Releases run from pushes to `master` via `.github/workflows/ci.yml`.
+- `semantic-release` analyzes Conventional Commit messages, computes the next version, updates `CHANGELOG.md`, tags/releases on GitHub, and publishes npm.
+- During release preparation, `.releaserc.json` syncs `manifest.json`, `mcp.json`, and `gemini-extension.json`, then builds `raindrop-mcp.mcpb` so the GitHub Release includes the bundle.
+
+### Pre-release dry-run
+
+- Run `.github/workflows/release-dry-run.yml` with **Run workflow** before cutting a public release.
+- This validates semantic version calculation, registry auth, and release pipeline behavior without publishing.
+
+### Required secrets
+
+- `NPM_TOKEN` for npm publish access.
+- `GITHUB_TOKEN` is provided by GitHub Actions for release automation.
+
+### Local validation before merge
+
+```bash
+bun run lint
+bun run type-check
+bun run test
+bun run build
+```
+
+### Commit message examples
+
+- `fix: handle empty tag merge payload`
+- `feat: add collection path filter`
+- `feat!: remove deprecated search parameter`
+
+Do not manually bump versions, push release tags, or run manual npm publish commands for normal releases.
+
+## 📋 Recent Enhancements (v2.4.x)
 
 ### Smart Organization & Hierarchy
 
@@ -106,14 +173,14 @@ Add this to your MCP client configuration:
 
 ### MCP Resource Links Implementation
 
-- Modern `resource` content following MCP SDK v1.25.3 best practices
+- Modern `resource` content following current MCP SDK best practices
 - Efficient data access: tools return lightweight links instead of full payloads
 - Better performance: clients fetch full bookmark/collection data only when needed
 - Seamless integration with dynamic resource system (`mcp://raindrop/{id}`)
 
 ### SDK & API Updates
 
-- Updated to MCP SDK v1.25.3
+- Updated to the latest supported MCP SDK in this repository
 - Modern tool registration with improved descriptions
 - Fixed API endpoints and path parameters
 - All core tools fully functional

@@ -26,9 +26,9 @@
     "version": "0.1.0",
     "configurations": [
       {
-        "label": "Tag and Push Version",
+        "label": "Run semantic-release (dry-run)",
         "type": "shell",
-        "command": "bun run tag:version",
+        "command": "bunx semantic-release --dry-run",
         "group": "build"
       }
     ]

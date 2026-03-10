@@ -265,7 +265,7 @@ If you add routes, authentication, or other HTTP concerns beyond MCP.
 
 | Version  | Status    | Recommendation | Your Setup               |
 | -------- | --------- | -------------- | ------------------------ |
-| **v1.x** | Stable    | Production use | Using v1.25.3 ✓          |
+| **v1.x** | Stable    | Production use | Using v1.27.1 ✓          |
 | **v2**   | Pre-alpha | Not yet        | Middleware is v2 feature |
 
 **Your decision points:**

@@ -145,7 +145,7 @@ This epic tracks the complete implementation of HTTP Server-Sent Events (SSE) tr
 
 ### Dependencies
 
-- `@modelcontextprotocol/sdk` ^1.25.3 (latest)
+- `@modelcontextprotocol/sdk` ^1.27.1 (latest)
 - `express` for HTTP server framework
 - Node.js crypto module for session IDs
 - MCP Inspector for debugging

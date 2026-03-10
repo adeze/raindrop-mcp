@@ -6,13 +6,13 @@
     [
       "@semantic-release/npm",
       {
-        "npmPublish": false
+        "npmPublish": true
       }
     ],
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "jq \".version = \\\"${nextRelease.version}\\\"\" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json && bun run mcpb:pack"
+        "prepareCmd": "jq \".version = \\\"${nextRelease.version}\\\"\" manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json && jq \".version = \\\"${nextRelease.version}\\\"\" mcp.json > mcp.json.tmp && mv mcp.json.tmp mcp.json && jq \".version = \\\"${nextRelease.version}\\\"\" gemini-extension.json > gemini-extension.json.tmp && mv gemini-extension.json.tmp gemini-extension.json && bun run mcpb:pack"
       }
     ],
     [
@@ -24,7 +24,13 @@
     [
       "@semantic-release/git",
       {
-        "assets": ["package.json", "manifest.json", "CHANGELOG.md"],
+        "assets": [
+          "package.json",
+          "manifest.json",
+          "mcp.json",
+          "gemini-extension.json",
+          "CHANGELOG.md"
+        ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],

@@ -67,14 +67,12 @@ The project follows a modular service-oriented architecture:
 
 ## Deployment & CI/CD
 
-The project uses GitHub Actions for automated deployment and quality checks:
+The project uses GitHub Actions for automated quality checks and releases:
 
-- **CI (`.github/workflows/mcpjam-tests.yml`):** Runs tests and type checks on every push and PR.
-- **Publishing (`.github/workflows/publish.yml`):**
-  - Triggered by pushing a version tag (e.g., `v2.3.2`).
-  - Publishes the package to **npm** and **GitHub Packages**.
-  - Creates a GitHub Release with the bundled code.
-- **MCPB Release:** The `bun run release:mcpb` command creates an MCP Bundle (`.mcpb`) and uploads it to the GitHub Release for easy use in Claude Desktop.
+- **CI + Release (`.github/workflows/ci.yml`):**
+  - Runs lint, format check, type-check, build, and tests on push/PR.
+  - On push to `master`, runs `semantic-release` to compute version, update changelog, publish npm, and create the GitHub Release.
+  - The release prepare step also builds and attaches the MCPB bundle (`raindrop-mcp.mcpb`).
 
 ## Debugging
 

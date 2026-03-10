@@ -7,7 +7,7 @@ This guide outlines production-ready dev dependencies for testing, linting, form
 - **Runtime**: Bun + Node.js (esm)
 - **Language**: TypeScript (strict, verbatimModuleSyntax)
 - **Testing**: Vitest
-- **MCP SDK**: `@modelcontextprotocol/sdk ^1.25.3`
+- **MCP SDK**: `@modelcontextprotocol/sdk ^1.27.1`
 
 ## Recommended Dependencies
 
@@ -168,7 +168,7 @@ Critical for MCP protocol development.
 ```json
 {
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "^1.25.3"
+    "@modelcontextprotocol/inspector": "^0.21.1"
   }
 }
 ```
@@ -263,10 +263,10 @@ Automate semantic versioning and changelog generation.
 ```json
 {
   "devDependencies": {
-    "semantic-release": "^24.0.0",
-    "@semantic-release/git": "^10.0.0",
-    "@semantic-release/github": "^10.0.0",
-    "@semantic-release/npm": "^12.0.0",
+    "semantic-release": "^25.0.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.0",
+    "@semantic-release/npm": "^13.0.0",
     "@semantic-release/changelog": "^6.0.0",
     "conventional-commits-parser": "^5.0.0"
   }
@@ -278,14 +278,14 @@ Automate semantic versioning and changelog generation.
 - Automates version bumps based on commit messages
 - Integrates with GitHub releases and npm
 - Generates CHANGELOG.md from conventional commits
-- Used by `bun run release:mcpb` workflow
+- Used by `bun run release` in CI release workflow
 
 **Current Setup:**
 
-- Uses `bun pm version` for manual bumping
-- `semantic-release` optional for CD pipelines
+- Semantic-release is the default release path
+- CI drives versioning, changelog, npm publish, and GitHub release creation
 
-**Action:** Install for GitHub Actions CI/CD automation (optional)
+**Action:** Keep semantic-release and plugins aligned with CI workflow
 
 ### 8. Documentation (Priority: Low)
 
@@ -441,7 +441,7 @@ Optional: Profile tool execution time.
 | TS Linting  | @typescript-eslint/\*           | ^8.13.0 | Type-aware rules | ❌        |
 | Formatting  | prettier                        | ^3.3.0  | Code formatter   | ❌        |
 | Type Check  | typescript                      | ^5.6.0  | Type validation  | ✅        |
-| Debugging   | @modelcontextprotocol/inspector | ^1.25.3 | MCP debug tool   | ✅        |
+| Debugging   | @modelcontextprotocol/inspector | ^0.21.1 | MCP debug tool   | ✅        |
 | Docs        | typedoc                         | ^0.25.0 | API docs         | ✅        |
 | Release     | semantic-release                | ^24.0.0 | Auto versioning  | ❌        |
 

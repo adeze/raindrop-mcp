@@ -1,0 +1,23 @@
+{
+  "name": "raindrop-mcp",
+  "version": "2.4.1",
+  "description": "Raindrop.io MCP Server",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": [
+    {
+      "name": "raindrop-mcp",
+      "command": "node",
+      "args": ["${extensionPath}/build/index.js"],
+      "env": {
+        "RAINDROP_ACCESS_TOKEN": "${RAINDROP_ACCESS_TOKEN}"
+      }
+    }
+  ],
+  "settings": [
+    {
+      "name": "RAINDROP_ACCESS_TOKEN",
+      "description": "Your Raindrop.io API token",
+      "type": "string"
+    }
+  ]
+}
