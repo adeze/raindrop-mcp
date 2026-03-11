@@ -1,6 +1,6 @@
 {
   "name": "raindrop-mcp",
-  "version": "2.4.4",
+  "version": "2.4.2",
   "description": "Raindrop.io MCP Server",
   "contextFileName": "GEMINI.md",
   "mcpServers": [

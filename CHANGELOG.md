@@ -1,3 +1,10 @@
+## [2.4.2](https://github.com/adeze/raindrop-mcp/compare/v2.4.1...v2.4.2) (2026-03-11)
+
+### Bug Fixes
+
+- **ci:** format auth-check script ([29ab263](https://github.com/adeze/raindrop-mcp/commit/29ab263ecf8a262723d38bbbba1bc1ed7163728c))
+- **ci:** resolve auth-check lint globals ([8b73988](https://github.com/adeze/raindrop-mcp/commit/8b739886b3e774392f70fc036446b61defd0769b))
+
 ## [2.4.1](https://github.com/adeze/raindrop-mcp/compare/v2.4.0...v2.4.1) (2026-03-09)
 
 ### Bug Fixes
