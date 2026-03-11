@@ -1,12 +1,12 @@
 {
   "name": "@adeze/raindrop-mcp",
-  "version": "2.4.1",
+  "version": "2.4.4",
   "description": "MCP Server for Raindrop.io bookmark management",
   "main": "build/index.js",
   "module": "build/index.js",
   "type": "module",
   "bin": {
-    "raindrop-mcp": "./build/index.js"
+    "raindrop-mcp": "build/index.js"
   },
   "files": [
     "build"
@@ -25,6 +25,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "vitest run tests/mcpjam.integration.test.ts",
+    "auth:check": "node scripts/auth-check.mjs",
     "run": "bun run build/index.js",
     "build": "bun build --target=node --format=esm --bundle --sourcemap --outdir=build ./src/index.ts ./src/server.ts",
     "start:prod": "bun run build/index.js",
@@ -92,7 +93,7 @@
   "devDependencies": {
     "@anthropic-ai/dxt": "^0.2.6",
     "@eslint/js": "^10.0.1",
-    "@mcpjam/sdk": "^0.8.6",
+    "@mcpjam/sdk": "^0.8.8",
     "@modelcontextprotocol/inspector": "^0.21.1",
     "@openapitools/openapi-generator-cli": "^2.30.2",
     "@semantic-release/changelog": "^6.0.3",
@@ -104,22 +105,22 @@
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@types/bun": "^1.3.10",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.3.5",
+    "@types/node": "^25.4.0",
     "@types/supertest": "^7.2.0",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
-    "@typescript-eslint/parser": "^8.56.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
-    "lint-staged": "^16.3.2",
+    "lint-staged": "^16.3.3",
     "openapi-typescript": "^7.13.0",
     "prettier": "^3.8.1",
     "semantic-release": "^25.0.3",
     "supertest": "^7.2.2",
     "typedoc": "^0.28.17",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1",
+    "typescript-eslint": "^8.57.0",
     "vitest": "^4.0.18",
     "vitest-mock-extended": "^3.1.0"
   },

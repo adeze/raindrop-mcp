@@ -437,6 +437,7 @@ export class RaindropMCPService {
    */
   public listResources(): Array<{
     id: string;
+    name: string;
     uri: string;
     title?: string;
     description?: string;
@@ -445,6 +446,7 @@ export class RaindropMCPService {
     const serverResources = ((this.server as any)._resources || []).map(
       (r: any) => ({
         id: r.id || r.uri,
+        name: r.name || r.title || r.id || r.uri,
         uri: r.uri,
         title: r.title,
         description: r.description,
@@ -455,6 +457,7 @@ export class RaindropMCPService {
     // Include our static resources and dynamic resource patterns
     const staticResources = Object.keys(this.resources).map((uri) => ({
       id: uri,
+      name: uri,
       uri,
       title: `Resource ${uri}`,
       description: `MCP resource for ${uri}`,
@@ -465,6 +468,7 @@ export class RaindropMCPService {
     const dynamicResourcePatterns = [
       {
         id: "mcp://collection/{id}",
+        name: "collection_resource",
         uri: "mcp://collection/{id}",
         title: "Collection Resource Pattern",
         description:
@@ -473,6 +477,7 @@ export class RaindropMCPService {
       },
       {
         id: "mcp://raindrop/{id}",
+        name: "raindrop_resource",
         uri: "mcp://raindrop/{id}",
         title: "Raindrop Resource Pattern",
         description:
