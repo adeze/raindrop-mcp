@@ -2,23 +2,32 @@ import { config } from "dotenv";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { RaindropMCPService } from "../src/services/raindropmcp.service.js";
 
-// Defensive check: Ensure RAINDROP_ACCESS_TOKEN is present before running tests
 config();
-if (
-  !process.env.RAINDROP_ACCESS_TOKEN ||
-  process.env.RAINDROP_ACCESS_TOKEN.trim() === ""
-) {
-  throw new Error(
-    "RAINDROP_ACCESS_TOKEN is missing or empty. Please set it in your environment or .env file before running tests.",
-  );
-}
+const hasAccessToken = Boolean(process.env.RAINDROP_ACCESS_TOKEN?.trim());
+const runLiveApiTests = process.env.RUN_LIVE_API_TESTS === "true";
+const runLive = hasAccessToken && runLiveApiTests;
+const describeLive = runLive ? describe : describe.skip;
 
-// Test constants for URIs and resource IDs (populate these as needed)
 const USER_PROFILE_URI = "mcp://user/profile";
 const DIAGNOSTICS_URI = "diagnostics://server";
-const TEST_COLLECTION_ID = 55725911; // <-- set your known collection ID here
-const TEST_RAINDROP_ID = 1286757883; // <-- set your known raindrop/bookmark ID here
-// Add more constants here as needed for other read-only resources
+
+const firstResourceUriByPrefix = (content: any[], prefix: string) => {
+  const item = content.find(
+    (entry) =>
+      entry?.type === "resource" &&
+      typeof entry?.resource?.uri === "string" &&
+      entry.resource.uri.startsWith(prefix),
+  );
+  return item?.resource?.uri as string | undefined;
+};
+
+const parseIdFromResourceUri = (uri: string) => {
+  const id = Number.parseInt(uri.split("/").pop() || "", 10);
+  if (!Number.isFinite(id)) {
+    throw new Error(`Failed to parse numeric ID from URI: ${uri}`);
+  }
+  return id;
+};
 
 describe("RaindropMCPService", () => {
   let mcpService: RaindropMCPService;
@@ -42,23 +51,6 @@ describe("RaindropMCPService", () => {
   it("should successfully initialize McpServer", () => {
     const server = mcpService.getServer();
     expect(server).toBeDefined();
-  });
-
-  it("should read the user_profile resource via a public API", async () => {
-    // Add a public method to RaindropMCPService for resource reading if not present
-    if (typeof mcpService.readResource !== "function") {
-      throw new Error(
-        "readResource(uri: string) public method not implemented on RaindropMCPService",
-      );
-    }
-    const result = await mcpService.readResource(USER_PROFILE_URI);
-    expect(result).toBeDefined();
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-    const first = result[0];
-    if (!first) throw new Error("No user profile content returned");
-    expect(first.uri).toBe(USER_PROFILE_URI);
-    expect(first.text).toContain("profile");
   });
 
   it("should list available tools", async () => {
@@ -99,9 +91,6 @@ describe("RaindropMCPService", () => {
     expect(first.text).toContain("diagnostics");
   });
 
-  // Note: getManifest() is not part of RaindropMCPService public API
-  // Server capabilities are exposed via MCP protocol initialize handshake
-
   it("should list all registered resources with metadata", () => {
     const resources = mcpService.listResources();
     expect(resources).toBeDefined();
@@ -129,40 +118,6 @@ describe("RaindropMCPService", () => {
     expect(typeof info.description).toBe("string");
   });
 
-  it("should read a specific collection resource", async () => {
-    if (typeof mcpService.readResource !== "function") {
-      throw new Error(
-        "readResource(uri: string) public method not implemented on RaindropMCPService",
-      );
-    }
-    const collectionUri = `mcp://collection/${TEST_COLLECTION_ID}`;
-    const result = await mcpService.readResource(collectionUri);
-    expect(result).toBeDefined();
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-    const first = result[0];
-    if (!first) throw new Error("No collection content returned");
-    expect(first.uri).toBe(collectionUri);
-    expect(first.text).toContain("collection");
-  });
-
-  it("should read a specific raindrop (bookmark) resource", async () => {
-    if (typeof mcpService.readResource !== "function") {
-      throw new Error(
-        "readResource(uri: string) public method not implemented on RaindropMCPService",
-      );
-    }
-    const raindropUri = `mcp://raindrop/${TEST_RAINDROP_ID}`;
-    const result = await mcpService.readResource(raindropUri);
-    expect(result).toBeDefined();
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-    const first = result[0];
-    if (!first) throw new Error("No raindrop content returned");
-    expect(first.uri).toBe(raindropUri);
-    expect(first.text).toContain("raindrop");
-  });
-
   it("should expose diagnostics tool in available tools", async () => {
     const tools = await mcpService.listTools();
     const diagnosticsTool = tools.find((t: any) => t.id === "diagnostics");
@@ -174,92 +129,84 @@ describe("RaindropMCPService", () => {
     expect(diagnosticsTool.name).toBe("diagnostics");
     expect(diagnosticsTool.description).toContain("Diagnostics");
   });
+});
 
-  // Additional test to output actual return values for inspection
-  it("should output actual API data for inspection", async () => {
-    console.log("=== Testing actual API responses ===");
+describeLive("RaindropMCPService live API checks", () => {
+  let mcpService: RaindropMCPService;
 
-    // Test user profile
-    try {
-      const userResult = await mcpService.readResource(USER_PROFILE_URI);
-      console.log("User Profile Result:", JSON.stringify(userResult, null, 2));
-    } catch (error) {
-      console.log(
-        "User Profile Error:",
-        error instanceof Error ? error.message : String(error),
-      );
+  beforeEach(async () => {
+    if (mcpService && typeof mcpService.cleanup === "function") {
+      await mcpService.cleanup();
+    }
+    mcpService = new RaindropMCPService();
+  });
+
+  afterEach(async () => {
+    if (typeof mcpService?.cleanup === "function") {
+      await mcpService.cleanup();
+    }
+    mcpService = undefined as unknown as RaindropMCPService;
+  });
+
+  it("reads user profile resource when live tests are enabled", async () => {
+    const result = await mcpService.readResource(USER_PROFILE_URI);
+    expect(result).toBeDefined();
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
+    const first = result[0];
+    if (!first) throw new Error("No user profile content returned");
+    expect(first.uri).toBe(USER_PROFILE_URI);
+    expect(first.text).toContain("profile");
+  });
+
+  it("discovers a collection and reads it via resource URI", async () => {
+    const listResult = await mcpService.callTool("collection_list", {});
+    const collectionUri = firstResourceUriByPrefix(
+      listResult.content,
+      "mcp://collection/",
+    );
+
+    if (!collectionUri) {
+      throw new Error("No collection resource URI found from collection_list");
     }
 
-    // Test diagnostics
-    try {
-      const diagResult = await mcpService.readResource(DIAGNOSTICS_URI);
-      console.log("Diagnostics Result:", JSON.stringify(diagResult, null, 2));
-    } catch (error) {
-      console.log(
-        "Diagnostics Error:",
-        error instanceof Error ? error.message : String(error),
-      );
+    const resource = await mcpService.readResource(collectionUri);
+    const first = resource[0];
+    if (!first) throw new Error("No collection resource content returned");
+    expect(first.uri).toBe(collectionUri);
+    expect(first.text).toContain("collection");
+  });
+
+  it("discovers a bookmark and reads it via resource URI", async () => {
+    const listCollections = await mcpService.callTool("collection_list", {});
+    const collectionUri = firstResourceUriByPrefix(
+      listCollections.content,
+      "mcp://collection/",
+    );
+
+    if (!collectionUri) {
+      throw new Error("No collection resource URI found from collection_list");
     }
 
-    // Test collection
-    try {
-      const collectionUri = `mcp://collection/${TEST_COLLECTION_ID}`;
-      const collectionResult = await mcpService.readResource(collectionUri);
-      console.log(
-        "Collection Result:",
-        JSON.stringify(collectionResult, null, 2),
-      );
-    } catch (error) {
-      console.log(
-        "Collection Error:",
-        error instanceof Error ? error.message : String(error),
-      );
+    const collectionId = parseIdFromResourceUri(collectionUri);
+    const listBookmarks = await mcpService.callTool("list_raindrops", {
+      collectionId,
+      perPage: 10,
+    });
+
+    const raindropUri = firstResourceUriByPrefix(
+      listBookmarks.content,
+      "mcp://raindrop/",
+    );
+
+    if (!raindropUri) {
+      throw new Error("No raindrop resource URI found from list_raindrops");
     }
 
-    // Test raindrop
-    try {
-      const raindropUri = `mcp://raindrop/${TEST_RAINDROP_ID}`;
-      const raindropResult = await mcpService.readResource(raindropUri);
-      console.log("Raindrop Result:", JSON.stringify(raindropResult, null, 2));
-    } catch (error) {
-      console.log(
-        "Raindrop Error:",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-
-    // Test available tools
-    try {
-      const tools = await mcpService.listTools();
-      console.log(
-        "Available Tools:",
-        tools.map((t) => ({
-          id: t.id,
-          name: t.name,
-          description: t.description,
-        })),
-      );
-    } catch (error) {
-      console.log(
-        "Tools Error:",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-
-    // Test available resources
-    try {
-      const resources = mcpService.listResources();
-      console.log("Available Resources:", resources);
-    } catch (error) {
-      console.log(
-        "Resources Error:",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
-
-    console.log("=== End of API inspection ===");
-
-    // This test always passes - it's just for inspection
-    expect(true).toBe(true);
+    const resource = await mcpService.readResource(raindropUri);
+    const first = resource[0];
+    if (!first) throw new Error("No raindrop resource content returned");
+    expect(first.uri).toBe(raindropUri);
+    expect(first.text).toContain("raindrop");
   });
 });

@@ -1,19 +1,22 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupTools } from "../src/tools/cleanup.js";
-import RaindropService from "../src/services/raindrop.service.js";
-
-// Mock RaindropService
-vi.mock("../src/services/raindrop.service.js");
 
 describe("remove_duplicates tool", () => {
-  let mockService: any;
+  let mockService: {
+    getBookmarks: ReturnType<typeof vi.fn>;
+    getCollections: ReturnType<typeof vi.fn>;
+    batchDeleteBookmarksInCollection: ReturnType<typeof vi.fn>;
+  };
   const removeDuplicates = cleanupTools.find(
     (t) => t.name === "remove_duplicates",
   )!;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockService = new RaindropService() as any;
+    mockService = {
+      getBookmarks: vi.fn(),
+      getCollections: vi.fn(),
+      batchDeleteBookmarksInCollection: vi.fn(),
+    };
   });
 
   it("returns 'No duplicates found' if global count is 0", async () => {

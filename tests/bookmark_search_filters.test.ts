@@ -1,19 +1,18 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { bookmarkTools } from "../src/tools/bookmarks.js";
-import RaindropService from "../src/services/raindrop.service.js";
-
-// Mock RaindropService
-vi.mock("../src/services/raindrop.service.js");
 
 describe("bookmark_search tool with new filters", () => {
-  let mockService: any;
+  let mockService: {
+    getBookmarks: ReturnType<typeof vi.fn>;
+  };
   const bookmarkSearch = bookmarkTools.find(
     (t) => t.name === "bookmark_search",
   )! as any;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockService = new RaindropService() as any;
+    mockService = {
+      getBookmarks: vi.fn(),
+    };
   });
 
   it("maps date filters to search query", async () => {

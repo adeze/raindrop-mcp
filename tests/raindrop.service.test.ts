@@ -7,12 +7,14 @@ type _Bookmark = components["schemas"]["Bookmark"];
 type _Highlight = components["schemas"]["Highlight"];
 type _Tag = components["schemas"]["Tag"];
 config();
+const hasAccessToken = Boolean(process.env.RAINDROP_ACCESS_TOKEN?.trim());
+const runLiveApiTests = process.env.RUN_LIVE_API_TESTS === "true";
+const runLive = hasAccessToken && runLiveApiTests;
+const describeLive = runLive ? describe : describe.skip;
 
-// Test constants for known collection and raindrop IDs (populate these as needed)
-const _TEST_COLLECTION_ID = 55725911; // <-- set your known collection ID here
-const TEST_RAINDROP_ID = 1286757883; // <-- set your known raindrop/bookmark ID here
+const TEST_RAINDROP_ID = 1286757883;
 
-describe("RaindropService Read-Only API Integration", () => {
+describeLive("RaindropService Read-Only API Integration", () => {
   let service: RaindropService;
 
   beforeEach(() => {
@@ -31,7 +33,6 @@ describe("RaindropService Read-Only API Integration", () => {
     if (stats) {
       expect(stats.bookmarks).toBeDefined();
       expect(stats.collections).toBeDefined();
-      console.log("Stats from service:", stats);
     }
   });
 
