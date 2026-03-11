@@ -1,7 +1,7 @@
 // Simple, clean openapi-fetch REST client
+import Keyv from "keyv";
 import createClient from "openapi-fetch";
 import { RateLimiterMemory } from "rate-limiter-flexible";
-import Keyv from "keyv";
 import {
   AuthError,
   NotFoundError,
@@ -26,6 +26,7 @@ export default class RaindropService {
   private cacheCollections: Keyv;
   private cacheBookmarks: Keyv;
   private cacheSearch: Keyv;
+  private readonly maxRateLimitRetries: number;
 
   constructor(token?: string) {
     this.client = createClient<paths>({
@@ -51,6 +52,9 @@ export default class RaindropService {
       duration,
       keyPrefix: "raindrop",
     });
+    this.maxRateLimitRetries = Number(
+      process.env.RAINDROP_RATE_LIMIT_MAX_RETRIES || 3,
+    );
 
     this.client.use({
       onRequest({ request }) {
@@ -65,8 +69,23 @@ export default class RaindropService {
         if (!response.ok) {
           if (response.status === 401)
             throw new AuthError("Unauthorized: check RAINDROP_ACCESS_TOKEN");
-          if (response.status === 429)
-            throw new RateLimitError("Rate limited by Raindrop.io");
+          if (response.status === 429) {
+            const retryAfterMs =
+              RaindropService.parseRetryAfterMs(
+                response.headers.get("retry-after"),
+              ) ??
+              RaindropService.parseRateLimitResetMs(
+                response.headers.get("x-ratelimit-reset"),
+              );
+            const message =
+              retryAfterMs !== undefined
+                ? `Rate limited by Raindrop.io; retry in ${Math.ceil(retryAfterMs / 1000)}s`
+                : "Rate limited by Raindrop.io";
+            throw new RateLimitError(message, {
+              status: 429,
+              retryAfterMs,
+            });
+          }
           if (response.status === 404)
             throw new NotFoundError("Resource not found");
           throw new UpstreamError(
@@ -78,11 +97,53 @@ export default class RaindropService {
     });
   }
 
+  private static parseRetryAfterMs(
+    retryAfterHeader: string | null,
+  ): number | undefined {
+    if (!retryAfterHeader) return undefined;
+
+    const seconds = Number(retryAfterHeader);
+    if (!Number.isNaN(seconds) && seconds >= 0) {
+      return seconds * 1000;
+    }
+
+    const retryAt = Date.parse(retryAfterHeader);
+    if (!Number.isNaN(retryAt)) {
+      return Math.max(0, retryAt - Date.now());
+    }
+
+    return undefined;
+  }
+
+  private static parseRateLimitResetMs(
+    resetHeader: string | null,
+  ): number | undefined {
+    if (!resetHeader) return undefined;
+
+    const resetEpochSeconds = Number(resetHeader);
+    if (Number.isNaN(resetEpochSeconds) || resetEpochSeconds < 0) {
+      return undefined;
+    }
+
+    const resetAtMs = resetEpochSeconds * 1000;
+    return Math.max(0, resetAtMs - Date.now());
+  }
+
+  private getUpstreamRetryAfterMs(err: unknown): number | undefined {
+    if (!(err instanceof RateLimitError)) return undefined;
+
+    const cause = err.cause as { retryAfterMs?: unknown } | undefined;
+    const retryAfterMs = Number(cause?.retryAfterMs);
+    return Number.isFinite(retryAfterMs) && retryAfterMs >= 0
+      ? retryAfterMs
+      : undefined;
+  }
+
   private async withRateLimit<T>(
     fn: () => Promise<T>,
     retryCount = 0,
   ): Promise<T> {
-    const maxRetries = 3;
+    const maxRetries = this.maxRateLimitRetries;
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.consume("global");
@@ -113,6 +174,28 @@ export default class RaindropService {
         );
       }
 
+      // Handle upstream 429 responses from Raindrop API
+      if (err instanceof RateLimitError) {
+        const retryAfterMs = this.getUpstreamRetryAfterMs(err);
+        const backoffMs =
+          retryAfterMs !== undefined
+            ? Math.min(retryAfterMs + 250, 15000)
+            : Math.min(750 * Math.pow(2, retryCount), 10000);
+
+        if (retryCount < maxRetries) {
+          this.logger.warn(
+            `Upstream rate limited, retrying in ${Math.ceil(backoffMs / 1000)}s (attempt ${retryCount + 1}/${maxRetries})`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, backoffMs));
+          return this.withRateLimit(fn, retryCount + 1);
+        }
+
+        throw new RateLimitError(
+          `Upstream rate limit exceeded after ${maxRetries} retries`,
+          err,
+        );
+      }
+
       // Retry transient upstream errors with exponential backoff
       if (err instanceof UpstreamError && retryCount < maxRetries) {
         const backoffMs = Math.min(500 * Math.pow(2, retryCount), 5000); // 500ms, 1s, 2s, capped at 5s
@@ -121,10 +204,6 @@ export default class RaindropService {
         );
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
         return this.withRateLimit(fn, retryCount + 1);
-      }
-
-      if (err instanceof RateLimitError) {
-        throw err;
       }
 
       throw err instanceof Error
@@ -562,20 +641,22 @@ export default class RaindropService {
       broken?: boolean;
     },
   ): Promise<boolean> {
-    const body: any = { ids };
-    if (updates.tags) body.tags = updates.tags;
-    if (updates.collection) body.collection = { $id: updates.collection };
-    if (updates.important !== undefined) body.important = updates.important;
-    if (updates.broken !== undefined) body.broken = updates.broken;
-    const { data } = await this.client.PUT("/raindrops", { body });
+    return this.withRateLimit(async () => {
+      const body: any = { ids };
+      if (updates.tags) body.tags = updates.tags;
+      if (updates.collection) body.collection = { $id: updates.collection };
+      if (updates.important !== undefined) body.important = updates.important;
+      if (updates.broken !== undefined) body.broken = updates.broken;
+      const { data } = await this.client.PUT("/raindrops", { body });
 
-    // Invalidate caches
-    await this.cacheSearch.clear();
-    for (const id of ids) {
-      await this.cacheBookmarks.delete(`id:${id}`);
-    }
+      // Invalidate caches
+      await this.cacheSearch.clear();
+      for (const id of ids) {
+        await this.cacheBookmarks.delete(`id:${id}`);
+      }
 
-    return !!data?.result;
+      return !!data?.result;
+    });
   }
 
   /**
@@ -667,12 +748,14 @@ export default class RaindropService {
   async getTags(
     collectionId?: number,
   ): Promise<{ _id: string; count: number }[]> {
-    const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
-    const options = collectionId
-      ? { params: { path: { id: collectionId } } }
-      : undefined;
-    const { data } = await (this.client as any).GET(endpoint, options);
-    return data?.items || [];
+    return this.withRateLimit(async () => {
+      const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
+      const options = collectionId
+        ? { params: { path: { id: collectionId } } }
+        : undefined;
+      const { data } = await (this.client as any).GET(endpoint, options);
+      return data?.items || [];
+    });
   }
 
   /**
@@ -693,18 +776,20 @@ export default class RaindropService {
     collectionId: number | undefined,
     tags: string[],
   ): Promise<boolean> {
-    const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
-    const options = {
-      ...(collectionId && { params: { path: { id: collectionId } } }),
-      body: { tags },
-    };
-    const { data } = await (this.client as any).DELETE(endpoint, options);
+    return this.withRateLimit(async () => {
+      const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
+      const options = {
+        ...(collectionId && { params: { path: { id: collectionId } } }),
+        body: { tags },
+      };
+      const { data } = await (this.client as any).DELETE(endpoint, options);
 
-    // Invalidate search and bookmark caches
-    await this.cacheSearch.clear();
-    await this.cacheBookmarks.clear();
+      // Invalidate search and bookmark caches
+      await this.cacheSearch.clear();
+      await this.cacheBookmarks.clear();
 
-    return !!data?.result;
+      return !!data?.result;
+    });
   }
 
   /**
@@ -716,18 +801,20 @@ export default class RaindropService {
     oldName: string,
     newName: string,
   ): Promise<boolean> {
-    const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
-    const options = {
-      ...(collectionId && { params: { path: { id: collectionId } } }),
-      body: { from: oldName, to: newName },
-    };
-    const { data } = await (this.client as any).PUT(endpoint, options);
+    return this.withRateLimit(async () => {
+      const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
+      const options = {
+        ...(collectionId && { params: { path: { id: collectionId } } }),
+        body: { from: oldName, to: newName },
+      };
+      const { data } = await (this.client as any).PUT(endpoint, options);
 
-    // Invalidate search and bookmark caches
-    await this.cacheSearch.clear();
-    await this.cacheBookmarks.clear();
+      // Invalidate search and bookmark caches
+      await this.cacheSearch.clear();
+      await this.cacheBookmarks.clear();
 
-    return !!data?.result;
+      return !!data?.result;
+    });
   }
 
   /**
@@ -739,18 +826,20 @@ export default class RaindropService {
     tags: string[],
     newName: string,
   ): Promise<boolean> {
-    const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
-    const options = {
-      ...(collectionId && { params: { path: { id: collectionId } } }),
-      body: { tags, to: newName },
-    };
-    const { data } = await (this.client as any).PUT(endpoint, options);
+    return this.withRateLimit(async () => {
+      const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
+      const options = {
+        ...(collectionId && { params: { path: { id: collectionId } } }),
+        body: { tags, to: newName },
+      };
+      const { data } = await (this.client as any).PUT(endpoint, options);
 
-    // Invalidate search and bookmark caches
-    await this.cacheSearch.clear();
-    await this.cacheBookmarks.clear();
+      // Invalidate search and bookmark caches
+      await this.cacheSearch.clear();
+      await this.cacheBookmarks.clear();
 
-    return !!data?.result;
+      return !!data?.result;
+    });
   }
 
   /**
@@ -758,9 +847,11 @@ export default class RaindropService {
    * Raindrop.io API: GET /user
    */
   async getUserInfo(): Promise<{ email: string; [key: string]: any }> {
-    const { data } = await this.client.GET("/user");
-    if (!data?.user) throw new Error("User not found");
-    return data.user;
+    return this.withRateLimit(async () => {
+      const { data } = await this.client.GET("/user");
+      if (!data?.user) throw new NotFoundError("User not found");
+      return data.user;
+    });
   }
 
   /**
@@ -800,11 +891,13 @@ export default class RaindropService {
    * Raindrop.io API: GET /raindrop/{id}/highlights
    */
   async getHighlights(raindropId: number): Promise<Highlight[]> {
-    const { data } = await this.client.GET("/raindrop/{id}/highlights", {
-      params: { path: { id: raindropId } },
+    return this.withRateLimit(async () => {
+      const { data } = await this.client.GET("/raindrop/{id}/highlights", {
+        params: { path: { id: raindropId } },
+      });
+      if (!data?.items) throw new NotFoundError("No highlights found");
+      return [...((data.items as Highlight[]) || [])];
     });
-    if (!data?.items) throw new Error("No highlights found");
-    return [...((data.items as Highlight[]) || [])];
   }
 
   /**
