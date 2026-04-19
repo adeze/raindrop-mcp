@@ -164,6 +164,11 @@ const bookmarkManageTool = defineTool({
         setIfDefined(updatePayload, "excerpt", args.description);
         setIfDefined(updatePayload, "tags", args.tags);
         setIfDefined(updatePayload, "important", args.important);
+        // Raindrop API expects collection moves as a nested object.
+        // See: https://developer.raindrop.io/v1/raindrops/single#update-raindrop
+        if (args.collectionId !== undefined) {
+          updatePayload.collection = { $id: args.collectionId };
+        }
         return raindropService.updateBookmark(args.id, updatePayload as any);
       }
       case "delete": {
