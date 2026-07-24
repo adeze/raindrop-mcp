@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=adeze&project=raindrop-mcp&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 # Raindrop.io MCP Server
 
 [![smithery badge](https://smithery.ai/badge/@adeze/raindrop-mcp)](https://smithery.ai/server/@adeze/raindrop-mcp)
