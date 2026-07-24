@@ -43,6 +43,7 @@ Connect Raindrop.io to your AI assistant with a simple MCP server. Use it to org
 
 | Tool               | One-Liner Command                                                  |
 | :----------------- | :----------------------------------------------------------------- |
+| **Antigravity CLI** | `agy extensions install https://github.com/adeze/raindrop-mcp`     |
 | **Gemini CLI**     | `gemini extensions install https://github.com/adeze/raindrop-mcp`  |
 | **Codex CLI**      | `codex mcp add raindrop -- npx -y @adeze/raindrop-mcp`             |
 | **Claude Code**    | `claude mcp add raindrop -- npx -y @adeze/raindrop-mcp`            |
