@@ -51,4 +51,4 @@ Use Bun for project commands and dependency updates: `bun run update:deps`. Keep
 
 ## Release
 
-CI uses Bun plus Node 22. Merge conventional commits to `master`; CI runs semantic-release and synchronizes `package.json`, `manifest.json`, `mcp.json`, `gemini-extension.json`, changelog, and the MCPB bundle.
+CI uses Bun plus Node 22. Merge conventional commits to `master`; CI runs semantic-release and synchronizes `package.json`, `manifest.json`, `mcp.json`, `gemini-extension.json`, `antigravity-extension.json`, changelog, and the MCPB bundle.
