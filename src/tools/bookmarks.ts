@@ -196,6 +196,9 @@ const bookmarkManageTool = defineTool({
         setIfDefined(updatePayload, "excerpt", args.description);
         setIfDefined(updatePayload, "tags", args.tags);
         setIfDefined(updatePayload, "important", args.important);
+        if (args.collectionId !== undefined) {
+          updatePayload.collection = { $id: args.collectionId };
+        }
         const bookmark = await raindropService.updateBookmark(
           args.id,
           updatePayload as any,

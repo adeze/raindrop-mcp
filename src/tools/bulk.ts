@@ -65,9 +65,11 @@ const bulkEditRaindropsTool = defineTool({
       }
 
       // Moving is essentially a batch update of the collection ID
-      const success = await raindropService.batchUpdateBookmarks(args.ids, {
-        collection: args.toCollectionId,
-      });
+      const success = await raindropService.batchUpdateBookmarks(
+        args.ids,
+        { collection: args.toCollectionId },
+        args.collectionId,
+      );
 
       return {
         content: [

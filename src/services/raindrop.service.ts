@@ -629,8 +629,8 @@ export default class RaindropService {
   }
 
   /**
-   * Batch update bookmarks
-   * Raindrop.io API: PUT /raindrops
+   * Batch update bookmarks (optionally scoped to a source collection; ids select the exact items)
+   * Raindrop.io API: PUT /raindrops/{collectionId}
    */
   async batchUpdateBookmarks(
     ids: number[],
@@ -640,6 +640,7 @@ export default class RaindropService {
       important?: boolean;
       broken?: boolean;
     },
+    collectionId: number = 0,
   ): Promise<boolean> {
     return this.withRateLimit(async () => {
       const body: any = { ids };
@@ -647,7 +648,13 @@ export default class RaindropService {
       if (updates.collection) body.collection = { $id: updates.collection };
       if (updates.important !== undefined) body.important = updates.important;
       if (updates.broken !== undefined) body.broken = updates.broken;
-      const { data } = await this.client.PUT("/raindrops", { body });
+      // Generated path-param type is misnamed "id" for this operation; the URL
+      // template itself uses {collectionId} and that's the key openapi-fetch
+      // substitutes at runtime.
+      const { data } = await this.client.PUT("/raindrops/{collectionId}", {
+        params: { path: { collectionId } as any },
+        body,
+      });
 
       // Invalidate caches
       await this.cacheSearch.clear();
@@ -674,7 +681,7 @@ export default class RaindropService {
   ): Promise<boolean> {
     return this.withRateLimit(async () => {
       const { data } = await this.client.PUT("/raindrops/{collectionId}", {
-        params: { path: { id: collectionId } as any },
+        params: { path: { collectionId } as any },
         body: updates,
       });
 
@@ -700,7 +707,7 @@ export default class RaindropService {
   ): Promise<boolean> {
     return this.withRateLimit(async () => {
       const { data } = await this.client.DELETE("/raindrops/{collectionId}", {
-        params: { path: { id: collectionId } as any },
+        params: { path: { collectionId } as any },
         body: ids ? { ids } : undefined,
       });
 
