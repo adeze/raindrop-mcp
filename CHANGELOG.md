@@ -1,3 +1,16 @@
+# [3.0.0](https://github.com/adeze/raindrop-mcp/compare/v2.4.5...v3.0.0) (2026-10-13)
+
+- feat!: modernize the MCP toolchain and repair bookmark workflows ([0a507ec](https://github.com/adeze/raindrop-mcp/commit/0a507ec9456052c1d381b041b2d962484da50c55)), closes [#52](https://github.com/adeze/raindrop-mcp/issues/52)
+
+### Bug Fixes
+
+- keep release failures in CI without automatic issue messages ([3b8e3ad](https://github.com/adeze/raindrop-mcp/commit/3b8e3ad9669e239e6fd512292ab0b3308815ce73))
+- match the release workflow to npm trusted publishing ([0b81358](https://github.com/adeze/raindrop-mcp/commit/0b813580397cf4ebd405fc2aa80b42d12576677a))
+
+### BREAKING CHANGES
+
+- Node 22.19 or newer is required. Delete/remove operations require confirm: true. HTTP listens only on 127.0.0.1; expose it remotely through an authenticated proxy. Resource templates replace literal placeholder resource listings; unsupported subscriptions are no longer advertised.
+
 ## [2.4.2](https://github.com/adeze/raindrop-mcp/compare/v2.4.1...v2.4.2) (2026-03-11)
 
 ### Bug Fixes

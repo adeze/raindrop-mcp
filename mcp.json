@@ -1,6 +1,6 @@
 {
   "name": "@adeze/raindrop-mcp",
-  "version": "2.4.5",
+  "version": "3.0.0",
   "description": "Raindrop.io MCP Server",
   "server": {
     "type": "stdio",
