@@ -13,12 +13,10 @@ describe(".env configuration", () => {
 });
 
 describe("Raindrop Highlights API", () => {
-  it("fetches highlights from the API using RaindropService", async () => {
-    if (!process.env.RAINDROP_ACCESS_TOKEN) {
-      console.warn("Skipping test: RAINDROP_ACCESS_TOKEN not set");
-      return;
-    }
-
+  it.skipIf(
+    process.env.RUN_LIVE_API_TESTS !== "true" ||
+      !process.env.RAINDROP_ACCESS_TOKEN,
+  )("fetches highlights from the API using RaindropService", async () => {
     const service = new RaindropService();
     const highlights = await service.getAllHighlights();
 

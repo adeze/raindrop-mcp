@@ -127,13 +127,14 @@ This repository uses `semantic-release` as the only supported release flow.
 
 ### How publishing works
 
-- Releases run from pushes to `master` via `.github/workflows/ci.yml`.
+- Releases run from pushes to `master` via `.github/workflows/publish.yml` after validation passes.
+- Release runs are serialized; only the release job receives repository write and OIDC permissions.
 - `semantic-release` analyzes Conventional Commit messages, computes the next version, updates `CHANGELOG.md`, tags/releases on GitHub, and publishes npm.
 - During release preparation, `.releaserc.json` syncs `manifest.json`, `mcp.json`, and `gemini-extension.json`, then builds `raindrop-mcp.mcpb` so the GitHub Release includes the bundle.
 
 ### Pre-release dry-run
 
-- Run `.github/workflows/release-dry-run.yml` with **Run workflow** before cutting a public release.
+- In GitHub Actions, select **Validate and Publish** → **Run workflow** on `master`. Leave `dry_run` enabled to preview a release; disable it to run semantic-release publishing.
 - This validates semantic version calculation, registry auth, and release pipeline behavior without publishing.
 
 ### Required secrets
@@ -143,6 +144,7 @@ This repository uses `semantic-release` as the only supported release flow.
 ### npm trusted publishing
 
 - npm publishing is configured via GitHub Actions OIDC trusted publishing.
+- Keep the trusted publisher workflow filename set to `publish.yml`, including manual dry runs.
 - `NPM_TOKEN` is not required for the standard CI release path.
 
 ### Local validation before merge

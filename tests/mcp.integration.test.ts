@@ -1,6 +1,6 @@
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { config } from "dotenv";
-import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import { RaindropMCPService } from "../src/services/raindropmcp.service.js";
 
 config();
@@ -29,6 +29,17 @@ describeIf("MCP protocol integration", () => {
 
   beforeAll(async () => {
     service = new RaindropMCPService();
+    vi.spyOn(service.raindropService, "getUserStats").mockResolvedValue({
+      bookmarks: 0,
+      collections: 0,
+      highlights: 0,
+      tags: 0,
+      trash: 0,
+    });
+    vi.spyOn(service.raindropService, "getBookmarks").mockResolvedValue({
+      items: [],
+      count: 0,
+    });
     client = new Client({ name: "raindrop-mcp-test-client", version: "1.0.0" });
 
     const [clientTransport, serverTransport] =

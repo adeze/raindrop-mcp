@@ -55,3 +55,5 @@ Use Node 24.15+ and Bun 1.4.3+ for development; the published server requires No
 ## Release
 
 CI uses Bun plus Node 24 and frozen installs. Merge conventional commits to `master`; CI runs semantic-release and synchronizes `package.json`, `manifest.json`, `mcp.json`, `gemini-extension.json`, changelog, and the MCPB bundle.
+
+`.github/workflows/publish.yml` is the npm-trusted workflow. Its manual `dry_run` input defaults to true; disable it only for authorized publication. Release jobs are serialized and use OIDC without `NPM_TOKEN`. Protocol integration tests mock upstream responses and use a dummy Raindrop token.
