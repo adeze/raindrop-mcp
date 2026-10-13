@@ -37,7 +37,10 @@
             "path": "raindrop-mcp.mcpb",
             "label": "Raindrop.io MCP Bundle"
           }
-        ]
+        ],
+        "successCommentCondition": false,
+        "failCommentCondition": false,
+        "releasedLabels": false
       }
     ]
   ]
