@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vite-plus/test";
 import { suggestionTools } from "../src/tools/suggestions.js";
 
 describe("suggest_tags tool", () => {

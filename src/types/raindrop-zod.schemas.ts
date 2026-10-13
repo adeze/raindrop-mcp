@@ -5,6 +5,7 @@ import { z } from "zod";
  * @see {@link https://developer.raindrop.io/}
  */
 export const CollectionManageInputSchema = z.object({
+  confirm: z.boolean().optional().describe("Set to true to confirm deletion"),
   operation: z.enum(["create", "update", "delete"]),
   id: z.number().optional(),
   title: z.string().optional(),
@@ -16,6 +17,7 @@ export const CollectionManageInputSchema = z.object({
  * @see {@link https://developer.raindrop.io/} for API details.
  */
 export const BookmarkInputSchema = z.object({
+  confirm: z.boolean().optional().describe("Set to true to confirm deletion"),
   url: z.string().url(),
   title: z.string(),
   tags: z.array(z.string()).optional(),
@@ -74,6 +76,7 @@ export const CollectionOutputSchema = z.object({
  * @see {@link https://developer.raindrop.io/}
  */
 export const HighlightInputSchema = z.object({
+  confirm: z.boolean().optional().describe("Set to true to confirm deletion"),
   bookmarkId: z.number(),
   text: z.string(),
   note: z.string().optional(),
@@ -97,6 +100,7 @@ export const HighlightOutputSchema = z.object({
  * @see {@link https://developer.raindrop.io/}
  */
 export const TagInputSchema = z.object({
+  confirm: z.boolean().optional().describe("Set to true to confirm deletion"),
   collectionId: z.number().optional(),
   tagNames: z.array(z.string()),
   newName: z.string().optional(),

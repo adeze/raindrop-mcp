@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 // Load .env from project root
 config();

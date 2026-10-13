@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vite-plus/test";
 import RaindropService from "../src/services/raindrop.service.js";
 import type { components } from "../src/types/raindrop.schema.js";
 type _Collection = components["schemas"]["Collection"];

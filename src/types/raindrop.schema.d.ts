@@ -1561,6 +1561,8 @@ export type components = {
     };
     parameters: {
         /** @description Collection ID */
+        readonly CollectionPathId: number;
+        /** @description Collection ID */
         readonly CollectionId: number;
         /** @description Bookmark ID */
         readonly BookmarkId: number;
@@ -2031,7 +2033,7 @@ export interface operations {
             readonly header?: never;
             readonly path: {
                 /** @description Collection ID */
-                readonly id: components["parameters"]["CollectionId"];
+                readonly collectionId: components["parameters"]["CollectionPathId"];
             };
             readonly cookie?: never;
         };
@@ -2054,7 +2056,7 @@ export interface operations {
             readonly header?: never;
             readonly path: {
                 /** @description Collection ID */
-                readonly id: components["parameters"]["CollectionId"];
+                readonly collectionId: components["parameters"]["CollectionPathId"];
             };
             readonly cookie?: never;
         };
@@ -2081,7 +2083,7 @@ export interface operations {
             readonly header?: never;
             readonly path: {
                 /** @description Collection ID */
-                readonly id: components["parameters"]["CollectionId"];
+                readonly collectionId: components["parameters"]["CollectionPathId"];
             };
             readonly cookie?: never;
         };
@@ -2807,7 +2809,7 @@ export interface operations {
             readonly header?: never;
             readonly path: {
                 /** @description Collection ID */
-                readonly id: components["parameters"]["CollectionId"];
+                readonly collectionId: components["parameters"]["CollectionPathId"];
             };
             readonly cookie?: never;
         };
@@ -2830,7 +2832,7 @@ export interface operations {
             readonly header?: never;
             readonly path: {
                 /** @description Collection ID */
-                readonly id: components["parameters"]["CollectionId"];
+                readonly collectionId: components["parameters"]["CollectionPathId"];
             };
             readonly cookie?: never;
         };
@@ -2857,7 +2859,7 @@ export interface operations {
             readonly header?: never;
             readonly path: {
                 /** @description Collection ID */
-                readonly id: components["parameters"]["CollectionId"];
+                readonly collectionId: components["parameters"]["CollectionPathId"];
             };
             readonly cookie?: never;
         };

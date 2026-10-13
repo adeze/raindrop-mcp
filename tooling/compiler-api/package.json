@@ -1,0 +1,13 @@
+{
+  "name": "raindrop-mcp-compiler-api",
+  "private": true,
+  "scripts": {
+    "docs": "typedoc --options ../../typedoc.json",
+    "generate:schema": "openapi-typescript ../../raindrop-complete.yaml -o ../../src/types/raindrop.schema.d.ts --tsconfig ../../tsconfig.json --export-type --immutable"
+  },
+  "devDependencies": {
+    "typedoc": "^0.28.20",
+    "typescript": "~6.0.3",
+    "openapi-typescript": "^7.13.0"
+  }
+}

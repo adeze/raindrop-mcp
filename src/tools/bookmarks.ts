@@ -3,6 +3,7 @@ import { ValidationError } from "../types/mcpErrors.js";
 import { BookmarkInputSchema } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
 import {
+  requireConfirmation,
   defineTool,
   makeBookmarkLink,
   setIfDefined,
@@ -56,7 +57,10 @@ const BookmarkSearchOutputSchema = z.object({
   count: z.number(),
 });
 
-const BookmarkManageInputSchema = BookmarkInputSchema.extend({
+const BookmarkManageInputSchema = BookmarkInputSchema.partial({
+  url: true,
+  title: true,
+}).extend({
   operation: z.enum(["create", "update", "delete"]),
   id: z.number().optional(),
 });
@@ -108,6 +112,7 @@ const bookmarkSummary = (bookmark: any) => ({
 
 const bookmarkSearchTool = defineTool({
   name: "bookmark_search",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description:
     "Searches bookmarks with advanced filters, tags, and full-text search.",
   inputSchema: BookmarkSearchInputSchema,
@@ -156,6 +161,7 @@ const bookmarkSearchTool = defineTool({
 
 const bookmarkManageTool = defineTool({
   name: "bookmark_manage",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Creates, updates, or deletes bookmarks. Use the operation parameter to specify the action.",
   inputSchema: BookmarkManageInputSchema,
@@ -166,7 +172,8 @@ const bookmarkManageTool = defineTool({
   ) => {
     switch (args.operation) {
       case "create": {
-        if (!args.collectionId)
+        if (!args.url) throw new ValidationError("url is required for create");
+        if (args.collectionId === undefined)
           throw new Error("collectionId is required for create");
         const createPayload: Record<string, unknown> = {
           link: args.url,
@@ -196,6 +203,9 @@ const bookmarkManageTool = defineTool({
         setIfDefined(updatePayload, "excerpt", args.description);
         setIfDefined(updatePayload, "tags", args.tags);
         setIfDefined(updatePayload, "important", args.important);
+        if (args.collectionId !== undefined) {
+          updatePayload.collection = { $id: args.collectionId };
+        }
         const bookmark = await raindropService.updateBookmark(
           args.id,
           updatePayload as any,
@@ -209,6 +219,7 @@ const bookmarkManageTool = defineTool({
         };
       }
       case "delete": {
+        requireConfirmation(args.confirm);
         if (!args.id) throw new ValidationError("id is required for delete");
         await raindropService.deleteBookmark(args.id);
         return {
@@ -226,6 +237,7 @@ const bookmarkManageTool = defineTool({
 
 const getRaindropTool = defineTool({
   name: "get_raindrop",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description: "Fetch a single Raindrop.io bookmark by ID.",
   inputSchema: GetRaindropInputSchema,
   outputSchema: GetRaindropOutputSchema,
@@ -246,6 +258,7 @@ const getRaindropTool = defineTool({
 
 const listRaindropsTool = defineTool({
   name: "list_raindrops",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description: "List Raindrop.io bookmarks for a collection with pagination.",
   inputSchema: ListRaindropsInputSchema,
   outputSchema: ListRaindropsOutputSchema,

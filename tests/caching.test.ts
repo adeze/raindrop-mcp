@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vite-plus/test";
 import RaindropService from "../src/services/raindrop.service.js";
 
 // Mock openapi-fetch
@@ -113,6 +113,27 @@ describe("RaindropService Caching Logic", () => {
 
     await service.getBookmarks({ search: "test" });
     expect(mockGet).toHaveBeenCalledTimes(4);
+
+    const client = (service as any).client;
+    client.POST.mockResolvedValue({
+      data: { item: { _id: 456, text: "Highlight" } },
+    });
+    client.PUT.mockResolvedValue({
+      data: { item: { _id: 456, text: "Updated" } },
+    });
+    client.DELETE.mockResolvedValue({ data: { result: true } });
+    for (const mutate of [
+      () => service.createHighlight(123, { text: "Highlight" }),
+      () => service.updateHighlight(456, { text: "Updated" }),
+      () => service.deleteHighlight(456),
+    ]) {
+      await service.getBookmarks({ highlight: true });
+      const calls = mockGet.mock.calls.length;
+      await mutate();
+      await service.getBookmark(123);
+      await service.getBookmarks({ highlight: true });
+      expect(mockGet).toHaveBeenCalledTimes(calls + 2);
+    }
   });
 
   it("should bypass cache when skipCache is true", async () => {
@@ -134,5 +155,50 @@ describe("RaindropService Caching Logic", () => {
 
     await service.getBookmark(123, true);
     expect(mockGet).toHaveBeenCalledTimes(4);
+  });
+
+  it("derives complete collection paths regardless of upstream order", async () => {
+    const collections = [
+      { _id: 3, title: "Grandchild", parent: { $id: 2 } },
+      { _id: 2, title: "Child", parent: { $id: 1 } },
+      { _id: 1, title: "Root" },
+      { _id: 4, title: "Orphan", parent: { $id: 99 } },
+    ];
+    const getCollections = vi.spyOn(service, "getCollections");
+    for (const items of [collections, [...collections].reverse()]) {
+      getCollections.mockResolvedValue(items);
+      const tree = await service.getCollectionTree();
+      const root = tree.find((node) => node._id === 1)!;
+      expect(root.path).toBe("Root");
+      expect(root.children[0].path).toBe("Root > Child");
+      expect(root.children[0].children[0].path).toBe(
+        "Root > Child > Grandchild",
+      );
+      expect(tree.find((node) => node._id === 4)?.path).toBe("Orphan");
+    }
+  });
+
+  it("retries transient HTTP failures while preserving permanent HTTP errors", async () => {
+    vi.useFakeTimers();
+    try {
+      for (const status of [400, 403, 422, 501, 408, 500, 502, 503, 504]) {
+        const instance = new RaindropService("fake-token");
+        const client = (instance as any).client;
+        const middleware = client.use.mock.calls[0][0];
+        client.GET.mockImplementationOnce(() => {
+          middleware.onResponse({ response: new Response(null, { status }) });
+        });
+        const result = instance.getCollections();
+        const transient = [408, 500, 502, 503, 504].includes(status);
+        const assertion = transient
+          ? expect(result).resolves.toHaveLength(1)
+          : expect(result).rejects.toMatchObject({ cause: { status } });
+        await vi.runAllTimersAsync();
+        await assertion;
+        expect(client.GET).toHaveBeenCalledTimes(transient ? 2 : 1);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

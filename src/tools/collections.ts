@@ -3,6 +3,7 @@ import { ValidationError } from "../types/mcpErrors.js";
 import { CollectionManageInputSchema } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
 import {
+  requireConfirmation,
   defineTool,
   makeCollectionLink,
   setIfDefined,
@@ -59,6 +60,7 @@ type CollectionManageArgs = z.infer<typeof CollectionManageInputSchema> & {
 
 const collectionListTool = defineTool({
   name: "collection_list",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description: "Lists all Raindrop.io collections as a flat list.",
   inputSchema: CollectionListInputSchema,
   outputSchema: CollectionListOutputSchema,
@@ -86,6 +88,7 @@ const collectionListTool = defineTool({
 
 const getCollectionTreeTool = defineTool({
   name: "get_collection_tree",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description:
     "Returns a hierarchical view of all collections with full breadcrumb paths.",
   inputSchema: z.object({
@@ -125,6 +128,7 @@ const getCollectionTreeTool = defineTool({
 
 const collectionManageTool = defineTool({
   name: "collection_manage",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Creates, updates, or deletes a collection. Use the operation parameter to specify the action.",
   inputSchema: CollectionManageInputSchema,
@@ -165,6 +169,7 @@ const collectionManageTool = defineTool({
         };
       }
       case "delete": {
+        requireConfirmation(args.confirm);
         if (!args.id) throw new ValidationError("id is required for delete");
         await raindropService.deleteCollection(args.id);
         return {

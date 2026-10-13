@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { cleanupTools } from "../src/tools/cleanup.js";
 
 describe("remove_duplicates tool", () => {

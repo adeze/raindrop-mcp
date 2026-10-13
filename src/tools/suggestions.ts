@@ -21,6 +21,7 @@ const GetSuggestionsInputSchema = z.object({
  */
 const getSuggestionsTool = defineTool({
   name: "get_suggestions",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description:
     "Get AI-powered suggestions for tags and collections for a specific URL or existing bookmark.",
   inputSchema: GetSuggestionsInputSchema,
@@ -95,6 +96,7 @@ const getSuggestionsTool = defineTool({
  */
 const suggestTagsTool = defineTool({
   name: "suggest_tags",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description:
     "Uses AI to suggest relevant tags based on bookmark metadata (title, URL, description).",
   inputSchema: z.object({

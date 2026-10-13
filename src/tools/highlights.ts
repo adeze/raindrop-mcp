@@ -2,7 +2,12 @@ import { z } from "zod";
 import { ValidationError } from "../types/mcpErrors.js";
 import { HighlightInputSchema } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
-import { defineTool, setIfDefined, textContent } from "./common.js";
+import {
+  requireConfirmation,
+  defineTool,
+  setIfDefined,
+  textContent,
+} from "./common.js";
 
 const HighlightManageInputSchema = HighlightInputSchema.extend({
   operation: z.enum(["create", "update", "delete"]),
@@ -19,6 +24,7 @@ const HighlightOutputSchema = z.discriminatedUnion("operation", [
 
 const highlightManageTool = defineTool({
   name: "highlight_manage",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Creates, updates, or deletes highlights. Use the operation parameter to specify the action.",
   inputSchema: HighlightManageInputSchema,
@@ -65,6 +71,7 @@ const highlightManageTool = defineTool({
         };
       }
       case "delete": {
+        requireConfirmation(args.confirm);
         if (!args.id) throw new ValidationError("id required for delete");
         await raindropService.deleteHighlight(args.id);
         return {

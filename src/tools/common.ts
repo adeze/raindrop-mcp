@@ -18,6 +18,7 @@ export interface ToolConfig<I = unknown, O = unknown> {
   description: string;
   inputSchema: z.ZodTypeAny;
   outputSchema?: z.ZodTypeAny;
+  annotations?: ToolAnnotations;
   handler: (args: I, context: ToolHandlerContext) => Promise<O>;
   execution?: {
     taskSupport?: "supported" | "forbidden";
@@ -36,6 +37,11 @@ export type McpContent =
     };
 
 export const defineTool = <I, O>(config: ToolConfig<I, O>) => config;
+
+export const requireConfirmation = (confirm: boolean | undefined) => {
+  if (confirm !== true)
+    throw new ValidationError("Deletion requires confirm: true");
+};
 
 export const textContent = (text: string): McpContent => ({
   type: "text",
@@ -89,3 +95,5 @@ export const setIfDefined = (
   }
   return target;
 };
+import type { ToolAnnotations } from "@modelcontextprotocol/server";
+import { ValidationError } from "../types/mcpErrors.js";

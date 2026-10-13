@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { bookmarkTools } from "../src/tools/bookmarks.js";
 
 describe("bookmark_search tool with new filters", () => {

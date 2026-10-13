@@ -7,6 +7,7 @@ import {
 } from "@modelcontextprotocol/node";
 import { config } from "dotenv";
 import http from "node:http";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { AuthorizationCode } from "simple-oauth2";
 import pkg from "../package.json";
@@ -30,6 +31,8 @@ const allowedOrigins = [
 ];
 const validateHost = hostHeaderValidation(allowedHosts);
 const validateOrigin = originValidation(allowedOrigins);
+const oauthStates = new Map<string, number>();
+const oauthStateLifetime = 600_000;
 
 const oauthClient = new AuthorizationCode({
   client: {
@@ -105,10 +108,20 @@ const server = http.createServer(async (req, res) => {
     const redirectUri =
       process.env.RAINDROP_REDIRECT_URI ||
       `http://localhost:${PORT}/auth/raindrop/callback`;
+    for (const [state, expires] of oauthStates) {
+      if (expires <= Date.now()) oauthStates.delete(state);
+    }
+    if (oauthStates.size >= 256) {
+      oauthStates.delete(oauthStates.keys().next().value!);
+    }
+    const state = randomBytes(32).toString("hex");
+    oauthStates.set(state, Date.now() + oauthStateLifetime);
     res.writeHead(302, {
+      "Set-Cookie": `raindrop_oauth_state=${state}; Path=/auth/raindrop; HttpOnly; SameSite=Lax; Max-Age=600${new URL(redirectUri).protocol === "https:" ? "; Secure" : ""}`,
       Location: oauthClient.authorizeURL({
         redirect_uri: redirectUri,
         scope: "read write",
+        state,
       }),
     });
     res.end();
@@ -116,6 +129,27 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === "/auth/raindrop/callback" && req.method === "GET") {
+    const state = url.searchParams.get("state");
+    const cookieState = req.headers.cookie
+      ?.split(";")
+      .map((cookie) => cookie.trim())
+      .find((cookie) => cookie.startsWith("raindrop_oauth_state="))
+      ?.slice("raindrop_oauth_state=".length);
+    if (
+      !state ||
+      state !== cookieState ||
+      (oauthStates.get(state) ?? 0) <= Date.now()
+    ) {
+      res.writeHead(400, { "Content-Type": "text/plain" });
+      res.end("Invalid or expired OAuth state");
+      return;
+    }
+    oauthStates.delete(state);
+    res.setHeader(
+      "Set-Cookie",
+      "raindrop_oauth_state=; Path=/auth/raindrop; HttpOnly; SameSite=Lax; Max-Age=0",
+    );
+    res.setHeader("Cache-Control", "no-store");
     const code = url.searchParams.get("code");
     if (!code) {
       res.writeHead(400, { "Content-Type": "text/plain" });
@@ -132,8 +166,8 @@ const server = http.createServer(async (req, res) => {
       });
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ access_token: token.token.access_token }));
-    } catch (error) {
-      logger.error("OAuth token exchange failed", error);
+    } catch {
+      logger.error("OAuth token exchange failed");
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "OAuth token exchange failed" }));
     }
@@ -150,7 +184,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 export const startHttpServer = () =>
-  server.listen(PORT, () => {
+  server.listen(PORT, "127.0.0.1", () => {
     logger.info(`Raindrop MCP HTTP Server running on port ${PORT}`);
     logger.info(`MCP endpoint: http://localhost:${PORT}/mcp`);
   });

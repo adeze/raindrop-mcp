@@ -25,6 +25,7 @@ export const createDiagnosticsTool = (
 ) =>
   defineTool({
     name: "diagnostics",
+    annotations: { readOnlyHint: true, destructiveHint: false },
     description: "Diagnostics resource and runtime metadata.",
     inputSchema: DiagnosticsInputSchema,
     outputSchema: DiagnosticsOutputSchema,

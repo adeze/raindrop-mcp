@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RaindropMCPService } from "../src/services/raindropmcp.service.js";
 
 describe("Diagnostics Health Stats", () => {
@@ -6,6 +6,19 @@ describe("Diagnostics Health Stats", () => {
 
   beforeEach(() => {
     mcpService = new RaindropMCPService();
+    vi.spyOn(mcpService.raindropService, "getUserStats").mockResolvedValue({
+      bookmarks: 10,
+      collections: 3,
+      highlights: 0,
+      tags: 2,
+      trash: 4,
+    });
+    vi.spyOn(mcpService.raindropService, "getBookmarks").mockImplementation(
+      async (params) => ({
+        items: [],
+        count: params?.broken ? 1 : params?.duplicates ? 2 : 3,
+      }),
+    );
   });
 
   it("should include detailed library health in diagnostics tool output", async () => {
@@ -28,9 +41,14 @@ describe("Diagnostics Health Stats", () => {
     expect(diagnostics.libraryHealth.duplicateCount).toBeDefined();
     expect(diagnostics.libraryHealth.untaggedCount).toBeDefined();
 
-    console.log(
-      "Diagnostics Health Data:",
-      JSON.stringify(diagnostics.libraryHealth, null, 2),
-    );
+    expect(diagnostics.libraryHealth).toEqual({
+      totalBookmarks: 10,
+      totalCollections: 3,
+      totalHighlights: 0,
+      totalTags: 2,
+      brokenCount: 1,
+      duplicateCount: 2,
+      untaggedCount: 3,
+    });
   });
 });

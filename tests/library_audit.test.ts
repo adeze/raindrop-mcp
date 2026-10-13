@@ -1,14 +1,17 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RaindropMCPService } from "../src/services/raindropmcp.service.js";
 
 describe("Library Audit Tool", () => {
   let mcpService: RaindropMCPService;
 
   beforeEach(() => {
-    // We can use the real service but we'll need to mock the underlying API calls
-    // if we want to avoid real network requests.
-    // For the "Red" phase, we just want to see it fail because the tool isn't registered.
     mcpService = new RaindropMCPService();
+    vi.spyOn(mcpService.raindropService, "getBookmarks").mockImplementation(
+      async (params) => ({
+        items: [],
+        count: params?.broken ? 1 : params?.duplicates ? 2 : 3,
+      }),
+    );
   });
 
   it("should have library_audit, empty_trash, and cleanup_collections tools registered", async () => {
@@ -25,5 +28,8 @@ describe("Library Audit Tool", () => {
     expect(result.content[0].text).toContain("Broken links");
     expect(result.content[0].text).toContain("Potential duplicates");
     expect(result.content[0].text).toContain("Untagged items");
+    expect(result.content[0].text).toContain("Broken links: 1");
+    expect(result.content[0].text).toContain("Potential duplicates: 2");
+    expect(result.content[0].text).toContain("Untagged items: 3");
   });
 });

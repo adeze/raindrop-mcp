@@ -105,6 +105,13 @@ Add this to your MCP client configuration:
 }
 ```
 
+### HTTP
+
+`bun run start:http` serves `/mcp` on `127.0.0.1:3002`; set `HTTP_PORT` to
+change the port. HTTP tools use the server's `RAINDROP_ACCESS_TOKEN`. Host and
+Origin checks prevent DNS rebinding but do not authenticate callers. For remote
+access, place an authenticated reverse proxy in front of the loopback endpoint.
+
 ## Requirements
 
 - A Raindrop.io account
@@ -140,12 +147,70 @@ This repository uses `semantic-release` as the only supported release flow.
 
 ### Local validation before merge
 
+Use Node 24.15+ and Bun 1.4.3+. The published server requires Node 22.19+.
+Vite+ 1.1 manages lint, formatting, type checks, tests, and packaging through
+`vite.config.ts`; Bun remains the package manager.
+
 ```bash
-bun run lint
-bun run type-check
+bun install --frozen-lockfile
+bun run check
 bun run test
-bun run build
+bun run test:coverage
+bun run docs
 ```
+
+`bun run build` runs `vp pack`, preserving `build/index.js`, `build/server.js`,
+source maps, and bundled dependencies. Tests build first so package checks work
+from a clean checkout. `bun run dev` and `bun run dev:http` retain Bun's server
+watch mode; `bunx vp run dev` runs the same script. `vp dev` starts a Vite web
+server and is not this MCP server's development command.
+
+The server uses TypeScript 7.0.2. TypeDoc and OpenAPI type generation currently need the TypeScript 6 compiler
+API, so `tooling/compiler-api` keeps its own TypeScript 6.0.3 dependency. Install from the
+root; `bun run docs` still generates the existing documentation.
+
+`bun run update:deps` refreshes dependencies while keeping coverage aligned with
+Vite+'s bundled Vitest 5.0.3. Update those pins together when upgrading Vite+.
+The migration removed the generated `clearMocks: false` setting after the same
+61 tests passed with Vitest 5 defaults. Coverage resolves the same 16 files as
+Vitest 4; no thresholds or exclusions were relaxed. No tsdown compatibility
+settings were needed because the original build used Bun.
+
+The unused Java/Axios generator stack was removed; typed `openapi-fetch` remains
+the shared client. Both current OpenAPI generators tested require the older
+TypeScript compiler API: Hey API 0.99.0 fails under TypeScript 7 before CLI help.
+The isolated, tested generator avoids changes to authentication, rate limiting
+and cache behavior.
+
+Release tooling still pulls `braces` 3.0.3, affected by
+[GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm);
+no patched version is published. This dependency is not included in the server
+bundle. Do not feed untrusted glob patterns to release tooling.
+
+### Breaking changes and reviewed fixes
+
+- Deleting bookmarks, collections, tags or highlights, and bulk removal now
+  requires `confirm: true`. Cleanup tools keep their existing preview flow.
+- HTTP binds to `127.0.0.1`; OAuth callbacks require matching, unexpired,
+  single-use browser state. Remote access requires an authenticated proxy.
+- Bulk moves/updates/removals use the source collection's API endpoint.
+  Bookmark updates preserve `collectionId`; omit URL/title when changing only
+  other fields. Collection `0` means All and cannot be used for bulk mutations;
+  `-1` means Unsorted.
+- Tags use upstream search operators, preserving pagination and total counts.
+  Collection paths no longer depend on API ordering; mutations invalidate
+  affected bookmark, search and collection-count caches.
+- Permanent upstream errors are not retried. Resource templates use the MCP
+  SDK; unsupported resource subscriptions are no longer advertised.
+- MCPB packages contain bundled runtime code rather than development
+  dependencies. Environment files, logs and local Codex state are excluded.
+
+These fixes address the substance of [PR #52](https://github.com/adeze/raindrop-mcp/pull/52)
+and [issues #54/#55](https://github.com/adeze/raindrop-mcp/issues/55).
+Older SDK v1/Zod 3 migrations are superseded by this SDK v2 setup. Framework
+replacement was unnecessary: existing SDK APIs and shared service helpers
+eliminated redundant code. Live Raindrop mutations and OAuth provider login
+remain manual validation steps.
 
 ### Commit message examples
 

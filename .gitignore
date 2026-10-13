@@ -70,3 +70,4 @@ raindrop-mcp.code-workspace
 # Private inspector config
 mcp-inspector.config.json
 
+.vitest/

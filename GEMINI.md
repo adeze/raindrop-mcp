@@ -14,7 +14,7 @@ The server supports both **STDIO** (standard input/output) and **HTTP/SSE** (Ser
   - `@modelcontextprotocol/sdk`: For MCP protocol implementation.
   - `zod`: For input/output schema validation.
   - `express` / `node:http`: For the HTTP/SSE transport layer.
-  - `axios` / `openapi-fetch`: For Raindrop.io API communication.
+  - `openapi-fetch`: For Raindrop.io API communication.
 - **Testing:** `bun test` (Vitest compatible)
 
 ## Architecture

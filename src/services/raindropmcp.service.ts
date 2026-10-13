@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/server";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/server";
 import type { Prompt } from "@modelcontextprotocol/server";
 import pkg from "../../package.json";
 import { buildToolConfigs } from "../tools/index.js";
@@ -27,7 +27,6 @@ export class RaindropMCPService {
   private server: McpServer;
   public raindropService: RaindropService;
   private resources: Record<string, any> = {};
-  private resourceSubscriptions: Set<string> = new Set(); // Track resource subscriptions
   private prompts: Array<
     Prompt & {
       messages?: Array<{ role: "user" | "assistant"; content: string }>;
@@ -123,7 +122,7 @@ export class RaindropMCPService {
         },
         {
           capabilities: {
-            resources: { subscribe: true, listChanged: true },
+            resources: {},
             prompts: { listChanged: true },
             tools: { listChanged: true },
             experimental: {
@@ -169,6 +168,7 @@ export class RaindropMCPService {
           description: config.description,
           inputSchema: config.inputSchema,
           outputSchema: config.outputSchema,
+          annotations: config.annotations,
         },
         this.asyncHandler(async (args: any, extra: any) =>
           config.handler(args, {
@@ -218,39 +218,28 @@ export class RaindropMCPService {
   }
 
   private registerResourceHandlers() {
-    this.server.server.setRequestHandler(
-      "resources/list",
-      this.asyncHandler(async () => ({
-        resources: this.listResources(),
-      })),
-    );
-
-    this.server.server.setRequestHandler(
-      "resources/read",
-      this.asyncHandler(async (request: any) => {
-        const contents = await this.readResource(request.params.uri);
-        return { contents };
-      }),
-    );
-
-    // Add resource subscription handlers for protocol 2025-11-25
-    this.server.server.setRequestHandler(
-      "resources/subscribe",
-      this.asyncHandler(async (request: any) => {
-        const { uri } = request.params;
-        this.resourceSubscriptions.add(uri);
-        return {}; // Empty object indicates successful subscription
-      }),
-    );
-
-    this.server.server.setRequestHandler(
-      "resources/unsubscribe",
-      this.asyncHandler(async (request: any) => {
-        const { uri } = request.params;
-        this.resourceSubscriptions.delete(uri);
-        return {}; // Empty object indicates successful unsubscription
-      }),
-    );
+    for (const resource of this.listResources()) {
+      this.server.registerResource(
+        resource.name,
+        resource.uri,
+        {
+          description: resource.description,
+          mimeType: resource.mimeType,
+        },
+        async (uri) => ({ contents: await this.readResource(uri.href) }),
+      );
+    }
+    for (const entity of ["collection", "raindrop"]) {
+      this.server.registerResource(
+        entity,
+        new ResourceTemplate(`mcp://${entity}/{id}`, { list: undefined }),
+        {
+          description: `Access a Raindrop ${entity} by ID`,
+          mimeType: "application/json",
+        },
+        async (uri) => ({ contents: await this.readResource(uri.href) }),
+      );
+    }
   }
 
   private registerPromptHandlers() {
@@ -290,31 +279,13 @@ export class RaindropMCPService {
       outputSchema: unknown;
     }>
   > {
-    const registeredTools = (this.server as any)._registeredTools || {};
-    const tools = Object.entries(registeredTools).map(
-      ([name, tool]: [string, any]) => ({
-        id: name,
-        name: name,
-        description: tool.description || "",
-        inputSchema: tool.inputSchema || {},
-        outputSchema: tool.outputSchema || {},
-      }),
-    );
-
-    // Also include tools from our toolConfigs if the server's tools is empty
-    if (tools.length === 0) {
-      return toolConfigs.map((config) => ({
-        id: config.name,
-        name: config.name
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (l) => l.toUpperCase()),
-        description: config.description,
-        inputSchema: config.inputSchema,
-        outputSchema: config.outputSchema || {},
-      }));
-    }
-
-    return tools.filter((tool: any) => tool.description);
+    return toolConfigs.map((config) => ({
+      id: config.name,
+      name: config.name,
+      description: config.description,
+      inputSchema: config.inputSchema,
+      outputSchema: config.outputSchema ?? {},
+    }));
   }
 
   /**
@@ -324,13 +295,13 @@ export class RaindropMCPService {
    * @returns Tool response
    */
   public async callTool(toolId: string, input: any): Promise<any> {
-    const registeredTools = (this.server as any)._registeredTools || {};
-    const tool = registeredTools[toolId];
-    if (!tool || typeof tool.handler !== "function") {
-      throw new Error(`Tool with id "${toolId}" not found or has no handler.`);
-    }
-    // Defensive: ensure input is always an object
-    return await tool.handler(input ?? {}, {});
+    const tool = toolConfigs.find((config) => config.name === toolId);
+    if (!tool) throw new NotFoundError(`Tool with id "${toolId}" not found.`);
+    const args = await tool.inputSchema.parseAsync(input ?? {});
+    return tool.handler(args, {
+      raindropService: this.raindropService,
+      mcpServer: this.server.server,
+    });
   }
 
   /**
@@ -418,7 +389,8 @@ export class RaindropMCPService {
     }
 
     const resource = this.resources[uri] as
-      { contents: Array<{ uri: string; text: string }> } | undefined;
+      | { contents: Array<{ uri: string; text: string }> }
+      | undefined;
     if (resource?.contents) {
       return resource.contents;
     }
@@ -430,7 +402,7 @@ export class RaindropMCPService {
 
   /**
    * Returns a list of all available MCP resources with their metadata.
-   * Includes both static pre-registered resources and dynamic resource patterns.
+   * Dynamic resources are exposed through the SDK resource templates API.
    */
   public listResources(): Array<{
     id: string;
@@ -440,51 +412,13 @@ export class RaindropMCPService {
     description?: string;
     mimeType?: string;
   }> {
-    const serverResources = ((this.server as any)._resources || []).map(
-      (r: any) => ({
-        id: r.id || r.uri,
-        name: r.name || r.title || r.id || r.uri,
-        uri: r.uri,
-        title: r.title,
-        description: r.description,
-        mimeType: r.mimeType,
-      }),
-    );
-
-    // Include our static resources and dynamic resource patterns
-    const staticResources = Object.keys(this.resources).map((uri) => ({
+    return Object.keys(this.resources).map((uri) => ({
       id: uri,
       name: uri,
       uri,
-      title: `Resource ${uri}`,
       description: `MCP resource for ${uri}`,
       mimeType: "application/json",
     }));
-
-    // Add dynamic resource patterns for documentation
-    const dynamicResourcePatterns = [
-      {
-        id: "mcp://collection/{id}",
-        name: "collection_resource",
-        uri: "mcp://collection/{id}",
-        title: "Collection Resource Pattern",
-        description:
-          "Access any Raindrop collection by ID (e.g., mcp://collection/123456)",
-        mimeType: "application/json",
-      },
-      {
-        id: "mcp://raindrop/{id}",
-        name: "raindrop_resource",
-        uri: "mcp://raindrop/{id}",
-        title: "Raindrop Resource Pattern",
-        description:
-          "Access any Raindrop bookmark by ID (e.g., mcp://raindrop/987654)",
-        mimeType: "application/json",
-      },
-    ];
-
-    // Combine all resources: server resources, static resources, and dynamic patterns
-    return [...serverResources, ...staticResources, ...dynamicResourcePatterns];
   }
 
   /**

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ValidationError } from "../types/mcpErrors.js";
 import { TagInputSchema } from "../types/raindrop-zod.schemas.js";
 import type { ToolHandlerContext } from "./common.js";
-import { defineTool, textContent } from "./common.js";
+import { requireConfirmation, defineTool, textContent } from "./common.js";
 
 const TagOutputSchema = z.object({
   operation: z.enum(["rename", "merge", "delete"]),
@@ -13,6 +13,7 @@ const TagOutputSchema = z.object({
 
 const tagManageTool = defineTool({
   name: "tag_manage",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Renames, merges, or deletes tags. Use the operation parameter to specify the action.",
   inputSchema: TagInputSchema,
@@ -68,6 +69,7 @@ const tagManageTool = defineTool({
         };
       }
       case "delete": {
+        requireConfirmation(args.confirm);
         if (!args.tagNames)
           throw new ValidationError("tagNames required for delete");
         await raindropService.deleteTags(args.collectionId, args.tagNames);

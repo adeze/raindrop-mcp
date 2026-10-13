@@ -1,8 +1,9 @@
 import { z } from "zod";
 import type { ToolHandlerContext } from "./common.js";
-import { defineTool } from "./common.js";
+import { defineTool, requireConfirmation } from "./common.js";
 
 const BulkEditRaindropsInputSchema = z.object({
+  confirm: z.boolean().optional().describe("Set to true to confirm removal"),
   collectionId: z
     .number()
     .describe("Source collection ID where raindrops are currently located"),
@@ -29,6 +30,7 @@ const BulkEditRaindropsInputSchema = z.object({
 
 const bulkEditRaindropsTool = defineTool({
   name: "bulk_edit_raindrops",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Bulk update, move, or remove bookmarks in a specific collection.",
   inputSchema: BulkEditRaindropsInputSchema,
@@ -37,6 +39,7 @@ const bulkEditRaindropsTool = defineTool({
     { raindropService }: ToolHandlerContext,
   ) => {
     if (args.operation === "remove") {
+      requireConfirmation(args.confirm);
       if (!args.ids || args.ids.length === 0) {
         throw new Error("IDs are required for remove operation");
       }
@@ -65,9 +68,11 @@ const bulkEditRaindropsTool = defineTool({
       }
 
       // Moving is essentially a batch update of the collection ID
-      const success = await raindropService.batchUpdateBookmarks(args.ids, {
-        collection: args.toCollectionId,
-      });
+      const success = await raindropService.batchUpdateBookmarks(
+        args.ids,
+        { collection: args.toCollectionId },
+        args.collectionId,
+      );
 
       return {
         content: [

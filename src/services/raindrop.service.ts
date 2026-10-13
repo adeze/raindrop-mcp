@@ -90,6 +90,7 @@ export default class RaindropService {
             throw new NotFoundError("Resource not found");
           throw new UpstreamError(
             `API Error: ${response.status} ${response.statusText}`,
+            { status: response.status },
           );
         }
         return response;
@@ -197,7 +198,13 @@ export default class RaindropService {
       }
 
       // Retry transient upstream errors with exponential backoff
-      if (err instanceof UpstreamError && retryCount < maxRetries) {
+      const status = (err?.cause as { status?: number } | undefined)?.status;
+      if (
+        err instanceof UpstreamError &&
+        status !== undefined &&
+        [408, 500, 502, 503, 504].includes(status) &&
+        retryCount < maxRetries
+      ) {
         const backoffMs = Math.min(500 * Math.pow(2, retryCount), 5000); // 500ms, 1s, 2s, capped at 5s
         this.logger.warn(
           `Transient error, retrying in ${Math.ceil(backoffMs / 1000)}s (attempt ${retryCount + 1}/${maxRetries}): ${err.message}`,
@@ -309,18 +316,24 @@ export default class RaindropService {
       map.set(c._id, { ...c, children: [], path: c.title });
     });
 
-    // Build hierarchy and paths
+    // Attach children before deriving paths; upstream order is arbitrary.
     collections.forEach((c) => {
       const node = map.get(c._id);
       if (c.parent?.$id && map.has(c.parent.$id)) {
         const parent = map.get(c.parent.$id);
         parent.children.push(node);
-        node.path = `${parent.path} > ${c.title}`;
       } else {
         tree.push(node);
       }
     });
 
+    const setPaths = (nodes: typeof tree, parentPath?: string) => {
+      for (const node of nodes) {
+        node.path = parentPath ? `${parentPath} > ${node.title}` : node.title;
+        setPaths(node.children, node.path);
+      }
+    };
+    setPaths(tree);
     return tree;
   }
 
@@ -452,10 +465,16 @@ export default class RaindropService {
       const query: any = {};
       const searchParts = params.search ? [params.search] : [];
 
-      if (params.tags) query.tag = params.tags.join(",");
-      if (params.tag) query.tag = params.tag;
-      if (params.important !== undefined) {
+      for (const tag of [
+        ...(params.tags ?? []),
+        ...(params.tag ? [params.tag] : []),
+      ]) {
+        searchParts.push(`#${JSON.stringify(tag)}`);
+      }
+      if (params.important === true) {
         searchParts.push("important:true");
+      } else if (params.important === false) {
+        searchParts.push("-important:true");
       }
       if (params.page) query.page = params.page;
       if (params.perPage) query.perpage = params.perPage;
@@ -489,9 +508,11 @@ export default class RaindropService {
       }
 
       if (params.domain) query.domain = params.domain;
-      const endpoint = params.collection ? "/raindrops/{id}" : "/raindrops/0";
+      const endpoint = params.collection
+        ? "/raindrops/{collectionId}"
+        : "/raindrops/0";
       const options = params.collection
-        ? { params: { path: { id: params.collection }, query } }
+        ? { params: { path: { collectionId: params.collection }, query } }
         : { params: { query } };
 
       const { data } = await (this.client as any).GET(endpoint, options);
@@ -586,6 +607,7 @@ export default class RaindropService {
 
     // Invalidate search cache (since a new item might affect search results)
     await this.cacheSearch.clear();
+    await this.cacheCollections.clear();
     return newBookmark;
   }
 
@@ -609,6 +631,7 @@ export default class RaindropService {
     // Invalidate bookmark and search caches
     await this.cacheBookmarks.delete(`id:${id}`);
     await this.cacheSearch.clear();
+    await this.cacheCollections.clear();
     return updated;
   }
 
@@ -626,11 +649,12 @@ export default class RaindropService {
     // Invalidate bookmark and search caches
     await this.cacheBookmarks.delete(`id:${id}`);
     await this.cacheSearch.clear();
+    await this.cacheCollections.clear();
   }
 
   /**
    * Batch update bookmarks
-   * Raindrop.io API: PUT /raindrops
+   * Raindrop.io API: PUT /raindrops/{collectionId}
    */
   async batchUpdateBookmarks(
     ids: number[],
@@ -640,22 +664,13 @@ export default class RaindropService {
       important?: boolean;
       broken?: boolean;
     },
+    collectionId: number,
   ): Promise<boolean> {
-    return this.withRateLimit(async () => {
-      const body: any = { ids };
-      if (updates.tags) body.tags = updates.tags;
-      if (updates.collection) body.collection = { $id: updates.collection };
-      if (updates.important !== undefined) body.important = updates.important;
-      if (updates.broken !== undefined) body.broken = updates.broken;
-      const { data } = await this.client.PUT("/raindrops", { body });
-
-      // Invalidate caches
-      await this.cacheSearch.clear();
-      for (const id of ids) {
-        await this.cacheBookmarks.delete(`id:${id}`);
-      }
-
-      return !!data?.result;
+    const { collection, ...fields } = updates;
+    return this.batchUpdateBookmarksInCollection(collectionId, {
+      ids,
+      ...fields,
+      ...(collection !== undefined && { collection: { $id: collection } }),
     });
   }
 
@@ -670,16 +685,23 @@ export default class RaindropService {
       tags?: string[];
       important?: boolean;
       broken?: boolean;
+      collection?: { $id: number };
     },
   ): Promise<boolean> {
+    if (collectionId === 0 || updates.collection?.$id === 0) {
+      throw new ValidationError(
+        "Collection 0 is All bookmarks; use a specific collection or -1 for Unsorted",
+      );
+    }
     return this.withRateLimit(async () => {
       const { data } = await this.client.PUT("/raindrops/{collectionId}", {
-        params: { path: { id: collectionId } as any },
+        params: { path: { collectionId } },
         body: updates,
       });
 
       // Invalidate caches
       await this.cacheSearch.clear();
+      await this.cacheCollections.clear();
       if (updates.ids) {
         for (const id of updates.ids) {
           await this.cacheBookmarks.delete(`id:${id}`);
@@ -698,14 +720,20 @@ export default class RaindropService {
     collectionId: number,
     ids?: number[],
   ): Promise<boolean> {
+    if (collectionId === 0) {
+      throw new ValidationError(
+        "Collection 0 is All bookmarks; use a specific collection or -1 for Unsorted",
+      );
+    }
     return this.withRateLimit(async () => {
       const { data } = await this.client.DELETE("/raindrops/{collectionId}", {
-        params: { path: { id: collectionId } as any },
+        params: { path: { collectionId } },
         body: ids ? { ids } : undefined,
       });
 
       // Invalidate caches
       await this.cacheSearch.clear();
+      await this.cacheCollections.clear();
       if (ids) {
         for (const id of ids) {
           await this.cacheBookmarks.delete(`id:${id}`);
@@ -751,7 +779,7 @@ export default class RaindropService {
     return this.withRateLimit(async () => {
       const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
       const options = collectionId
-        ? { params: { path: { id: collectionId } } }
+        ? { params: { path: { collectionId } } }
         : undefined;
       const { data } = await (this.client as any).GET(endpoint, options);
       return data?.items || [];
@@ -779,7 +807,7 @@ export default class RaindropService {
     return this.withRateLimit(async () => {
       const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
       const options = {
-        ...(collectionId && { params: { path: { id: collectionId } } }),
+        ...(collectionId && { params: { path: { collectionId } } }),
         body: { tags },
       };
       const { data } = await (this.client as any).DELETE(endpoint, options);
@@ -804,7 +832,7 @@ export default class RaindropService {
     return this.withRateLimit(async () => {
       const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
       const options = {
-        ...(collectionId && { params: { path: { id: collectionId } } }),
+        ...(collectionId && { params: { path: { collectionId } } }),
         body: { from: oldName, to: newName },
       };
       const { data } = await (this.client as any).PUT(endpoint, options);
@@ -829,7 +857,7 @@ export default class RaindropService {
     return this.withRateLimit(async () => {
       const endpoint = collectionId ? "/tags/{collectionId}" : "/tags/0";
       const options = {
-        ...(collectionId && { params: { path: { id: collectionId } } }),
+        ...(collectionId && { params: { path: { collectionId } } }),
         body: { tags, to: newName },
       };
       const { data } = await (this.client as any).PUT(endpoint, options);
@@ -935,8 +963,9 @@ export default class RaindropService {
         },
       });
 
-      // Invalidate bookmark cache
+      // Highlights appear in bookmark details and search results.
       await this.cacheBookmarks.delete(`id:${bookmarkId}`);
+      await this.cacheSearch.clear();
 
       if (!data?.item) throw new UpstreamError("Failed to create highlight");
       return data.item as Highlight;
@@ -961,9 +990,9 @@ export default class RaindropService {
         body: updates,
       });
 
-      // We don't easily know the bookmark ID here, so clear all bookmark caches or just hope highlights are viewed via bookmark fetch
-      // For safety, clear all bookmarks cache since highlights are nested
+      // Highlight updates do not include their parent bookmark ID.
       await this.cacheBookmarks.clear();
+      await this.cacheSearch.clear();
 
       if (!data?.item) throw new UpstreamError("Failed to update highlight");
       return data.item as Highlight;
@@ -981,7 +1010,7 @@ export default class RaindropService {
       });
     });
 
-    // Same as update
     await this.cacheBookmarks.clear();
+    await this.cacheSearch.clear();
   }
 }

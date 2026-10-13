@@ -14,6 +14,7 @@ const LibraryAuditInputSchema = z.object({
  */
 const libraryAuditTool = defineTool({
   name: "library_audit",
+  annotations: { readOnlyHint: true, destructiveHint: false },
   description:
     "Scans the entire library for broken links and duplicate bookmarks.",
   inputSchema: LibraryAuditInputSchema,
@@ -78,6 +79,7 @@ const libraryAuditTool = defineTool({
  */
 const emptyTrashTool = defineTool({
   name: "empty_trash",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Permanently delete all bookmarks currently in the trash collection. Requires 'confirm: true' to execute.",
   inputSchema: z.object({
@@ -129,6 +131,7 @@ const emptyTrashTool = defineTool({
  */
 const cleanupCollectionsTool = defineTool({
   name: "cleanup_collections",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Remove all collections that do not contain any bookmarks. Requires 'confirm: true' to execute.",
   inputSchema: z.object({
@@ -170,6 +173,7 @@ const cleanupCollectionsTool = defineTool({
  */
 const removeDuplicatesTool = defineTool({
   name: "remove_duplicates",
+  annotations: { readOnlyHint: false, destructiveHint: true },
   description:
     "Optimized duplicate deletion pattern. Scans all collections and removes duplicates in batches of 50 to minimize round-trips. Supports dry run to report counts without deleting.",
   inputSchema: z.object({

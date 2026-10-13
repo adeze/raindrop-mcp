@@ -32,7 +32,7 @@
     "noImplicitReturns": true,
     "useUnknownInCatchVariables": true,
     // Vitest support
-    "types": ["vitest/globals", "node", "bun-types"]
+    "types": ["vite-plus/test/globals", "node", "bun"]
   },
   "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "**/.*/", "**/docs/**/*"]

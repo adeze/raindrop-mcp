@@ -338,7 +338,7 @@ paths:
       summary: Get bookmarks from a collection
       description: Retrieves bookmarks from a specific collection with filtering options
       parameters:
-        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/CollectionPathId'
         - $ref: '#/components/parameters/SearchQuery'
         - $ref: '#/components/parameters/SortOrder'
         - $ref: '#/components/parameters/TagFilter'
@@ -363,7 +363,7 @@ paths:
       summary: Update multiple bookmarks in a collection
       description: Update properties of multiple bookmarks in a specific collection at once
       parameters:
-        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/CollectionPathId'
       requestBody:
         required: true
         content:
@@ -383,7 +383,7 @@ paths:
       summary: Delete multiple bookmarks or empty collection
       description: Delete multiple bookmarks in a specific collection or empty trash/collection
       parameters:
-        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/CollectionPathId'
       requestBody:
         required: false
         content:
@@ -983,7 +983,7 @@ paths:
       summary: Get tags from a specific collection
       description: Retrieves all tags used in bookmarks within a specific collection
       parameters:
-        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/CollectionPathId'
       responses:
         '200':
           description: Collection tags retrieved successfully
@@ -997,7 +997,7 @@ paths:
       summary: Rename or merge tags in a collection
       description: Rename or merge tags within a specific collection
       parameters:
-        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/CollectionPathId'
       requestBody:
         required: true
         content:
@@ -1017,7 +1017,7 @@ paths:
       summary: Delete tags from a collection
       description: Delete multiple tags from bookmarks in a specific collection
       parameters:
-        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/CollectionPathId'
       requestBody:
         required: true
         content:
@@ -1187,6 +1187,14 @@ components:
       description: Raindrop.io API access token
 
   parameters:
+    CollectionPathId:
+      name: collectionId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Collection ID
+
     CollectionId:
       name: id
       in: path
