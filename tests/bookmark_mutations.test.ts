@@ -144,4 +144,7 @@ it("reads and writes bookmark notes", async () => {
   expect(JSON.parse(result.content[0].resource.text).note).toBe(
     "[Syllabus](https://example.com/syllabus)",
   );
+  expect(result.structuredContent.bookmark.note).toBe(
+    "[Syllabus](https://example.com/syllabus)",
+  );
 });

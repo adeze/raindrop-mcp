@@ -1685,6 +1685,9 @@ components:
         excerpt:
           type: string
           description: Bookmark description
+        note:
+          type: string
+          description: User notes
         tags:
           type: array
           items:

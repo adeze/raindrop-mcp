@@ -1162,6 +1162,8 @@ export type components = {
             readonly title?: string;
             /** @description Bookmark description */
             readonly excerpt?: string;
+            /** @description User notes */
+            readonly note?: string;
             /** @description Array of tags */
             readonly tags?: readonly string[];
             /**

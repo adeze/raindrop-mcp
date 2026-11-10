@@ -593,12 +593,8 @@ export default class RaindropService {
         throw new ValidationError("Bookmark link is required");
       const { data } = await this.client.POST("/raindrop", {
         body: {
-          link: bookmark.link,
-          ...(bookmark.title && { title: bookmark.title }),
-          ...(bookmark.excerpt && { excerpt: bookmark.excerpt }),
-          ...(bookmark.note && { note: bookmark.note }),
-          ...(bookmark.tags && { tags: bookmark.tags }),
-          important: bookmark.important || false,
+          important: false,
+          ...bookmark,
           collection: { $id: collectionId },
           pleaseParse: {},
         },

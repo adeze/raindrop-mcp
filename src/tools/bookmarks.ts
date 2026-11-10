@@ -52,6 +52,7 @@ const BookmarkSearchOutputSchema = z.object({
       title: z.string(),
       url: z.string().url(),
       tags: z.array(z.string()),
+      note: z.string().optional(),
     }),
   ),
   count: z.number(),
@@ -108,6 +109,7 @@ const bookmarkSummary = (bookmark: any) => ({
   title: bookmark.title || "Untitled",
   url: bookmark.link,
   tags: bookmark.tags || [],
+  note: bookmark.note || undefined,
 });
 
 const bookmarkSearchTool = defineTool({
