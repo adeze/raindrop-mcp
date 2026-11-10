@@ -583,6 +583,7 @@ export default class RaindropService {
       link: string;
       title?: string;
       excerpt?: string;
+      note?: string;
       tags?: string[];
       important?: boolean;
     },
@@ -595,6 +596,7 @@ export default class RaindropService {
           link: bookmark.link,
           ...(bookmark.title && { title: bookmark.title }),
           ...(bookmark.excerpt && { excerpt: bookmark.excerpt }),
+          ...(bookmark.note && { note: bookmark.note }),
           ...(bookmark.tags && { tags: bookmark.tags }),
           important: bookmark.important || false,
           collection: { $id: collectionId },

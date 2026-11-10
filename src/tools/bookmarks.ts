@@ -180,6 +180,7 @@ const bookmarkManageTool = defineTool({
           title: args.title,
         };
         setIfDefined(createPayload, "excerpt", args.description);
+        setIfDefined(createPayload, "note", args.note);
         setIfDefined(createPayload, "tags", args.tags);
         setIfDefined(createPayload, "important", args.important);
         const bookmark = await raindropService.createBookmark(
@@ -201,6 +202,7 @@ const bookmarkManageTool = defineTool({
           title: args.title,
         };
         setIfDefined(updatePayload, "excerpt", args.description);
+        setIfDefined(updatePayload, "note", args.note);
         setIfDefined(updatePayload, "tags", args.tags);
         setIfDefined(updatePayload, "important", args.important);
         if (args.collectionId !== undefined) {
