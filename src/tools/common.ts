@@ -77,6 +77,7 @@ export const makeBookmarkLink = (bookmark: any): McpContent => ({
         title: bookmark.title || "Untitled",
         link: bookmark.link,
         excerpt: bookmark.excerpt,
+        note: bookmark.note || undefined,
         tags: bookmark.tags,
       },
       null,

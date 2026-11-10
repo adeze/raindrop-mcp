@@ -24,6 +24,7 @@ export const BookmarkInputSchema = z.object({
   important: z.boolean().optional(),
   collectionId: z.number().optional(),
   description: z.string().optional(),
+  note: z.string().optional(),
 });
 
 /**

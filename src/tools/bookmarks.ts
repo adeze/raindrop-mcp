@@ -52,6 +52,7 @@ const BookmarkSearchOutputSchema = z.object({
       title: z.string(),
       url: z.string().url(),
       tags: z.array(z.string()),
+      note: z.string().optional(),
     }),
   ),
   count: z.number(),
@@ -108,6 +109,7 @@ const bookmarkSummary = (bookmark: any) => ({
   title: bookmark.title || "Untitled",
   url: bookmark.link,
   tags: bookmark.tags || [],
+  note: bookmark.note || undefined,
 });
 
 const bookmarkSearchTool = defineTool({
@@ -180,6 +182,7 @@ const bookmarkManageTool = defineTool({
           title: args.title,
         };
         setIfDefined(createPayload, "excerpt", args.description);
+        setIfDefined(createPayload, "note", args.note);
         setIfDefined(createPayload, "tags", args.tags);
         setIfDefined(createPayload, "important", args.important);
         const bookmark = await raindropService.createBookmark(
@@ -201,6 +204,7 @@ const bookmarkManageTool = defineTool({
           title: args.title,
         };
         setIfDefined(updatePayload, "excerpt", args.description);
+        setIfDefined(updatePayload, "note", args.note);
         setIfDefined(updatePayload, "tags", args.tags);
         setIfDefined(updatePayload, "important", args.important);
         if (args.collectionId !== undefined) {

@@ -97,3 +97,54 @@ it("requires explicit confirmation on every direct delete/remove tool", async ()
     spies.forEach((spy) => spy.mockClear());
   }
 });
+
+it("reads and writes bookmark notes", async () => {
+  const requests: Request[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (request: Request) => {
+      requests.push(request);
+      return Response.json({
+        result: true,
+        item: {
+          _id: 1,
+          title: "Bookmark",
+          link: "https://example.com",
+          note: "[Syllabus](https://example.com/syllabus)",
+          tags: [],
+        },
+      });
+    }),
+  );
+  const mcp = new RaindropMCPService();
+  mcp.raindropService = new RaindropService("offline-test");
+
+  await mcp.callTool("bookmark_manage", {
+    operation: "create",
+    url: "https://example.com",
+    title: "Bookmark",
+    collectionId: 7,
+    note: "first note",
+  });
+  expect(await requests.at(-1)!.clone().json()).toMatchObject({
+    note: "first note",
+  });
+
+  await mcp.callTool("bookmark_manage", {
+    operation: "update",
+    id: 1,
+    note: "",
+  });
+  expect(await requests.at(-1)!.clone().json()).toEqual({ note: "" });
+
+  const result = await mcp.callTool("get_raindrop", {
+    id: "1",
+    skipCache: true,
+  });
+  expect(JSON.parse(result.content[0].resource.text).note).toBe(
+    "[Syllabus](https://example.com/syllabus)",
+  );
+  expect(result.structuredContent.bookmark.note).toBe(
+    "[Syllabus](https://example.com/syllabus)",
+  );
+});
